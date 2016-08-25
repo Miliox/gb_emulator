@@ -40,8 +40,6 @@ TEST_CASE("Reset Z80", "[Z80]") {
     z80.reg.f = 6;
     z80.reg.h = 7;
     z80.reg.l = 8;
-    z80.reg.sp = 9;
-    z80.reg.pc = 10;
 
     // dirty clock
     z80.clock.m = 50;
@@ -153,4 +151,96 @@ TEST_CASE("Z80 ADD A,E", "[Z80]") {
     REQUIRE(z80.reg.pc == 0);
     REQUIRE(z80.clock.m == 4);
     REQUIRE(z80.clock.t == 16);
+}
+
+TEST_CASE("Increment Registers from Z80", "[Z80]") {
+    Z80 z80;
+
+    z80.iINC_A();
+    REQUIRE(z80.reg.a == 1);
+    REQUIRE(z80.reg.b == 0);
+    REQUIRE(z80.reg.c == 0);
+    REQUIRE(z80.reg.d == 0);
+    REQUIRE(z80.reg.e == 0);
+    REQUIRE(z80.reg.f == 0);
+    REQUIRE(z80.reg.h == 0);
+    REQUIRE(z80.reg.l == 0);
+    REQUIRE(z80.reg.sp == 0);
+    REQUIRE(z80.reg.pc == 0);
+    REQUIRE(z80.clock.m == 1);
+    REQUIRE(z80.clock.t == 4);
+
+    z80.iINC_A();
+    REQUIRE(z80.reg.a == 2);
+    REQUIRE(z80.reg.b == 0);
+    REQUIRE(z80.reg.c == 0);
+    REQUIRE(z80.reg.d == 0);
+    REQUIRE(z80.reg.e == 0);
+    REQUIRE(z80.reg.f == 0);
+    REQUIRE(z80.reg.h == 0);
+    REQUIRE(z80.reg.l == 0);
+    REQUIRE(z80.reg.sp == 0);
+    REQUIRE(z80.reg.pc == 0);
+    REQUIRE(z80.clock.m == 2);
+    REQUIRE(z80.clock.t == 8);
+
+    z80.iINC_E();
+    REQUIRE(z80.reg.a == 2);
+    REQUIRE(z80.reg.b == 0);
+    REQUIRE(z80.reg.c == 0);
+    REQUIRE(z80.reg.d == 0);
+    REQUIRE(z80.reg.e == 1);
+    REQUIRE(z80.reg.f == 0);
+    REQUIRE(z80.reg.h == 0);
+    REQUIRE(z80.reg.l == 0);
+    REQUIRE(z80.reg.sp == 0);
+    REQUIRE(z80.reg.pc == 0);
+    REQUIRE(z80.clock.m == 3);
+    REQUIRE(z80.clock.t == 12);
+
+    z80.iINC_L();
+    REQUIRE(z80.reg.a == 2);
+    REQUIRE(z80.reg.b == 0);
+    REQUIRE(z80.reg.c == 0);
+    REQUIRE(z80.reg.d == 0);
+    REQUIRE(z80.reg.e == 1);
+    REQUIRE(z80.reg.f == 0);
+    REQUIRE(z80.reg.h == 0);
+    REQUIRE(z80.reg.l == 1);
+    REQUIRE(z80.reg.sp == 0);
+    REQUIRE(z80.reg.pc == 0);
+    REQUIRE(z80.clock.m == 4);
+    REQUIRE(z80.clock.t == 16);
+}
+
+TEST_CASE("Decrement Registers from Z80", "[Z80]") {
+    Z80 z80;
+
+    z80.iINC_A();
+    REQUIRE(z80.reg.a == 1);
+    REQUIRE(z80.reg.b == 0);
+    REQUIRE(z80.reg.c == 0);
+    REQUIRE(z80.reg.d == 0);
+    REQUIRE(z80.reg.e == 0);
+    REQUIRE(z80.reg.f == 0);
+    REQUIRE(z80.reg.h == 0);
+    REQUIRE(z80.reg.l == 0);
+    REQUIRE(z80.reg.sp == 0);
+    REQUIRE(z80.reg.pc == 0);
+    REQUIRE(z80.clock.m == 1);
+    REQUIRE(z80.clock.t == 4);
+
+    z80.iDEC_A();
+    REQUIRE(z80.reg.a == 0);
+    REQUIRE(z80.reg.b == 0);
+    REQUIRE(z80.reg.c == 0);
+    REQUIRE(z80.reg.d == 0);
+    REQUIRE(z80.reg.e == 0);
+    REQUIRE(z80.reg.f == 0xC0);
+    REQUIRE(z80.reg.h == 0);
+    REQUIRE(z80.reg.l == 0);
+    REQUIRE(z80.reg.sp == 0);
+    REQUIRE(z80.reg.pc == 0);
+    REQUIRE(z80.clock.m == 2);
+    REQUIRE(z80.clock.t == 8);
 }

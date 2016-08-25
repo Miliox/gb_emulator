@@ -19,10 +19,10 @@ public:
     uint8_t h;
     uint8_t l;
 
-    uint16_t pc;  // program counter
-    uint16_t sp;  // stack pointer
+    uint16_t* pc;  // program counter
+    uint16_t* sp;  // stack pointer
 
-    Registers() : a(0), f(0), b(0), c(0), d(0), e(0), h(0), l (0), pc(0), sp(0) {}
+    Registers() : a(0), f(0), b(0), c(0), d(0), e(0), h(0), l (0), pc(nullptr), sp(nullptr) {}
 };
 
 class Z80 {
@@ -42,6 +42,8 @@ public:
     void tADC_A_(const uint8_t&);
     void tADD_HL_(const uint8_t&, const uint8_t&);
     void tADC_HL_(const uint8_t&, const uint8_t&);
+    void tINC_r(uint8_t&);
+    void tDEC_r(uint8_t&);
 
     // Instruction Set
     void iNOP();
@@ -123,6 +125,21 @@ public:
     void iADD_HL_HL() { tADD_HL_(reg.h, reg.l); }
     void iADD_HL_SP();
 
+    void iINC_A() { tINC_r(reg.a); };
+    void iINC_B() { tINC_r(reg.b); };
+    void iINC_C() { tINC_r(reg.c); };
+    void iINC_D() { tINC_r(reg.d); };
+    void iINC_E() { tINC_r(reg.e); };
+    void iINC_H() { tINC_r(reg.h); };
+    void iINC_L() { tINC_r(reg.l); };
+
+    void iDEC_A() { tDEC_r(reg.a); }
+    void iDEC_B() { tDEC_r(reg.b); }
+    void iDEC_C() { tDEC_r(reg.c); }
+    void iDEC_D() { tDEC_r(reg.d); }
+    void iDEC_E() { tDEC_r(reg.e); }
+    void iDEC_H() { tDEC_r(reg.h); }
+    void iDEC_L() { tDEC_r(reg.l); }
 };
 
 #endif

@@ -118,10 +118,28 @@ void Z80::tADC_A_(const uint8_t& r) {
 
 
 void Z80::iADD_HL_SP() {
-    uint8_t s = static_cast<uint8_t>(reg.sp >> 8);
-    uint8_t p = static_cast<uint8_t>(reg.sp & 0xff);
+    uint8_t s = static_cast<uint8_t>(*reg.sp >> 8);
+    uint8_t p = static_cast<uint8_t>(*reg.sp & 0xff);
 
     tADD_HL_(s, p);
 
-    reg.sp = static_cast<uint16_t>((s << 8) + p);
+    *reg.sp = static_cast<uint16_t>((s << 8) + p);
+}
+
+void Z80::tINC_r(uint8_t& r) {
+    r += 1;
+
+    // TODO: Improve carry checking when carry from bit 3
+    reg.f = check_z(r) + check_h(r) + (reg.f & kFlagC);
+
+    clock += Clock(1);
+}
+
+void Z80::tDEC_r(uint8_t& r) {
+    r -= 1;
+
+    // TODO: Improve carry checking when carry borrow bit 4
+    reg.f = check_z(r) + check_n() + check_h(r) + (reg.f & kFlagC);
+
+    clock += Clock(1);
 }
