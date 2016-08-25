@@ -21,6 +21,8 @@ public:
 
     uint16_t pc;  // program counter
     uint16_t sp;  // stack pointer
+
+    Registers() : a(0), f(0), b(0), c(0), d(0), e(0), h(0), l (0), pc(0), sp(0) {}
 };
 
 class Z80 {
