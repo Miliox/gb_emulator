@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "clock.hpp"
+#include "mmu.hpp"
 
 class Registers {
 public:
@@ -19,10 +20,10 @@ public:
     uint8_t h;
     uint8_t l;
 
-    uint16_t* pc;  // program counter
-    uint16_t* sp;  // stack pointer
+    uint16_t pc;  // program counter
+    uint16_t sp;  // stack pointer
 
-    Registers() : a(0), f(0), b(0), c(0), d(0), e(0), h(0), l (0), pc(nullptr), sp(nullptr) {}
+    Registers() : a(0), f(0), b(0), c(0), d(0), e(0), h(0), l (0), pc(0), sp(0) {}
 };
 
 class Z80 {
@@ -30,18 +31,27 @@ private:
     int32_t acc;
 
 public:
-    Registers reg;
-
+    MMU mmu;
     Clock clock; // global system clock
+    Registers reg;
 
     void reset();
 
     // Instruction Template
     void tLD_r_r(uint8_t&, const uint8_t&);
+
+    void tPUSH_rr(const uint8_t&, const uint8_t&);
+    void tPOP_rr(uint8_t&, uint8_t&);
+
     void tADD_A_(const uint8_t&);
     void tADC_A_(const uint8_t&);
     void tADD_HL_(const uint8_t&, const uint8_t&);
     void tADC_HL_(const uint8_t&, const uint8_t&);
+    void tSUB(const uint8_t&);
+    void tSBC_A_(const uint8_t&);
+    void tAND(const uint8_t&);
+    void tOR(const uint8_t&);
+
     void tINC_r(uint8_t&);
     void tDEC_r(uint8_t&);
 
@@ -125,6 +135,38 @@ public:
     void iADD_HL_HL() { tADD_HL_(reg.h, reg.l); }
     void iADD_HL_SP();
 
+    void iSUB_A() { tSUB(reg.a); }
+    void iSUB_B() { tSUB(reg.b); }
+    void iSUB_C() { tSUB(reg.c); }
+    void iSUB_D() { tSUB(reg.d); }
+    void iSUB_E() { tSUB(reg.e); }
+    void iSUB_H() { tSUB(reg.h); }
+    void iSUB_L() { tSUB(reg.l); }
+
+    void iSBC_A_A() { tSBC_A_(reg.a); }
+    void iSBC_A_B() { tSBC_A_(reg.b); }
+    void iSBC_A_C() { tSBC_A_(reg.c); }
+    void iSBC_A_D() { tSBC_A_(reg.d); }
+    void iSBC_A_E() { tSBC_A_(reg.e); }
+    void iSBC_A_H() { tSBC_A_(reg.h); }
+    void iSBC_A_L() { tSBC_A_(reg.l); }
+
+    void iAND_A() { tAND(reg.a); }
+    void iAND_B() { tAND(reg.b); }
+    void iAND_C() { tAND(reg.c); }
+    void iAND_D() { tAND(reg.d); }
+    void iAND_E() { tAND(reg.e); }
+    void iAND_H() { tAND(reg.h); }
+    void iAND_L() { tAND(reg.l); }
+
+    void iOR_A() { tOR(reg.a); }
+    void iOR_B() { tOR(reg.b); }
+    void iOR_C() { tOR(reg.c); }
+    void iOR_D() { tOR(reg.d); }
+    void iOR_E() { tOR(reg.e); }
+    void iOR_H() { tOR(reg.h); }
+    void iOR_L() { tOR(reg.l); }
+
     void iINC_A() { tINC_r(reg.a); };
     void iINC_B() { tINC_r(reg.b); };
     void iINC_C() { tINC_r(reg.c); };
@@ -140,6 +182,16 @@ public:
     void iDEC_E() { tDEC_r(reg.e); }
     void iDEC_H() { tDEC_r(reg.h); }
     void iDEC_L() { tDEC_r(reg.l); }
+
+    void iPUSH_AF() { tPUSH_rr(reg.a, reg.f); }
+    void iPUSH_BC() { tPUSH_rr(reg.b, reg.c); }
+    void iPUSH_DE() { tPUSH_rr(reg.d, reg.e); }
+    void iPUSH_HL() { tPUSH_rr(reg.h, reg.l); }
+
+    void iPOP_AF() { tPOP_rr(reg.a, reg.f); }
+    void iPOP_BC() { tPOP_rr(reg.b, reg.c); }
+    void iPOP_DE() { tPOP_rr(reg.d, reg.e); }
+    void iPOP_HL() { tPOP_rr(reg.h, reg.l); }
 };
 
 #endif

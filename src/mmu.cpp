@@ -12,6 +12,6 @@ void MMU::write_byte(uint16_t addr, uint8_t value) {
 
 }
 
-void MMU::write_byte(uint16_t addr, uint16_t value) {
+void MMU::write_word(uint16_t addr, uint16_t value) {
 
 }
