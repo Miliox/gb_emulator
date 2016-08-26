@@ -37,6 +37,8 @@ public:
     Clock clock; // global system clock
     Registers reg;
 
+    bool interruptions_enabled;
+
     std::vector<void (Z80::*)()> instruction_map;
     std::vector<void (Z80::*)()> cb_instruction_map;
 
@@ -47,6 +49,8 @@ public:
     void tLD_r_r(uint8_t&, const uint8_t&);
     void tLD_r_ADDR_rr(uint8_t&, const uint8_t&, const uint8_t&);
     void tLD_ADDR_rr_r(const uint8_t&, const uint8_t&, const uint8_t&);
+    void tLD_r_N(uint8_t&);
+    void tLD_rr_NN(uint8_t&, uint8_t&);
 
     void tPUSH_rr(const uint8_t&, const uint8_t&);
     void tPOP_rr(uint8_t&, uint8_t&);
@@ -69,6 +73,8 @@ public:
 
     void tINC_rr(uint8_t&, uint8_t&);
     void tDEC_rr(uint8_t&, uint8_t&);
+
+    void tRST(const uint16_t addr);
 
     // Instruction Set
     void iNotImplemented() {
@@ -169,9 +175,27 @@ public:
 
     void iLD_A_ADDR_BC() { tLD_r_ADDR_rr(reg.a, reg.b, reg.c); }
     void iLD_A_ADDR_DE() { tLD_r_ADDR_rr(reg.a, reg.d, reg.e); }
+    void iLD_A_ADDR_NN();
+    void iLD_ADDR_NN_A();
+
+    void iLD_A_N() { tLD_r_N(reg.a); }
+    void iLD_B_N() { tLD_r_N(reg.b); }
+    void iLD_C_N() { tLD_r_N(reg.c); }
+    void iLD_D_N() { tLD_r_N(reg.d); }
+    void iLD_E_N() { tLD_r_N(reg.e); }
+    void iLD_H_N() { tLD_r_N(reg.h); }
+    void iLD_L_N() { tLD_r_N(reg.l); }
+
+    void iLD_BC_NN() { tLD_rr_NN(reg.b, reg.c); }
+    void iLD_DE_NN() { tLD_rr_NN(reg.d, reg.e); }
+    void iLD_HL_NN() { tLD_rr_NN(reg.h, reg.l); }
+    void iLD_SP_NN();
 
     void iLD_A_OFFSET_ADDR_C();
     void iLD_OFFSET_ADDR_C_A();
+
+    void iLDH_OFFSET_N_A();
+    void iLDH_A_OFFSET_N();
 
     void iLDI_A_ADDR_HL();
     void iLDI_ADDR_HL_A();
@@ -228,6 +252,7 @@ public:
     void iAND_H() { tAND_r(reg.h); }
     void iAND_L() { tAND_r(reg.l); }
     void iAND_ADDR_HL();
+    void iAND_N();
 
     void iOR_A() { tOR_r(reg.a); }
     void iOR_B() { tOR_r(reg.b); }
@@ -237,6 +262,7 @@ public:
     void iOR_H() { tOR_r(reg.h); }
     void iOR_L() { tOR_r(reg.l); }
     void iOR_ADDR_HL();
+    void iOR_N();
 
     void iXOR_A() { tXOR_r(reg.a); }
     void iXOR_B() { tXOR_r(reg.b); }
@@ -246,6 +272,7 @@ public:
     void iXOR_H() { tXOR_r(reg.h); }
     void iXOR_L() { tXOR_r(reg.l); }
     void iXOR_ADDR_HL();
+    void iXOR_N();
 
     void iCP_A() { tCP_r(reg.a); }
     void iCP_B() { tCP_r(reg.b); }
@@ -255,6 +282,7 @@ public:
     void iCP_H() { tCP_r(reg.h); }
     void iCP_L() { tCP_r(reg.l); }
     void iCP_ADDR_HL();
+    void iCP_N();
 
     void iINC_A() { tINC_r(reg.a); };
     void iINC_B() { tINC_r(reg.b); };
@@ -302,7 +330,34 @@ public:
     void iPOP_DE() { tPOP_rr(reg.d, reg.e); }
     void iPOP_HL() { tPOP_rr(reg.h, reg.l); }
 
+    void iRST_00H() { tRST(0x00); };
+    void iRST_08H() { tRST(0x08); };
+    void iRST_10H() { tRST(0x10); };
+    void iRST_18H() { tRST(0x18); };
+    void iRST_20H() { tRST(0x20); };
+    void iRST_28H() { tRST(0x28); };
+    void iRST_30H() { tRST(0x30); };
+    void iRST_38H() { tRST(0x38); };
 
+    void iRET();
+    void iRETI();
+    void iRET_Z();
+    void iRET_NZ();
+    void iRET_C();
+    void iRET_NC();
+
+    void iJP();
+    void iJP_Z();
+    void iJP_NZ();
+    void iJP_C();
+    void iJP_NC();
+    void iJP_HL();
+
+    void iJPR();
+    void iJPR_Z();
+    void iJPR_NZ();
+    void iJPR_C();
+    void iJPR_NC();
 };
 
 #endif

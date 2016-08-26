@@ -27,17 +27,26 @@ inline uint16_t check_c2(int32_t value) {
     return (value > 0xffff || value < 0) ? kFlagC : 0;
 }
 
+inline uint16_t combine16(const uint8_t& msb, const uint8_t& lsb) {
+    return static_cast<uint16_t>((msb << 8) + lsb);
+}
+
+inline void split16(const uint16_t& src, uint8_t& msb, uint8_t& lsb) {
+    msb = static_cast<uint8_t>(src >> 8);
+    lsb = static_cast<uint8_t>(src);
+}
+
 Z80::Z80() {
     instruction_map.reserve(256);
     cb_instruction_map.reserve(256);
 
     instruction_map[0x00] = &Z80::iNOP;
-    instruction_map[0x01] = &Z80::iNotImplemented; // LD BC,d16
+    instruction_map[0x01] = &Z80::iLD_BC_NN;
     instruction_map[0x02] = &Z80::iLD_ADDR_BC_A;
     instruction_map[0x03] = &Z80::iINC_BC;
     instruction_map[0x04] = &Z80::iINC_B;
     instruction_map[0x05] = &Z80::iDEC_B;
-    instruction_map[0x06] = &Z80::iNotImplemented; // LD B,d8
+    instruction_map[0x06] = &Z80::iLD_B_N;
     instruction_map[0x07] = &Z80::iRLCA;
     instruction_map[0x08] = &Z80::iNotImplemented; // LD (a16),SP
     instruction_map[0x09] = &Z80::iADD_HL_BC;
@@ -45,58 +54,58 @@ Z80::Z80() {
     instruction_map[0x0B] = &Z80::iDEC_BC;
     instruction_map[0x0C] = &Z80::iINC_C;
     instruction_map[0x0D] = &Z80::iDEC_C;
-    instruction_map[0x0E] = &Z80::iNotImplemented; // LD C,d8
+    instruction_map[0x0E] = &Z80::iLD_C_N;
     instruction_map[0x0F] = &Z80::iRRCA;
 
     instruction_map[0x10] = &Z80::iNotImplemented; // STOP
-    instruction_map[0x11] = &Z80::iNotImplemented; // LD DE,d16
+    instruction_map[0x11] = &Z80::iLD_DE_NN;
     instruction_map[0x12] = &Z80::iLD_ADDR_DE_A;
     instruction_map[0x13] = &Z80::iINC_DE;
     instruction_map[0x14] = &Z80::iINC_D;
     instruction_map[0x15] = &Z80::iDEC_D;
-    instruction_map[0x16] = &Z80::iNotImplemented; // LD D,d8
+    instruction_map[0x16] = &Z80::iLD_D_N;
     instruction_map[0x17] = &Z80::iRLA;
-    instruction_map[0x18] = &Z80::iNotImplemented; // JR r8
+    instruction_map[0x18] = &Z80::iJR;
     instruction_map[0x19] = &Z80::iADD_HL_DE;
     instruction_map[0x1A] = &Z80::iLD_A_ADDR_DE;
     instruction_map[0x1B] = &Z80::iDEC_DE;
     instruction_map[0x1C] = &Z80::iINC_E;
     instruction_map[0x1D] = &Z80::iDEC_E;
-    instruction_map[0x1E] = &Z80::iNotImplemented; // LD E,d8
+    instruction_map[0x1E] = &Z80::iLD_E_N;
     instruction_map[0x1F] = &Z80::iRRA;
 
-    instruction_map[0x20] = &Z80::iNotImplemented; // JR NZ,r8
-    instruction_map[0x21] = &Z80::iNotImplemented; // LD HL,d16
+    instruction_map[0x20] = &Z80::iJR_NZ;
+    instruction_map[0x21] = &Z80::iLD_HL_NN;
     instruction_map[0x22] = &Z80::iLDI_ADDR_HL_A;
     instruction_map[0x23] = &Z80::iINC_HL;
     instruction_map[0x24] = &Z80::iINC_H;
     instruction_map[0x25] = &Z80::iDEC_H;
-    instruction_map[0x26] = &Z80::iNotImplemented; // LD H,d8
+    instruction_map[0x26] = &Z80::iLD_H_N;
     instruction_map[0x27] = &Z80::iNotImplemented; // DAA
-    instruction_map[0x28] = &Z80::iNotImplemented; // JR Z,r8
+    instruction_map[0x28] = &Z80::iJR_Z;
     instruction_map[0x29] = &Z80::iADD_HL_HL;
     instruction_map[0x2A] = &Z80::iLDI_A_ADDR_HL;
     instruction_map[0x2B] = &Z80::iDEC_HL;
     instruction_map[0x2C] = &Z80::iINC_L;
     instruction_map[0x2D] = &Z80::iDEC_L;
-    instruction_map[0x2E] = &Z80::iNotImplemented; // LD L,d8
+    instruction_map[0x2E] = &Z80::iLD_L_N;
     instruction_map[0x2F] = &Z80::iCPL;
 
-    instruction_map[0x30] = &Z80::iNotImplemented; // JR NC,r8
-    instruction_map[0x31] = &Z80::iNotImplemented; // LD SP,d16
+    instruction_map[0x30] = &Z80::iJR_NC;
+    instruction_map[0x31] = &Z80::iLD_SP_NN;
     instruction_map[0x32] = &Z80::iLDD_ADDR_HL_A;
     instruction_map[0x33] = &Z80::iINC_SP;
     instruction_map[0x34] = &Z80::iINC_ADDR_HL;
     instruction_map[0x35] = &Z80::iDEC_ADDR_HL;
     instruction_map[0x36] = &Z80::iNotImplemented; // LD (HL),d8
     instruction_map[0x37] = &Z80::iSCF;
-    instruction_map[0x38] = &Z80::iNotImplemented; // JR C,r8
+    instruction_map[0x38] = &Z80::iJR_C;
     instruction_map[0x39] = &Z80::iADD_HL_SP;
     instruction_map[0x3A] = &Z80::iLDD_A_ADDR_HL;
     instruction_map[0x3B] = &Z80::iDEC_SP;
     instruction_map[0x3C] = &Z80::iINC_A;
     instruction_map[0x3D] = &Z80::iDEC_A;
-    instruction_map[0x3E] = &Z80::iNotImplemented; // LD A,d8
+    instruction_map[0x3E] = &Z80::iLD_A_N;
     instruction_map[0x3F] = &Z80::iCCF;
 
     instruction_map[0x40] = &Z80::iLD_B_B;
@@ -235,73 +244,73 @@ Z80::Z80() {
     instruction_map[0xBE] = &Z80::iCP_ADDR_HL;
     instruction_map[0xBF] = &Z80::iCP_A;
 
-    instruction_map[0xC0] = &Z80::iNotImplemented; // RET NZ
+    instruction_map[0xC0] = &Z80::iRET_NZ;
     instruction_map[0xC1] = &Z80::iPOP_BC;
-    instruction_map[0xC2] = &Z80::iNotImplemented; // JP NZ,a16
-    instruction_map[0xC3] = &Z80::iNotImplemented; // JP a16
+    instruction_map[0xC2] = &Z80::iJP_NZ;
+    instruction_map[0xC3] = &Z80::iJP;
     instruction_map[0xC4] = &Z80::iNotImplemented; // CALL NZ,a16
     instruction_map[0xC5] = &Z80::iPUSH_BC;
     instruction_map[0xC6] = &Z80::iNotImplemented; // ADD A,d8
-    instruction_map[0xC7] = &Z80::iNotImplemented; // RST 00H
-    instruction_map[0xC8] = &Z80::iNotImplemented; // RET Z
-    instruction_map[0xC9] = &Z80::iNotImplemented; // RET
-    instruction_map[0xCA] = &Z80::iNotImplemented; // JP Z,a16
+    instruction_map[0xC7] = &Z80::iRST_00H;
+    instruction_map[0xC8] = &Z80::iRET_Z;
+    instruction_map[0xC9] = &Z80::iRET;
+    instruction_map[0xCA] = &Z80::iJP_Z;
     instruction_map[0xCB] = &Z80::iNotImplemented; // PREFIX CB
     instruction_map[0xCC] = &Z80::iNotImplemented; // CALL Z,a16
     instruction_map[0xCD] = &Z80::iNotImplemented; // CALL a16
     instruction_map[0xCE] = &Z80::iNotImplemented; // ADC A,d8
-    instruction_map[0xCF] = &Z80::iNotImplemented; // RST 08H
+    instruction_map[0xCF] = &Z80::iRST_08H;
 
-    instruction_map[0xD0] = &Z80::iNotImplemented; // RET NC
+    instruction_map[0xD0] = &Z80::iRET_NC;
     instruction_map[0xD1] = &Z80::iPOP_DE;
-    instruction_map[0xD2] = &Z80::iNotImplemented; // JP NC,a16
+    instruction_map[0xD2] = &Z80::iJP_NC;
     instruction_map[0xD3] = &Z80::iNotSupported;
     instruction_map[0xD4] = &Z80::iNotImplemented; // CALL NC,a16
     instruction_map[0xD5] = &Z80::iPUSH_DE;
     instruction_map[0xD6] = &Z80::iNotImplemented; // SUB d8
-    instruction_map[0xD7] = &Z80::iNotImplemented; // RST 10H
-    instruction_map[0xD8] = &Z80::iNotImplemented; // RET C
-    instruction_map[0xD9] = &Z80::iNotImplemented; // RETI
-    instruction_map[0xDA] = &Z80::iNotImplemented; // JP C,a16
+    instruction_map[0xD7] = &Z80::iRST_10H;
+    instruction_map[0xD8] = &Z80::iRET_C;
+    instruction_map[0xD9] = &Z80::iRETI;
+    instruction_map[0xDA] = &Z80::iJP_C;
     instruction_map[0xDB] = &Z80::iNotSupported;
     instruction_map[0xDC] = &Z80::iNotImplemented; // CALL C,a16
     instruction_map[0xDD] = &Z80::iNotSupported;
     instruction_map[0xDE] = &Z80::iNotImplemented; // SBC A,d8
-    instruction_map[0xDF] = &Z80::iNotImplemented; // RST 18H
+    instruction_map[0xDF] = &Z80::iRST_18H;
 
-    instruction_map[0xE0] = &Z80::iNotImplemented; // LDH (a8),A
+    instruction_map[0xE0] = &Z80::iLDH_OFFSET_N_A;
     instruction_map[0xE1] = &Z80::iPOP_HL;
     instruction_map[0xE2] = &Z80::iLD_OFFSET_ADDR_C_A;
     instruction_map[0xE3] = &Z80::iNotSupported;
     instruction_map[0xE4] = &Z80::iNotSupported;
     instruction_map[0xE5] = &Z80::iPUSH_HL;
-    instruction_map[0xE6] = &Z80::iNotImplemented; // AND d8
-    instruction_map[0xE7] = &Z80::iNotImplemented; // RST 20H
+    instruction_map[0xE6] = &Z80::iAND_N;
+    instruction_map[0xE7] = &Z80::iRST_20H;
     instruction_map[0xE8] = &Z80::iNotImplemented; // ADD SP,r8
-    instruction_map[0xE9] = &Z80::iNotImplemented; // JP (HL)
-    instruction_map[0xEA] = &Z80::iNotImplemented; // LD (a16),A
+    instruction_map[0xE9] = &Z80::iJP_HL;
+    instruction_map[0xEA] = &Z80::iLD_ADDR_NN_A;
     instruction_map[0xEB] = &Z80::iNotSupported;
     instruction_map[0xEC] = &Z80::iNotSupported;
     instruction_map[0xED] = &Z80::iNotSupported;
-    instruction_map[0xEE] = &Z80::iNotImplemented; // XOR d8
-    instruction_map[0xEF] = &Z80::iNotImplemented; // RST 28H
+    instruction_map[0xEE] = &Z80::iXOR_N;
+    instruction_map[0xEF] = &Z80::iRST_28H;
 
-    instruction_map[0xF0] = &Z80::iNotImplemented; // LDH A,(a8)
+    instruction_map[0xF0] = &Z80::iLDH_A_OFFSET_N;
     instruction_map[0xF1] = &Z80::iPOP_AF;
     instruction_map[0xF2] = &Z80::iLD_A_OFFSET_ADDR_C;
     instruction_map[0xF3] = &Z80::iDI;
     instruction_map[0xF4] = &Z80::iNotSupported;
     instruction_map[0xF5] = &Z80::iPUSH_AF;
-    instruction_map[0xF6] = &Z80::iNotImplemented; // OR d8
-    instruction_map[0xF7] = &Z80::iNotImplemented; // RST 30H
+    instruction_map[0xF6] = &Z80::iOR_N;
+    instruction_map[0xF7] = &Z80::iRST_30H;
     instruction_map[0xF8] = &Z80::iNotImplemented; // LD HL,SP+r8
     instruction_map[0xF9] = &Z80::iLD_SP_HL;
-    instruction_map[0xFA] = &Z80::iNotImplemented; // LD A,(a16)
+    instruction_map[0xFA] = &Z80::iLD_A_ADDR_NN;
     instruction_map[0xFB] = &Z80::iEI;
     instruction_map[0xFC] = &Z80::iNotSupported;
     instruction_map[0xFD] = &Z80::iNotSupported;
-    instruction_map[0xFE] = &Z80::iNotImplemented; // CP d8
-    instruction_map[0xFF] = &Z80::iNotImplemented; // RST 38H
+    instruction_map[0xFE] = &Z80::iCP_N;
+    instruction_map[0xFF] = &Z80::iRST_38H;
 
 }
 
@@ -327,7 +336,7 @@ void Z80::tLD_r_r(uint8_t& dst, const uint8_t& src) {
  * Put value from address HL into r
  */
 void Z80::tLD_r_ADDR_rr(uint8_t& dst, const uint8_t& rh, const uint8_t& rl) {
-    uint16_t addr = static_cast<uint16_t>((rh << 8) | rl);
+    uint16_t addr = combine16(rh, rl);
     dst = mmu.read_byte(addr);
 
     clock += Clock(2);
@@ -339,10 +348,21 @@ void Z80::tLD_r_ADDR_rr(uint8_t& dst, const uint8_t& rh, const uint8_t& rl) {
  * Put value r into address from HL
  */
 void Z80::tLD_ADDR_rr_r(const uint8_t& rh, const uint8_t& rl, const uint8_t& src) {
-    uint16_t addr = static_cast<uint16_t>((rh << 8) | rl);
+    uint16_t addr = combine16(rh, rl);
     mmu.write_byte(addr, src);
 
     clock += Clock(2);
+}
+
+void Z80::tLD_r_N(uint8_t& r) {
+    r = mmu.read_byte(reg.pc++);
+    clock += Clock(2);
+}
+
+void Z80::tLD_rr_NN(uint8_t& rh, uint8_t& rl) {
+    rl = mmu.read_byte(reg.pc++);
+    rh = mmu.read_byte(reg.pc++);
+    clock += Clock(3);
 }
 
 /**
@@ -350,9 +370,8 @@ void Z80::tLD_ADDR_rr_r(const uint8_t& rh, const uint8_t& rl, const uint8_t& src
  * Decrement stack pointer twice
 */
 void Z80::tPUSH_rr(const uint8_t& rh, const uint8_t& rl) {
-    mmu.write_word(reg.sp, static_cast<uint16_t>((rh << 8) + rl));
-
-    reg.sp -= 2;
+    mmu.write_word(reg.sp--, rl);
+    mmu.write_word(reg.sp--, rh);
     clock += Clock(4);
 }
 
@@ -361,12 +380,8 @@ void Z80::tPUSH_rr(const uint8_t& rh, const uint8_t& rl) {
  * Increment stack pointer twice
 */
 void Z80::tPOP_rr(uint8_t& rh, uint8_t& rl) {
-    uint16_t w = mmu.read_word(reg.sp);
-
-    rh = static_cast<uint8_t>(w >> 8);
-    rl = static_cast<uint8_t>(w);
-
-    reg.sp += 2;
+    rh = mmu.read_byte(reg.sp++);
+    rl = mmu.read_byte(reg.sp++);
     clock += Clock(3);
 }
 
@@ -407,8 +422,7 @@ void Z80::tADD_HL_(const uint8_t& rh, const uint8_t& rl) {
     acc += (rh << 8) + rl;
 
     reg.f = (reg.f & kFlagZ) + check_h2(acc) + check_c2(acc);
-    reg.h = static_cast<uint8_t>((acc >> 8) & 0xff);
-    reg.l = static_cast<uint8_t>(acc);
+    split16(acc, reg.h, reg.l);
 
     clock += Clock(2);
 }
@@ -633,9 +647,7 @@ void Z80::tSWAP_r(uint8_t& r) {
 void Z80::tINC_rr(uint8_t& rh, uint8_t& rl) {
     uint16_t w = (rh << 8) | rl;
     w += 1;
-
-    rh = static_cast<uint8_t>(w >> 8);
-    rl = static_cast<uint8_t>(w);
+    split16(w, rh, rl);
 
     clock += Clock(2);
 }
@@ -649,11 +661,21 @@ void Z80::tINC_rr(uint8_t& rh, uint8_t& rl) {
 void Z80::tDEC_rr(uint8_t& rh, uint8_t& rl) {
     uint16_t w = (rh << 8) | rl;
     w -= 1;
-
-    rh = static_cast<uint8_t>(w >> 8);
-    rl = static_cast<uint8_t>(w);
+    split16(w, rh, rl);
 
     clock += Clock(2);
+}
+
+/**
+  * RST n
+  *
+  * Push present address onto stack and jump to address 0x0000 + n
+  */
+void Z80::tRST(const uint16_t addr) {
+    mmu.write_word(reg.sp, reg.pc);
+    reg.sp -= 2;
+    reg.pc = addr;
+    clock += Clock(8);
 }
 
 /**
@@ -661,6 +683,26 @@ void Z80::tDEC_rr(uint8_t& rh, uint8_t& rl) {
  */
 void Z80::iNOP() {
     clock += Clock(1);
+}
+
+void Z80::iLD_A_ADDR_NN() {
+    uint8_t addr_lsb = mmu.read_byte(reg.pc++);
+    uint8_t addr_msb = mmu.read_byte(reg.pc++);
+
+    uint16_t addr = combine16(addr_msb, addr_lsb);
+    reg.a = mmu.read_byte(addr);
+
+    clock += Clock(4);
+}
+
+void Z80::iLD_ADDR_NN_A() {
+    uint8_t addr_lsb = mmu.read_byte(reg.pc++);
+    uint8_t addr_msb = mmu.read_byte(reg.pc++);
+
+    uint16_t addr = combine16(addr_msb, addr_lsb);
+    mmu.write_byte(addr, reg.a);
+
+    clock += Clock(4);
 }
 
 /**
@@ -775,12 +817,13 @@ void Z80::iCPL() {
 }
 
 void Z80::iADD_HL_SP() {
-    uint8_t s = static_cast<uint8_t>(reg.sp >> 8);
-    uint8_t p = static_cast<uint8_t>(reg.sp);
+    uint8_t s = 0;
+    uint8_t p = 0;
+    split16(reg.sp, s, p);
 
     tADD_HL_(s, p);
 
-    reg.sp = static_cast<uint16_t>((s << 8) + p);
+    reg.sp = combine16(s, p);
 }
 
 /**
@@ -814,7 +857,7 @@ void Z80::iCCF() {
 }
 
 void Z80::iADD_A_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
 
@@ -822,7 +865,7 @@ void Z80::iADD_A_ADDR_HL() {
 }
 
 void Z80::iADC_A_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
 
@@ -830,7 +873,7 @@ void Z80::iADC_A_ADDR_HL() {
 }
 
 void Z80::iLD_SP_HL() {
-    uint16_t hl = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t hl = combine16(reg.h, reg.l);
     mmu.write_word(reg.sp, hl);
     clock += Clock(2);
 }
@@ -855,32 +898,54 @@ void Z80::iLD_OFFSET_ADDR_C_A() {
     clock += Clock(2);
 }
 
+void Z80::iLD_SP_NN() {
+    uint8_t s = mmu.read_byte(reg.pc++);
+    uint8_t p = mmu.read_byte(reg.pc++);
+    reg.sp = combine16(s, p);
+
+    clock += Clock(3);
+}
+
+void Z80::iLDH_OFFSET_N_A() {
+    uint16_t addr = static_cast<uint16_t>(0xff00 + mmu.read_byte(reg.pc++));
+    mmu.write_byte(addr, reg.a);
+
+    clock += Clock(3);
+}
+
+void Z80::iLDH_A_OFFSET_N() {
+    uint16_t addr = static_cast<uint16_t>(0xff00 + mmu.read_byte(reg.pc++));
+    reg.a = mmu.read_byte(addr);
+
+    clock += Clock(3);
+}
+
 void Z80::iLDI_A_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     mmu.write_byte(addr, reg.a);
     tINC_rr(reg.h, reg.l);
 }
 
 void Z80::iLDI_ADDR_HL_A() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     reg.a = mmu.read_byte(addr);
     tINC_rr(reg.h, reg.l);
 }
 
 void Z80::iLDD_A_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     mmu.write_byte(addr, reg.a);
     tDEC_rr(reg.h, reg.l);
 }
 
 void Z80::iLDD_ADDR_HL_A() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     reg.a = mmu.read_byte(addr);
     tDEC_rr(reg.h, reg.l);
 }
 
 void Z80::iINC_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
 
     bool half_carry = (value & 0x0f) == 0x0f;
@@ -894,7 +959,7 @@ void Z80::iINC_ADDR_HL() {
 }
 
 void Z80::iDEC_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
 
     bool half_carry = (value & 0x18) == 0x10;
@@ -908,53 +973,213 @@ void Z80::iDEC_ADDR_HL() {
 }
 
 void Z80::iSUB_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     tSUB(value);
 }
 
 void Z80::iSBC_A_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     tSBC_A_(value);
 }
 
 void Z80::iAND_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     tAND_r(value);
 }
 
+void Z80::iAND_N() {
+    uint8_t value = mmu.read_byte(reg.pc++);
+    clock += Clock(1);
+    tAND_r(value);
+}
+
 void Z80::iOR_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     tOR_r(value);
 }
 
+void Z80::iOR_N() {
+    uint8_t value = mmu.read_byte(reg.pc++);
+    clock += Clock(1);
+    tOR_r(value);
+}
+
 void Z80::iXOR_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     tXOR_r(value);
 }
 
+void Z80::iXOR_N() {
+    uint8_t value = mmu.read_byte(reg.pc++);
+    clock += Clock(1);
+    tXOR_r(value);
+}
+
 void Z80::iCP_ADDR_HL() {
-    uint16_t addr = static_cast<uint16_t>((reg.h << 8) | reg.l);
+    uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     tCP_r(value);
 }
 
+void Z80::iCP_N() {
+    uint8_t value = mmu.read_byte(reg.pc++);
+    clock += Clock(1);
+
+    tCP_r(value);
+}
+
 void Z80::iDI() {
-    // TODO: Disable interruptions
+    interruptions_enabled = false;
     clock += Clock(1);
 }
 
 void Z80::iEI() {
-    // TODO: Enable interruptions
+    interruptions_enabled = true;
     clock += Clock(1);
+}
+
+void Z80::iRET() {
+    reg.pc = mmu.read_word(reg.sp);
+    reg.sp += 2;
+
+    clock += Clock(2);
+}
+
+void Z80::iRETI() {
+    iRET();
+    interruptions_enabled = true;
+}
+
+void Z80::iRET_Z() {
+    if ((reg.f & kFlagZ) != 0) {
+        iRET();
+    } else {
+        clock += Clock(2);
+    }
+}
+
+void Z80::iRET_NZ() {
+    if ((reg.f & kFlagZ) == 0) {
+        iRET();
+    } else {
+        clock += Clock(2);
+    }
+}
+
+void Z80::iRET_C() {
+    if ((reg.f & kFlagC) != 0) {
+        iRET();
+    } else {
+        clock += Clock(2);
+    }
+}
+
+void Z80::iRET_NC() {
+    if ((reg.f & kFlagC) == 0) {
+        iRET();
+    } else {
+        clock += Clock(2);
+    }
+}
+
+void Z80::iJP() {
+    uint8_t l = mmu.read_byte(reg.pc++);
+    uint8_t h = mmu.read_byte(reg.pc++);
+    reg.pc = combine16(h, l);
+
+    clock += Clock(3);
+}
+
+void Z80::iJP_Z() {
+    if ((reg.f & kFlagZ) != 0) {
+        iJP();
+    } else {
+        reg.pc += 2;
+        clock += Clock(3);
+    }
+}
+
+void Z80::iJP_NZ() {
+    if ((reg.f & kFlagZ) == 0) {
+        iJP();
+    } else {
+        reg.pc += 2;
+        clock += Clock(3);
+    }
+}
+
+void Z80::iJP_C() {
+    if ((reg.f & kFlagC) != 0) {
+        iJP();
+    } else {
+        reg.pc += 2;
+        clock += Clock(3);
+    }
+}
+
+void Z80::iJP_NC() {
+    if ((reg.f & kFlagC) == 0) {
+        iJP();
+    } else {
+        reg.pc += 2;
+        clock += Clock(3);
+    }
+}
+
+void Z80::iJP_HL() {
+    reg.pc = combine16(reg.h, reg.l);
+    clock += Clock(1);
+}
+
+void Z80::iJR() {
+    uint8_t offset = mmu.read_byte(reg.pc++);
+    reg.pc += offset;
+    clock += Clock(2);
+}
+
+void Z80::iJR_Z() {
+    if ((reg.f & kFlagZ) != 0) {
+        iJR();
+    } else {
+        reg.pc++;
+        clock += Clock(2);
+    }
+}
+
+void Z80::iJR_NZ() {
+    if ((reg.f & kFlagZ) == 0) {
+        iJR();
+    } else {
+        reg.pc++;
+        clock += Clock(2);
+    }
+}
+
+void Z80::iJR_C() {
+    if ((reg.f & kFlagC) != 0) {
+        iJR();
+    } else {
+        reg.pc++;
+        clock += Clock(2);
+    }
+}
+
+void Z80::iJR_NC() {
+    if ((reg.f & kFlagC) == 0) {
+        iJR();
+    } else {
+        reg.pc++;
+        clock += Clock(2);
+    }
 }
