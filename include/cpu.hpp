@@ -2,6 +2,7 @@
 #define CPU_HPP
 
 #include <cstdint>
+#include <vector>
 
 #include "clock.hpp"
 #include "mmu.hpp"
@@ -35,6 +36,10 @@ public:
     Clock clock; // global system clock
     Registers reg;
 
+    std::vector<void (Z80::*)()> instruction_map;
+    std::vector<void (Z80::*)()> cb_instruction_map;
+
+    Z80();
     void reset();
 
     // Instruction Template
@@ -49,14 +54,27 @@ public:
     void tADC_HL_(const uint8_t&, const uint8_t&);
     void tSUB(const uint8_t&);
     void tSBC_A_(const uint8_t&);
-    void tAND(const uint8_t&);
-    void tOR(const uint8_t&);
+
+    void tAND_r(const uint8_t&);
+    void tOR_r(const uint8_t&);
+    void tXOR_r(const uint8_t&);
+    void tCP_r(const uint8_t&);
 
     void tINC_r(uint8_t&);
     void tDEC_r(uint8_t&);
+    void tSWAP_r(uint8_t&);
+
+    void tINC_rr(uint8_t&, uint8_t&);
+    void tDEC_rr(uint8_t&, uint8_t&);
 
     // Instruction Set
+    void iNotImplemented() {};
     void iNOP();
+    void iRLCA();
+    void iRLA();
+    void iRRCA();
+    void iRRA();
+    void iCPL();
 
     void iLD_A_A() { tLD_r_r(reg.a, reg.a); }
     void iLD_A_B() { tLD_r_r(reg.a, reg.b); }
@@ -151,21 +169,37 @@ public:
     void iSBC_A_H() { tSBC_A_(reg.h); }
     void iSBC_A_L() { tSBC_A_(reg.l); }
 
-    void iAND_A() { tAND(reg.a); }
-    void iAND_B() { tAND(reg.b); }
-    void iAND_C() { tAND(reg.c); }
-    void iAND_D() { tAND(reg.d); }
-    void iAND_E() { tAND(reg.e); }
-    void iAND_H() { tAND(reg.h); }
-    void iAND_L() { tAND(reg.l); }
+    void iAND_A() { tAND_r(reg.a); }
+    void iAND_B() { tAND_r(reg.b); }
+    void iAND_C() { tAND_r(reg.c); }
+    void iAND_D() { tAND_r(reg.d); }
+    void iAND_E() { tAND_r(reg.e); }
+    void iAND_H() { tAND_r(reg.h); }
+    void iAND_L() { tAND_r(reg.l); }
 
-    void iOR_A() { tOR(reg.a); }
-    void iOR_B() { tOR(reg.b); }
-    void iOR_C() { tOR(reg.c); }
-    void iOR_D() { tOR(reg.d); }
-    void iOR_E() { tOR(reg.e); }
-    void iOR_H() { tOR(reg.h); }
-    void iOR_L() { tOR(reg.l); }
+    void iOR_A() { tOR_r(reg.a); }
+    void iOR_B() { tOR_r(reg.b); }
+    void iOR_C() { tOR_r(reg.c); }
+    void iOR_D() { tOR_r(reg.d); }
+    void iOR_E() { tOR_r(reg.e); }
+    void iOR_H() { tOR_r(reg.h); }
+    void iOR_L() { tOR_r(reg.l); }
+
+    void iXOR_A() { tXOR_r(reg.a); }
+    void iXOR_B() { tXOR_r(reg.b); }
+    void iXOR_C() { tXOR_r(reg.c); }
+    void iXOR_D() { tXOR_r(reg.d); }
+    void iXOR_E() { tXOR_r(reg.e); }
+    void iXOR_H() { tXOR_r(reg.h); }
+    void iXOR_L() { tXOR_r(reg.l); }
+
+    void iCP_A() { tCP_r(reg.a); }
+    void iCP_B() { tCP_r(reg.b); }
+    void iCP_C() { tCP_r(reg.c); }
+    void iCP_D() { tCP_r(reg.d); }
+    void iCP_E() { tCP_r(reg.e); }
+    void iCP_H() { tCP_r(reg.h); }
+    void iCP_L() { tCP_r(reg.l); }
 
     void iINC_A() { tINC_r(reg.a); };
     void iINC_B() { tINC_r(reg.b); };
@@ -183,6 +217,24 @@ public:
     void iDEC_H() { tDEC_r(reg.h); }
     void iDEC_L() { tDEC_r(reg.l); }
 
+    void iSWAP_A() { tSWAP_r(reg.a); }
+    void iSWAP_B() { tSWAP_r(reg.b); }
+    void iSWAP_C() { tSWAP_r(reg.c); }
+    void iSWAP_D() { tSWAP_r(reg.d); }
+    void iSWAP_E() { tSWAP_r(reg.e); }
+    void iSWAP_H() { tSWAP_r(reg.h); }
+    void iSWAP_L() { tSWAP_r(reg.l); }
+
+    void iINC_BC() { tINC_rr(reg.b, reg.c); }
+    void iINC_DE() { tINC_rr(reg.d, reg.e); }
+    void iINC_HL() { tINC_rr(reg.h, reg.l); }
+    void iINC_SP() { reg.sp += 1; clock += Clock(2); }
+
+    void iDEC_BC() { tDEC_rr(reg.b, reg.c); }
+    void iDEC_DE() { tDEC_rr(reg.d, reg.e); }
+    void iDEC_HL() { tDEC_rr(reg.h, reg.l); }
+    void iDEC_SP() { reg.sp -= 1; clock += Clock(2); }
+
     void iPUSH_AF() { tPUSH_rr(reg.a, reg.f); }
     void iPUSH_BC() { tPUSH_rr(reg.b, reg.c); }
     void iPUSH_DE() { tPUSH_rr(reg.d, reg.e); }
@@ -192,6 +244,8 @@ public:
     void iPOP_BC() { tPOP_rr(reg.b, reg.c); }
     void iPOP_DE() { tPOP_rr(reg.d, reg.e); }
     void iPOP_HL() { tPOP_rr(reg.h, reg.l); }
+
+
 };
 
 #endif
