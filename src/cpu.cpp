@@ -248,7 +248,7 @@ Z80::Z80() {
     instruction_map[0xC1] = &Z80::iPOP_BC;
     instruction_map[0xC2] = &Z80::iJP_NZ;
     instruction_map[0xC3] = &Z80::iJP;
-    instruction_map[0xC4] = &Z80::iNotImplemented; // CALL NZ,a16
+    instruction_map[0xC4] = &Z80::iCALL_NZ;
     instruction_map[0xC5] = &Z80::iPUSH_BC;
     instruction_map[0xC6] = &Z80::iNotImplemented; // ADD A,d8
     instruction_map[0xC7] = &Z80::iRST_00H;
@@ -256,8 +256,8 @@ Z80::Z80() {
     instruction_map[0xC9] = &Z80::iRET;
     instruction_map[0xCA] = &Z80::iJP_Z;
     instruction_map[0xCB] = &Z80::iNotImplemented; // PREFIX CB
-    instruction_map[0xCC] = &Z80::iNotImplemented; // CALL Z,a16
-    instruction_map[0xCD] = &Z80::iNotImplemented; // CALL a16
+    instruction_map[0xCC] = &Z80::iCALL_Z;
+    instruction_map[0xCD] = &Z80::iCALL;
     instruction_map[0xCE] = &Z80::iNotImplemented; // ADC A,d8
     instruction_map[0xCF] = &Z80::iRST_08H;
 
@@ -265,7 +265,7 @@ Z80::Z80() {
     instruction_map[0xD1] = &Z80::iPOP_DE;
     instruction_map[0xD2] = &Z80::iJP_NC;
     instruction_map[0xD3] = &Z80::iNotSupported;
-    instruction_map[0xD4] = &Z80::iNotImplemented; // CALL NC,a16
+    instruction_map[0xD4] = &Z80::iCALL_NC;
     instruction_map[0xD5] = &Z80::iPUSH_DE;
     instruction_map[0xD6] = &Z80::iNotImplemented; // SUB d8
     instruction_map[0xD7] = &Z80::iRST_10H;
@@ -273,7 +273,7 @@ Z80::Z80() {
     instruction_map[0xD9] = &Z80::iRETI;
     instruction_map[0xDA] = &Z80::iJP_C;
     instruction_map[0xDB] = &Z80::iNotSupported;
-    instruction_map[0xDC] = &Z80::iNotImplemented; // CALL C,a16
+    instruction_map[0xDC] = &Z80::iCALL_C;
     instruction_map[0xDD] = &Z80::iNotSupported;
     instruction_map[0xDE] = &Z80::iNotImplemented; // SBC A,d8
     instruction_map[0xDF] = &Z80::iRST_18H;
@@ -370,8 +370,8 @@ void Z80::tLD_rr_NN(uint8_t& rh, uint8_t& rl) {
  * Decrement stack pointer twice
 */
 void Z80::tPUSH_rr(const uint8_t& rh, const uint8_t& rl) {
-    mmu.write_word(reg.sp--, rl);
-    mmu.write_word(reg.sp--, rh);
+    mmu.write_byte(reg.sp--, rl);
+    mmu.write_byte(reg.sp--, rh);
     clock += Clock(4);
 }
 
@@ -1047,6 +1047,57 @@ void Z80::iDI() {
 void Z80::iEI() {
     interruptions_enabled = true;
     clock += Clock(1);
+}
+
+void Z80::iCALL() {
+    uint addr_lsb = mmu.read_byte(reg.pc++);
+    uint addr_msb = mmu.read_byte(reg.pc++);
+
+    uint8_t pc_msb = 0;
+    uint8_t pc_lsb = 0;
+    split16(reg.pc, pc_msb, pc_lsb);
+
+    mmu.write_byte(reg.sp--, pc_lsb);
+    mmu.write_byte(reg.sp--, pc_msb);
+
+    reg.pc = combine16(addr_msb, addr_lsb);
+    clock += Clock(3);
+}
+
+void Z80::iCALL_Z() {
+    if ((reg.f & kFlagZ) != 0) {
+        iCALL();
+    } else {
+        reg.pc += 2;
+        clock += Clock(3);
+    }
+}
+
+void Z80::iCALL_NZ() {
+    if ((reg.f & kFlagZ) == 0) {
+        iCALL();
+    } else {
+        reg.pc += 2;
+        clock += Clock(3);
+    }
+}
+
+void Z80::iCALL_C() {
+    if ((reg.f & kFlagC) != 0) {
+        iCALL();
+    } else {
+        reg.pc += 2;
+        clock += Clock(3);
+    }
+}
+
+void Z80::iCALL_NC() {
+    if ((reg.f & kFlagC) == 0) {
+        iCALL();
+    } else {
+        reg.pc += 2;
+        clock += Clock(3);
+    }
 }
 
 void Z80::iRET() {

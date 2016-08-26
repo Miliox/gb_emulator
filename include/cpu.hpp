@@ -339,6 +339,12 @@ public:
     void iRST_30H() { tRST(0x30); };
     void iRST_38H() { tRST(0x38); };
 
+    void iCALL();
+    void iCALL_Z();
+    void iCALL_NZ();
+    void iCALL_C();
+    void iCALL_NC();
+
     void iRET();
     void iRETI();
     void iRET_Z();
@@ -353,11 +359,11 @@ public:
     void iJP_NC();
     void iJP_HL();
 
-    void iJPR();
-    void iJPR_Z();
-    void iJPR_NZ();
-    void iJPR_C();
-    void iJPR_NC();
+    void iJR();
+    void iJR_Z();
+    void iJR_NZ();
+    void iJR_C();
+    void iJR_NC();
 };
 
 #endif
