@@ -250,7 +250,7 @@ Z80::Z80() {
     instruction_map[0xC3] = &Z80::iJP;
     instruction_map[0xC4] = &Z80::iCALL_NZ;
     instruction_map[0xC5] = &Z80::iPUSH_BC;
-    instruction_map[0xC6] = &Z80::iNotImplemented; // ADD A,d8
+    instruction_map[0xC6] = &Z80::iADD_A_N;
     instruction_map[0xC7] = &Z80::iRST_00H;
     instruction_map[0xC8] = &Z80::iRET_Z;
     instruction_map[0xC9] = &Z80::iRET;
@@ -258,7 +258,7 @@ Z80::Z80() {
     instruction_map[0xCB] = &Z80::iNotImplemented; // PREFIX CB
     instruction_map[0xCC] = &Z80::iCALL_Z;
     instruction_map[0xCD] = &Z80::iCALL;
-    instruction_map[0xCE] = &Z80::iNotImplemented; // ADC A,d8
+    instruction_map[0xCE] = &Z80::iADC_A_N;
     instruction_map[0xCF] = &Z80::iRST_08H;
 
     instruction_map[0xD0] = &Z80::iRET_NC;
@@ -267,7 +267,7 @@ Z80::Z80() {
     instruction_map[0xD3] = &Z80::iNotSupported;
     instruction_map[0xD4] = &Z80::iCALL_NC;
     instruction_map[0xD5] = &Z80::iPUSH_DE;
-    instruction_map[0xD6] = &Z80::iNotImplemented; // SUB d8
+    instruction_map[0xD6] = &Z80::iSUB_N;
     instruction_map[0xD7] = &Z80::iRST_10H;
     instruction_map[0xD8] = &Z80::iRET_C;
     instruction_map[0xD9] = &Z80::iRETI;
@@ -275,7 +275,7 @@ Z80::Z80() {
     instruction_map[0xDB] = &Z80::iNotSupported;
     instruction_map[0xDC] = &Z80::iCALL_C;
     instruction_map[0xDD] = &Z80::iNotSupported;
-    instruction_map[0xDE] = &Z80::iNotImplemented; // SBC A,d8
+    instruction_map[0xDE] = &Z80::iSBC_A_N;
     instruction_map[0xDF] = &Z80::iRST_18H;
 
     instruction_map[0xE0] = &Z80::iLDH_OFFSET_N_A;
@@ -860,7 +860,12 @@ void Z80::iADD_A_ADDR_HL() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
+    tADD_A_(value);
+}
 
+void Z80::iADD_A_N() {
+    uint8_t value = mmu.read_byte(reg.pc++);
+    clock += Clock(1);
     tADD_A_(value);
 }
 
@@ -868,7 +873,12 @@ void Z80::iADC_A_ADDR_HL() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
+    tADC_A_(value);
+}
 
+void Z80::iADC_A_N() {
+    uint8_t value = mmu.read_byte(reg.pc++);
+    clock += Clock(1);
     tADC_A_(value);
 }
 
@@ -979,9 +989,21 @@ void Z80::iSUB_ADDR_HL() {
     tSUB(value);
 }
 
+void Z80::iSUB_N() {
+    uint8_t value = mmu.read_byte(reg.pc++);
+    clock += Clock(1);
+    tSUB(value);
+}
+
 void Z80::iSBC_A_ADDR_HL() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
+    clock += Clock(1);
+    tSBC_A_(value);
+}
+
+void Z80::iSBC_A_N() {
+    uint8_t value = mmu.read_byte(reg.pc++);
     clock += Clock(1);
     tSBC_A_(value);
 }
@@ -1050,8 +1072,8 @@ void Z80::iEI() {
 }
 
 void Z80::iCALL() {
-    uint addr_lsb = mmu.read_byte(reg.pc++);
-    uint addr_msb = mmu.read_byte(reg.pc++);
+    uint8_t addr_lsb = mmu.read_byte(reg.pc++);
+    uint8_t addr_msb = mmu.read_byte(reg.pc++);
 
     uint8_t pc_msb = 0;
     uint8_t pc_lsb = 0;

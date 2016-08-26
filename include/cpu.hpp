@@ -211,6 +211,7 @@ public:
     void iADD_A_H() { tADD_A_(reg.h); }
     void iADD_A_L() { tADD_A_(reg.l); }
     void iADD_A_ADDR_HL();
+    void iADD_A_N();
 
     void iADC_A_A() { tADC_A_(reg.a); }
     void iADC_A_B() { tADC_A_(reg.b); }
@@ -220,6 +221,7 @@ public:
     void iADC_A_H() { tADC_A_(reg.h); }
     void iADC_A_L() { tADC_A_(reg.l); }
     void iADC_A_ADDR_HL();
+    void iADC_A_N();
 
     void iADD_HL_BC() { tADD_HL_(reg.b, reg.c); }
     void iADD_HL_DE() { tADD_HL_(reg.d, reg.e); }
@@ -234,6 +236,7 @@ public:
     void iSUB_H() { tSUB(reg.h); }
     void iSUB_L() { tSUB(reg.l); }
     void iSUB_ADDR_HL();
+    void iSUB_N();
 
     void iSBC_A_A() { tSBC_A_(reg.a); }
     void iSBC_A_B() { tSBC_A_(reg.b); }
@@ -243,6 +246,7 @@ public:
     void iSBC_A_H() { tSBC_A_(reg.h); }
     void iSBC_A_L() { tSBC_A_(reg.l); }
     void iSBC_A_ADDR_HL();
+    void iSBC_A_N();
 
     void iAND_A() { tAND_r(reg.a); }
     void iAND_B() { tAND_r(reg.b); }
