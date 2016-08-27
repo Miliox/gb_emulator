@@ -63,7 +63,7 @@ TEST_CASE("Reset Z80", "[Z80]") {
 
 TEST_CASE("Z80 NOP", "[Z80]") {
     Z80 z80;
-    z80.iNOP();
+    z80.nop();
 
     REQUIRE(z80.reg.a == 0);
     REQUIRE(z80.reg.b == 0);
@@ -83,7 +83,7 @@ TEST_CASE("Z80 ADD A,E", "[Z80]") {
     Z80 z80;
     z80.reg.a = 1;
     z80.reg.e = 1;
-    z80.iADD_A_E();
+    z80.add_a_e();
 
     REQUIRE(z80.reg.a == 2);
     REQUIRE(z80.reg.b == 0);
@@ -101,7 +101,7 @@ TEST_CASE("Z80 ADD A,E", "[Z80]") {
     // Zero Flag
     z80.reg.a = 0;
     z80.reg.e = 0;
-    z80.iADD_A_E();
+    z80.add_a_e();
 
     REQUIRE(z80.reg.a == 0);
     REQUIRE(z80.reg.b == 0);
@@ -119,7 +119,7 @@ TEST_CASE("Z80 ADD A,E", "[Z80]") {
     // Carry Flag
     z80.reg.a = 128;
     z80.reg.e = 200;
-    z80.iADD_A_E();
+    z80.add_a_e();
 
     REQUIRE(z80.reg.a == 72);
     REQUIRE(z80.reg.b == 0);
@@ -137,7 +137,7 @@ TEST_CASE("Z80 ADD A,E", "[Z80]") {
     // Zero + Carry Flag
     z80.reg.a = 128;
     z80.reg.e = 128;
-    z80.iADD_A_E();
+    z80.add_a_e();
 
     REQUIRE(z80.reg.a == 0);
     REQUIRE(z80.reg.b == 0);
@@ -156,7 +156,7 @@ TEST_CASE("Z80 ADD A,E", "[Z80]") {
 TEST_CASE("Increment Registers from Z80", "[Z80]") {
     Z80 z80;
 
-    z80.iINC_A();
+    z80.inc_a();
     REQUIRE(z80.reg.a == 1);
     REQUIRE(z80.reg.b == 0);
     REQUIRE(z80.reg.c == 0);
@@ -170,7 +170,7 @@ TEST_CASE("Increment Registers from Z80", "[Z80]") {
     REQUIRE(z80.clock.m == 1);
     REQUIRE(z80.clock.t == 4);
 
-    z80.iINC_A();
+    z80.inc_a();
     REQUIRE(z80.reg.a == 2);
     REQUIRE(z80.reg.b == 0);
     REQUIRE(z80.reg.c == 0);
@@ -184,7 +184,7 @@ TEST_CASE("Increment Registers from Z80", "[Z80]") {
     REQUIRE(z80.clock.m == 2);
     REQUIRE(z80.clock.t == 8);
 
-    z80.iINC_E();
+    z80.inc_e();
     REQUIRE(z80.reg.a == 2);
     REQUIRE(z80.reg.b == 0);
     REQUIRE(z80.reg.c == 0);
@@ -198,7 +198,7 @@ TEST_CASE("Increment Registers from Z80", "[Z80]") {
     REQUIRE(z80.clock.m == 3);
     REQUIRE(z80.clock.t == 12);
 
-    z80.iINC_L();
+    z80.inc_l();
     REQUIRE(z80.reg.a == 2);
     REQUIRE(z80.reg.b == 0);
     REQUIRE(z80.reg.c == 0);
@@ -216,7 +216,7 @@ TEST_CASE("Increment Registers from Z80", "[Z80]") {
 TEST_CASE("Decrement Registers from Z80", "[Z80]") {
     Z80 z80;
 
-    z80.iINC_A();
+    z80.inc_a();
     REQUIRE(z80.reg.a == 1);
     REQUIRE(z80.reg.b == 0);
     REQUIRE(z80.reg.c == 0);
@@ -230,7 +230,7 @@ TEST_CASE("Decrement Registers from Z80", "[Z80]") {
     REQUIRE(z80.clock.m == 1);
     REQUIRE(z80.clock.t == 4);
 
-    z80.iDEC_A();
+    z80.dec_a();
     REQUIRE(z80.reg.a == 0);
     REQUIRE(z80.reg.b == 0);
     REQUIRE(z80.reg.c == 0);

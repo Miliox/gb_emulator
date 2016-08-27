@@ -37,7 +37,7 @@ public:
     Clock clock; // global system clock
     Registers reg;
 
-    bool interruptions_enabled;
+    bool ime; // interrupt master enable flag
 
     std::vector<void (Z80::*)()> instruction_map;
     std::vector<void (Z80::*)()> cb_instruction_map;
@@ -45,343 +45,337 @@ public:
     Z80();
     void reset();
 
-    // Instruction Template
-    void tLD_r_r(uint8_t&, const uint8_t&);
-    void tLD_r_ADDR_rr(uint8_t&, const uint8_t&, const uint8_t&);
-    void tLD_ADDR_rr_r(const uint8_t&, const uint8_t&, const uint8_t&);
-    void tLD_r_N(uint8_t&);
-    void tLD_rr_NN(uint8_t&, uint8_t&);
-
-    void tPUSH_rr(const uint8_t&, const uint8_t&);
-    void tPOP_rr(uint8_t&, uint8_t&);
-
-    void tADD_A_(const uint8_t&);
-    void tADC_A_(const uint8_t&);
-    void tADD_HL_(const uint8_t&, const uint8_t&);
-    void tADC_HL_(const uint8_t&, const uint8_t&);
-    void tSUB(const uint8_t&);
-    void tSBC_A_(const uint8_t&);
-
-    void tAND_r(const uint8_t&);
-    void tOR_r(const uint8_t&);
-    void tXOR_r(const uint8_t&);
-    void tCP_r(const uint8_t&);
-
-    void tINC_r(uint8_t&);
-    void tDEC_r(uint8_t&);
-    void tSWAP_r(uint8_t&);
-
-    void tINC_rr(uint8_t&, uint8_t&);
-    void tDEC_rr(uint8_t&, uint8_t&);
-
-    void tRST(const uint16_t addr);
+    // Common Instruction Behavior
+    void ld_r_r(uint8_t&, const uint8_t&);
+    void ld_r_prr(uint8_t&, const uint8_t&, const uint8_t&);
+    void ld_prr_r(const uint8_t&, const uint8_t&, const uint8_t&);
+    void ld_r_n(uint8_t&);
+    void ld_rr_nn(uint8_t&, uint8_t&);
+    void push_rr(const uint8_t&, const uint8_t&);
+    void pop_rr(uint8_t&, uint8_t&);
+    void add_a_r(const uint8_t&);
+    void adc_a_r(const uint8_t&);
+    void add_hl_rr(const uint8_t&, const uint8_t&);
+    void adc_hl_rr(const uint8_t&, const uint8_t&);
+    void sub(const uint8_t&);
+    void sbc_a_r(const uint8_t&);
+    void and_r(const uint8_t&);
+    void or_r(const uint8_t&);
+    void xor_r(const uint8_t&);
+    void cp_r(const uint8_t&);
+    void inc_r(uint8_t&);
+    void dec_r(uint8_t&);
+    void swap_r(uint8_t&);
+    void inc_rr(uint8_t&, uint8_t&);
+    void dec_rr(uint8_t&, uint8_t&);
+    void rst(const uint16_t addr);
 
     // Instruction Set
-    void iNotImplemented() {
+    void not_implemented_error() {
         throw std::runtime_error("Instruction Not Yet Implemented");
     }
 
-    void iNotSupported() {
+    void not_supported_error() {
         throw std::runtime_error("Instruction Not Supported");
     }
 
-    void iCB_CallBranch() {
+    void cb_branch() {
         uint8_t op = mmu.read_byte(reg.pc++);
         (*this.*cb_instruction_map[op])();
     }
 
-    void iNOP();
-    void iHALT();
-    void iSTOP();
-    void iRLCA();
-    void iRLA();
-    void iRRCA();
-    void iRRA();
-    void iCPL();
-    void iSCF();
-    void iCCF();
-    void iDI();
-    void iEI();
+    void nop();
+    void halt();
+    void stop();
+    void rlca();
+    void rla();
+    void rrca();
+    void rra();
+    void cpl();
+    void scf();
+    void ccf();
+    void di();
+    void ei();
 
-    void iLD_A_A() { tLD_r_r(reg.a, reg.a); }
-    void iLD_A_B() { tLD_r_r(reg.a, reg.b); }
-    void iLD_A_C() { tLD_r_r(reg.a, reg.c); }
-    void iLD_A_D() { tLD_r_r(reg.a, reg.d); }
-    void iLD_A_E() { tLD_r_r(reg.a, reg.e); }
-    void iLD_A_H() { tLD_r_r(reg.a, reg.h); }
-    void iLD_A_L() { tLD_r_r(reg.a, reg.l); }
-    void iLD_A_ADDR_HL() { tLD_r_ADDR_rr(reg.a, reg.h, reg.l); }
+    void ld_a_a() { ld_r_r(reg.a, reg.a); }
+    void ld_a_b() { ld_r_r(reg.a, reg.b); }
+    void ld_a_c() { ld_r_r(reg.a, reg.c); }
+    void ld_a_d() { ld_r_r(reg.a, reg.d); }
+    void ld_a_e() { ld_r_r(reg.a, reg.e); }
+    void ld_a_h() { ld_r_r(reg.a, reg.h); }
+    void ld_a_l() { ld_r_r(reg.a, reg.l); }
+    void ld_a_phl() { ld_r_prr(reg.a, reg.h, reg.l); }
 
-    void iLD_B_A() { tLD_r_r(reg.b, reg.a); }
-    void iLD_B_B() { tLD_r_r(reg.b, reg.b); }
-    void iLD_B_C() { tLD_r_r(reg.b, reg.c); }
-    void iLD_B_D() { tLD_r_r(reg.b, reg.d); }
-    void iLD_B_E() { tLD_r_r(reg.b, reg.e); }
-    void iLD_B_H() { tLD_r_r(reg.b, reg.h); }
-    void iLD_B_L() { tLD_r_r(reg.b, reg.l); }
-    void iLD_B_ADDR_HL() { tLD_r_ADDR_rr(reg.b, reg.h, reg.l); }
+    void ld_b_a() { ld_r_r(reg.b, reg.a); }
+    void ld_b_b() { ld_r_r(reg.b, reg.b); }
+    void ld_b_c() { ld_r_r(reg.b, reg.c); }
+    void ld_b_d() { ld_r_r(reg.b, reg.d); }
+    void ld_b_e() { ld_r_r(reg.b, reg.e); }
+    void ld_b_h() { ld_r_r(reg.b, reg.h); }
+    void ld_b_l() { ld_r_r(reg.b, reg.l); }
+    void ld_b_phl() { ld_r_prr(reg.b, reg.h, reg.l); }
 
-    void iLD_C_A() { tLD_r_r(reg.c, reg.a); }
-    void iLD_C_B() { tLD_r_r(reg.c, reg.b); }
-    void iLD_C_C() { tLD_r_r(reg.c, reg.c); }
-    void iLD_C_D() { tLD_r_r(reg.c, reg.d); }
-    void iLD_C_E() { tLD_r_r(reg.c, reg.e); }
-    void iLD_C_H() { tLD_r_r(reg.c, reg.h); }
-    void iLD_C_L() { tLD_r_r(reg.c, reg.l); }
-    void iLD_C_ADDR_HL() { tLD_r_ADDR_rr(reg.c, reg.h, reg.l); }
+    void ld_c_a() { ld_r_r(reg.c, reg.a); }
+    void ld_c_b() { ld_r_r(reg.c, reg.b); }
+    void ld_c_c() { ld_r_r(reg.c, reg.c); }
+    void ld_c_d() { ld_r_r(reg.c, reg.d); }
+    void ld_c_e() { ld_r_r(reg.c, reg.e); }
+    void ld_c_h() { ld_r_r(reg.c, reg.h); }
+    void ld_c_l() { ld_r_r(reg.c, reg.l); }
+    void ld_c_phl() { ld_r_prr(reg.c, reg.h, reg.l); }
 
-    void iLD_D_A() { tLD_r_r(reg.d, reg.a); }
-    void iLD_D_B() { tLD_r_r(reg.d, reg.b); }
-    void iLD_D_C() { tLD_r_r(reg.d, reg.c); }
-    void iLD_D_D() { tLD_r_r(reg.d, reg.d); }
-    void iLD_D_E() { tLD_r_r(reg.d, reg.e); }
-    void iLD_D_H() { tLD_r_r(reg.d, reg.h); }
-    void iLD_D_L() { tLD_r_r(reg.d, reg.l); }
-    void iLD_D_ADDR_HL() { tLD_r_ADDR_rr(reg.d, reg.h, reg.l); }
+    void ld_d_a() { ld_r_r(reg.d, reg.a); }
+    void ld_d_b() { ld_r_r(reg.d, reg.b); }
+    void ld_d_c() { ld_r_r(reg.d, reg.c); }
+    void ld_d_d() { ld_r_r(reg.d, reg.d); }
+    void ld_d_e() { ld_r_r(reg.d, reg.e); }
+    void ld_d_h() { ld_r_r(reg.d, reg.h); }
+    void ld_d_l() { ld_r_r(reg.d, reg.l); }
+    void ld_d_phl() { ld_r_prr(reg.d, reg.h, reg.l); }
 
-    void iLD_E_A() { tLD_r_r(reg.e, reg.a); }
-    void iLD_E_B() { tLD_r_r(reg.e, reg.b); }
-    void iLD_E_C() { tLD_r_r(reg.e, reg.c); }
-    void iLD_E_D() { tLD_r_r(reg.e, reg.d); }
-    void iLD_E_E() { tLD_r_r(reg.e, reg.e); }
-    void iLD_E_H() { tLD_r_r(reg.e, reg.h); }
-    void iLD_E_L() { tLD_r_r(reg.e, reg.l); }
-    void iLD_E_ADDR_HL() { tLD_r_ADDR_rr(reg.e, reg.h, reg.l); }
+    void ld_e_a() { ld_r_r(reg.e, reg.a); }
+    void ld_e_b() { ld_r_r(reg.e, reg.b); }
+    void ld_e_c() { ld_r_r(reg.e, reg.c); }
+    void ld_e_d() { ld_r_r(reg.e, reg.d); }
+    void ld_e_e() { ld_r_r(reg.e, reg.e); }
+    void ld_e_h() { ld_r_r(reg.e, reg.h); }
+    void ld_e_l() { ld_r_r(reg.e, reg.l); }
+    void ld_e_phl() { ld_r_prr(reg.e, reg.h, reg.l); }
 
-    void iLD_H_A() { tLD_r_r(reg.h, reg.a); }
-    void iLD_H_B() { tLD_r_r(reg.h, reg.b); }
-    void iLD_H_C() { tLD_r_r(reg.h, reg.c); }
-    void iLD_H_D() { tLD_r_r(reg.h, reg.d); }
-    void iLD_H_E() { tLD_r_r(reg.h, reg.e); }
-    void iLD_H_H() { tLD_r_r(reg.h, reg.h); }
-    void iLD_H_L() { tLD_r_r(reg.h, reg.l); }
-    void iLD_H_ADDR_HL() { tLD_r_ADDR_rr(reg.h, reg.h, reg.l); }
+    void ld_h_a() { ld_r_r(reg.h, reg.a); }
+    void ld_h_b() { ld_r_r(reg.h, reg.b); }
+    void ld_h_c() { ld_r_r(reg.h, reg.c); }
+    void ld_h_d() { ld_r_r(reg.h, reg.d); }
+    void ld_h_e() { ld_r_r(reg.h, reg.e); }
+    void ld_h_h() { ld_r_r(reg.h, reg.h); }
+    void ld_h_l() { ld_r_r(reg.h, reg.l); }
+    void ld_h_phl() { ld_r_prr(reg.h, reg.h, reg.l); }
 
-    void iLD_L_A() { tLD_r_r(reg.l, reg.a); }
-    void iLD_L_B() { tLD_r_r(reg.l, reg.b); }
-    void iLD_L_C() { tLD_r_r(reg.l, reg.c); }
-    void iLD_L_D() { tLD_r_r(reg.l, reg.d); }
-    void iLD_L_E() { tLD_r_r(reg.l, reg.e); }
-    void iLD_L_H() { tLD_r_r(reg.l, reg.h); }
-    void iLD_L_L() { tLD_r_r(reg.l, reg.l); }
-    void iLD_L_ADDR_HL() { tLD_r_ADDR_rr(reg.l, reg.h, reg.l); }
+    void ld_l_a() { ld_r_r(reg.l, reg.a); }
+    void ld_l_b() { ld_r_r(reg.l, reg.b); }
+    void ld_l_c() { ld_r_r(reg.l, reg.c); }
+    void ld_l_d() { ld_r_r(reg.l, reg.d); }
+    void ld_l_e() { ld_r_r(reg.l, reg.e); }
+    void ld_l_h() { ld_r_r(reg.l, reg.h); }
+    void ld_l_l() { ld_r_r(reg.l, reg.l); }
+    void ld_l_phl() { ld_r_prr(reg.l, reg.h, reg.l); }
 
-    void iLD_SP_HL();
+    void ld_sp_hl();
 
-    void iLD_HL_SPN();
+    void ld_hl_spn();
 
-    void iLD_ADDR_HL_A() { tLD_ADDR_rr_r(reg.h, reg.l, reg.a); }
-    void iLD_ADDR_HL_B() { tLD_ADDR_rr_r(reg.h, reg.l, reg.b); }
-    void iLD_ADDR_HL_C() { tLD_ADDR_rr_r(reg.h, reg.l, reg.c); }
-    void iLD_ADDR_HL_D() { tLD_ADDR_rr_r(reg.h, reg.l, reg.d); }
-    void iLD_ADDR_HL_E() { tLD_ADDR_rr_r(reg.h, reg.l, reg.e); }
-    void iLD_ADDR_HL_H() { tLD_ADDR_rr_r(reg.h, reg.l, reg.h); }
-    void iLD_ADDR_HL_L() { tLD_ADDR_rr_r(reg.h, reg.l, reg.l); }
-    void iLD_ADDR_HL_N();
+    void ld_phl_a() { ld_prr_r(reg.h, reg.l, reg.a); }
+    void ld_phl_b() { ld_prr_r(reg.h, reg.l, reg.b); }
+    void ld_phl_c() { ld_prr_r(reg.h, reg.l, reg.c); }
+    void ld_phl_d() { ld_prr_r(reg.h, reg.l, reg.d); }
+    void ld_phl_e() { ld_prr_r(reg.h, reg.l, reg.e); }
+    void ld_phl_h() { ld_prr_r(reg.h, reg.l, reg.h); }
+    void ld_phl_l() { ld_prr_r(reg.h, reg.l, reg.l); }
+    void ld_phl_n();
 
-    void iLD_ADDR_BC_A() { tLD_ADDR_rr_r(reg.b, reg.c, reg.a); }
-    void iLD_ADDR_DE_A() { tLD_ADDR_rr_r(reg.d, reg.e, reg.a); }
+    void ld_pbc_a() { ld_prr_r(reg.b, reg.c, reg.a); }
+    void ld_pde_a() { ld_prr_r(reg.d, reg.e, reg.a); }
 
-    void iLD_A_ADDR_BC() { tLD_r_ADDR_rr(reg.a, reg.b, reg.c); }
-    void iLD_A_ADDR_DE() { tLD_r_ADDR_rr(reg.a, reg.d, reg.e); }
-    void iLD_A_ADDR_NN();
+    void ld_a_pbc() { ld_r_prr(reg.a, reg.b, reg.c); }
+    void ld_a_pde() { ld_r_prr(reg.a, reg.d, reg.e); }
+    void ld_a_pnn();
 
-    void iLD_ADDR_NN_A();
+    void ld_pnn_a();
 
-    void iLD_A_N() { tLD_r_N(reg.a); }
-    void iLD_B_N() { tLD_r_N(reg.b); }
-    void iLD_C_N() { tLD_r_N(reg.c); }
-    void iLD_D_N() { tLD_r_N(reg.d); }
-    void iLD_E_N() { tLD_r_N(reg.e); }
-    void iLD_H_N() { tLD_r_N(reg.h); }
-    void iLD_L_N() { tLD_r_N(reg.l); }
+    void ld_a_n() { ld_r_n(reg.a); }
+    void ld_b_n() { ld_r_n(reg.b); }
+    void ld_c_n() { ld_r_n(reg.c); }
+    void ld_d_n() { ld_r_n(reg.d); }
+    void ld_e_n() { ld_r_n(reg.e); }
+    void ld_h_n() { ld_r_n(reg.h); }
+    void ld_l_n() { ld_r_n(reg.l); }
 
-    void iLD_BC_NN() { tLD_rr_NN(reg.b, reg.c); }
-    void iLD_DE_NN() { tLD_rr_NN(reg.d, reg.e); }
-    void iLD_HL_NN() { tLD_rr_NN(reg.h, reg.l); }
-    void iLD_SP_NN();
+    void ld_bc_nn() { ld_rr_nn(reg.b, reg.c); }
+    void ld_de_nn() { ld_rr_nn(reg.d, reg.e); }
+    void ld_hl_nn() { ld_rr_nn(reg.h, reg.l); }
+    void ld_sp_nn();
 
-    void iLD_ADDR_NN_SP();
+    void ld_pnn_sp();
 
-    void iLD_A_OFFSET_ADDR_C();
-    void iLD_OFFSET_ADDR_C_A();
+    void ld_a_offc();
+    void ld_offc_a();
 
-    void iLDH_OFFSET_N_A();
-    void iLDH_A_OFFSET_N();
+    void ldh_offn_a();
+    void ldh_a_offn();
 
-    void iLDI_A_ADDR_HL();
-    void iLDI_ADDR_HL_A();
+    void ldi_a_phl();
+    void ldi_phl_a();
 
-    void iLDD_A_ADDR_HL();
-    void iLDD_ADDR_HL_A();
+    void ldd_a_phl();
+    void ldd_phl_a();
 
-    void iADD_A_A() { tADD_A_(reg.a); }
-    void iADD_A_B() { tADD_A_(reg.b); }
-    void iADD_A_C() { tADD_A_(reg.c); }
-    void iADD_A_D() { tADD_A_(reg.d); }
-    void iADD_A_E() { tADD_A_(reg.e); }
-    void iADD_A_H() { tADD_A_(reg.h); }
-    void iADD_A_L() { tADD_A_(reg.l); }
-    void iADD_A_ADDR_HL();
-    void iADD_A_N();
+    void add_a_a() { add_a_r(reg.a); }
+    void add_a_b() { add_a_r(reg.b); }
+    void add_a_c() { add_a_r(reg.c); }
+    void add_a_d() { add_a_r(reg.d); }
+    void add_a_e() { add_a_r(reg.e); }
+    void add_a_h() { add_a_r(reg.h); }
+    void add_a_l() { add_a_r(reg.l); }
+    void add_a_n();
+    void add_a_phl();
 
-    void iADD_SP_N();
+    void add_sp_n();
 
-    void iADC_A_A() { tADC_A_(reg.a); }
-    void iADC_A_B() { tADC_A_(reg.b); }
-    void iADC_A_C() { tADC_A_(reg.c); }
-    void iADC_A_D() { tADC_A_(reg.d); }
-    void iADC_A_E() { tADC_A_(reg.e); }
-    void iADC_A_H() { tADC_A_(reg.h); }
-    void iADC_A_L() { tADC_A_(reg.l); }
-    void iADC_A_ADDR_HL();
-    void iADC_A_N();
+    void adc_a_a() { adc_a_r(reg.a); }
+    void adc_a_b() { adc_a_r(reg.b); }
+    void adc_a_c() { adc_a_r(reg.c); }
+    void adc_a_d() { adc_a_r(reg.d); }
+    void adc_a_e() { adc_a_r(reg.e); }
+    void adc_a_h() { adc_a_r(reg.h); }
+    void adc_a_l() { adc_a_r(reg.l); }
+    void adc_a_n();
+    void adc_a_phl();
 
-    void iADD_HL_BC() { tADD_HL_(reg.b, reg.c); }
-    void iADD_HL_DE() { tADD_HL_(reg.d, reg.e); }
-    void iADD_HL_HL() { tADD_HL_(reg.h, reg.l); }
-    void iADD_HL_SP();
+    void add_hl_bc() { add_hl_rr(reg.b, reg.c); }
+    void add_hl_de() { add_hl_rr(reg.d, reg.e); }
+    void add_hl_hl() { add_hl_rr(reg.h, reg.l); }
+    void add_hl_sp();
 
-    void iSUB_A() { tSUB(reg.a); }
-    void iSUB_B() { tSUB(reg.b); }
-    void iSUB_C() { tSUB(reg.c); }
-    void iSUB_D() { tSUB(reg.d); }
-    void iSUB_E() { tSUB(reg.e); }
-    void iSUB_H() { tSUB(reg.h); }
-    void iSUB_L() { tSUB(reg.l); }
-    void iSUB_ADDR_HL();
-    void iSUB_N();
+    void sub_a() { sub(reg.a); }
+    void sub_b() { sub(reg.b); }
+    void sub_c() { sub(reg.c); }
+    void sub_d() { sub(reg.d); }
+    void sub_e() { sub(reg.e); }
+    void sub_h() { sub(reg.h); }
+    void sub_l() { sub(reg.l); }
+    void sub_n();
+    void sub_phl();
 
-    void iSBC_A_A() { tSBC_A_(reg.a); }
-    void iSBC_A_B() { tSBC_A_(reg.b); }
-    void iSBC_A_C() { tSBC_A_(reg.c); }
-    void iSBC_A_D() { tSBC_A_(reg.d); }
-    void iSBC_A_E() { tSBC_A_(reg.e); }
-    void iSBC_A_H() { tSBC_A_(reg.h); }
-    void iSBC_A_L() { tSBC_A_(reg.l); }
-    void iSBC_A_ADDR_HL();
-    void iSBC_A_N();
+    void sbc_a_a() { sbc_a_r(reg.a); }
+    void sbc_a_b() { sbc_a_r(reg.b); }
+    void sbc_a_c() { sbc_a_r(reg.c); }
+    void sbc_a_d() { sbc_a_r(reg.d); }
+    void sbc_a_e() { sbc_a_r(reg.e); }
+    void sbc_a_h() { sbc_a_r(reg.h); }
+    void sbc_a_l() { sbc_a_r(reg.l); }
+    void sbc_a_n();
+    void sbc_a_phl();
 
-    void iAND_A() { tAND_r(reg.a); }
-    void iAND_B() { tAND_r(reg.b); }
-    void iAND_C() { tAND_r(reg.c); }
-    void iAND_D() { tAND_r(reg.d); }
-    void iAND_E() { tAND_r(reg.e); }
-    void iAND_H() { tAND_r(reg.h); }
-    void iAND_L() { tAND_r(reg.l); }
-    void iAND_ADDR_HL();
-    void iAND_N();
+    void and_a() { and_r(reg.a); }
+    void and_b() { and_r(reg.b); }
+    void and_c() { and_r(reg.c); }
+    void and_d() { and_r(reg.d); }
+    void and_e() { and_r(reg.e); }
+    void and_h() { and_r(reg.h); }
+    void and_l() { and_r(reg.l); }
+    void and_n();
+    void and_phl();
 
-    void iOR_A() { tOR_r(reg.a); }
-    void iOR_B() { tOR_r(reg.b); }
-    void iOR_C() { tOR_r(reg.c); }
-    void iOR_D() { tOR_r(reg.d); }
-    void iOR_E() { tOR_r(reg.e); }
-    void iOR_H() { tOR_r(reg.h); }
-    void iOR_L() { tOR_r(reg.l); }
-    void iOR_ADDR_HL();
-    void iOR_N();
+    void or_a() { or_r(reg.a); }
+    void or_b() { or_r(reg.b); }
+    void or_c() { or_r(reg.c); }
+    void or_d() { or_r(reg.d); }
+    void or_e() { or_r(reg.e); }
+    void or_h() { or_r(reg.h); }
+    void or_l() { or_r(reg.l); }
+    void or_n();
+    void or_phl();
 
-    void iXOR_A() { tXOR_r(reg.a); }
-    void iXOR_B() { tXOR_r(reg.b); }
-    void iXOR_C() { tXOR_r(reg.c); }
-    void iXOR_D() { tXOR_r(reg.d); }
-    void iXOR_E() { tXOR_r(reg.e); }
-    void iXOR_H() { tXOR_r(reg.h); }
-    void iXOR_L() { tXOR_r(reg.l); }
-    void iXOR_ADDR_HL();
-    void iXOR_N();
+    void xor_a() { xor_r(reg.a); }
+    void xor_b() { xor_r(reg.b); }
+    void xor_c() { xor_r(reg.c); }
+    void xor_d() { xor_r(reg.d); }
+    void xor_e() { xor_r(reg.e); }
+    void xor_h() { xor_r(reg.h); }
+    void xor_l() { xor_r(reg.l); }
+    void xor_n();
+    void xor_phl();
 
-    void iCP_A() { tCP_r(reg.a); }
-    void iCP_B() { tCP_r(reg.b); }
-    void iCP_C() { tCP_r(reg.c); }
-    void iCP_D() { tCP_r(reg.d); }
-    void iCP_E() { tCP_r(reg.e); }
-    void iCP_H() { tCP_r(reg.h); }
-    void iCP_L() { tCP_r(reg.l); }
-    void iCP_ADDR_HL();
-    void iCP_N();
+    void cp_a() { cp_r(reg.a); }
+    void cp_b() { cp_r(reg.b); }
+    void cp_c() { cp_r(reg.c); }
+    void cp_d() { cp_r(reg.d); }
+    void cp_e() { cp_r(reg.e); }
+    void cp_h() { cp_r(reg.h); }
+    void cp_l() { cp_r(reg.l); }
+    void cp_n();
+    void cp_phl();
 
-    void iINC_A() { tINC_r(reg.a); };
-    void iINC_B() { tINC_r(reg.b); };
-    void iINC_C() { tINC_r(reg.c); };
-    void iINC_D() { tINC_r(reg.d); };
-    void iINC_E() { tINC_r(reg.e); };
-    void iINC_H() { tINC_r(reg.h); };
-    void iINC_L() { tINC_r(reg.l); };
+    void inc_a() { inc_r(reg.a); };
+    void inc_b() { inc_r(reg.b); };
+    void inc_c() { inc_r(reg.c); };
+    void inc_d() { inc_r(reg.d); };
+    void inc_e() { inc_r(reg.e); };
+    void inc_h() { inc_r(reg.h); };
+    void inc_l() { inc_r(reg.l); };
 
-    void iDEC_A() { tDEC_r(reg.a); }
-    void iDEC_B() { tDEC_r(reg.b); }
-    void iDEC_C() { tDEC_r(reg.c); }
-    void iDEC_D() { tDEC_r(reg.d); }
-    void iDEC_E() { tDEC_r(reg.e); }
-    void iDEC_H() { tDEC_r(reg.h); }
-    void iDEC_L() { tDEC_r(reg.l); }
+    void dec_a() { dec_r(reg.a); }
+    void dec_b() { dec_r(reg.b); }
+    void dec_c() { dec_r(reg.c); }
+    void dec_d() { dec_r(reg.d); }
+    void dec_e() { dec_r(reg.e); }
+    void dec_h() { dec_r(reg.h); }
+    void dec_l() { dec_r(reg.l); }
 
-    void iSWAP_A() { tSWAP_r(reg.a); }
-    void iSWAP_B() { tSWAP_r(reg.b); }
-    void iSWAP_C() { tSWAP_r(reg.c); }
-    void iSWAP_D() { tSWAP_r(reg.d); }
-    void iSWAP_E() { tSWAP_r(reg.e); }
-    void iSWAP_H() { tSWAP_r(reg.h); }
-    void iSWAP_L() { tSWAP_r(reg.l); }
+    void swap_a() { swap_r(reg.a); }
+    void swap_b() { swap_r(reg.b); }
+    void swap_c() { swap_r(reg.c); }
+    void swap_d() { swap_r(reg.d); }
+    void swap_e() { swap_r(reg.e); }
+    void swap_h() { swap_r(reg.h); }
+    void swap_l() { swap_r(reg.l); }
 
-    void iINC_BC() { tINC_rr(reg.b, reg.c); }
-    void iINC_DE() { tINC_rr(reg.d, reg.e); }
-    void iINC_HL() { tINC_rr(reg.h, reg.l); }
-    void iINC_SP() { reg.sp += 1; clock += Clock(2); }
-    void iINC_ADDR_HL();
+    void inc_bc() { inc_rr(reg.b, reg.c); }
+    void inc_de() { inc_rr(reg.d, reg.e); }
+    void inc_hl() { inc_rr(reg.h, reg.l); }
+    void inc_sp() { reg.sp += 1; clock += Clock(2); }
+    void inc_phl();
 
-    void iDEC_BC() { tDEC_rr(reg.b, reg.c); }
-    void iDEC_DE() { tDEC_rr(reg.d, reg.e); }
-    void iDEC_HL() { tDEC_rr(reg.h, reg.l); }
-    void iDEC_SP() { reg.sp -= 1; clock += Clock(2); }
-    void iDEC_ADDR_HL();
+    void dec_bc() { dec_rr(reg.b, reg.c); }
+    void dec_de() { dec_rr(reg.d, reg.e); }
+    void dec_hl() { dec_rr(reg.h, reg.l); }
+    void dec_sp() { reg.sp -= 1; clock += Clock(2); }
+    void dec_phl();
 
-    void iPUSH_AF() { tPUSH_rr(reg.a, reg.f); }
-    void iPUSH_BC() { tPUSH_rr(reg.b, reg.c); }
-    void iPUSH_DE() { tPUSH_rr(reg.d, reg.e); }
-    void iPUSH_HL() { tPUSH_rr(reg.h, reg.l); }
+    void push_af() { push_rr(reg.a, reg.f); }
+    void push_bc() { push_rr(reg.b, reg.c); }
+    void push_de() { push_rr(reg.d, reg.e); }
+    void push_hl() { push_rr(reg.h, reg.l); }
 
-    void iPOP_AF() { tPOP_rr(reg.a, reg.f); }
-    void iPOP_BC() { tPOP_rr(reg.b, reg.c); }
-    void iPOP_DE() { tPOP_rr(reg.d, reg.e); }
-    void iPOP_HL() { tPOP_rr(reg.h, reg.l); }
+    void pop_af() { pop_rr(reg.a, reg.f); }
+    void pop_bc() { pop_rr(reg.b, reg.c); }
+    void pop_de() { pop_rr(reg.d, reg.e); }
+    void pop_hl() { pop_rr(reg.h, reg.l); }
 
-    void iRST_00H() { tRST(0x00); };
-    void iRST_08H() { tRST(0x08); };
-    void iRST_10H() { tRST(0x10); };
-    void iRST_18H() { tRST(0x18); };
-    void iRST_20H() { tRST(0x20); };
-    void iRST_28H() { tRST(0x28); };
-    void iRST_30H() { tRST(0x30); };
-    void iRST_38H() { tRST(0x38); };
+    void rst_00() { rst(0x00); };
+    void rst_08() { rst(0x08); };
+    void rst_10() { rst(0x10); };
+    void rst_18() { rst(0x18); };
+    void rst_20() { rst(0x20); };
+    void rst_28() { rst(0x28); };
+    void rst_30() { rst(0x30); };
+    void rst_38() { rst(0x38); };
 
-    void iCALL();
-    void iCALL_Z();
-    void iCALL_NZ();
-    void iCALL_C();
-    void iCALL_NC();
+    void call();
+    void call_z();
+    void call_nz();
+    void call_c();
+    void call_nc();
 
-    void iRET();
-    void iRETI();
-    void iRET_Z();
-    void iRET_NZ();
-    void iRET_C();
-    void iRET_NC();
+    void ret();
+    void reti();
+    void ret_z();
+    void ret_nz();
+    void ret_c();
+    void ret_nc();
 
-    void iJP();
-    void iJP_Z();
-    void iJP_NZ();
-    void iJP_C();
-    void iJP_NC();
-    void iJP_HL();
+    void jp();
+    void jp_z();
+    void jp_nz();
+    void jp_c();
+    void jp_nc();
+    void jp_hl();
 
-    void iJR();
-    void iJR_Z();
-    void iJR_NZ();
-    void iJR_C();
-    void iJR_NC();
+    void jr();
+    void jr_z();
+    void jr_nz();
+    void jr_c();
+    void jr_nc();
 };
 
 #endif
