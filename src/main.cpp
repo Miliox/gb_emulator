@@ -15,6 +15,9 @@ int main(int argc, char** argv) {
         // fetch
         uint8_t op = cpu.mmu.read_byte(cpu.reg.pc++);
         cout << "op:" << std::hex << static_cast<uint16_t>(op) << std::dec << endl;
+        if (op == 0xcb) {
+            cout << "op:" << std::hex << static_cast<uint16_t>(cpu.mmu.read_byte(cpu.reg.pc)) << std::dec << endl;
+        }
 
         // decode
         auto& instruction = cpu.instruction_map[op];

@@ -32,6 +32,8 @@ class Z80 {
 private:
     int32_t acc;
 
+    void init_instrunction_map();
+    void init_cb_instrunction_map();
 public:
     MMU mmu;
     Clock clock; // global system clock
@@ -70,7 +72,26 @@ public:
     void dec_rr(uint8_t&, uint8_t&);
     void rst(const uint16_t addr);
 
-    // Instruction Set
+    void bit_i_r(const uint8_t index, const uint8_t& r);
+    void set_i_r(const uint8_t index, uint8_t& r);
+    void res_i_r(const uint8_t index, uint8_t& r);
+    void rlc_r(uint8_t& r);
+    void rrc_r(uint8_t& r);
+    void rl_r(uint8_t& r);
+    void rr_r(uint8_t& r);
+    void sla_r(uint8_t& r);
+    void sra_r(uint8_t& r);
+
+    void bit_i_phl(const uint8_t index);
+    void set_i_phl(const uint8_t index);
+    void res_i_phl(const uint8_t index);
+    void rlc_phl();
+    void rrc_phl();
+    void rl_phl();
+    void rr_phl();
+    void sla_phl();
+    void sra_phl();
+
     void not_implemented_error() {
         throw std::runtime_error("Instruction Not Yet Implemented");
     }
@@ -84,6 +105,7 @@ public:
         (*this.*cb_instruction_map[op])();
     }
 
+    // Instruction Set
     void nop();
     void halt();
     void stop();
@@ -319,6 +341,7 @@ public:
     void swap_e() { swap_r(reg.e); }
     void swap_h() { swap_r(reg.h); }
     void swap_l() { swap_r(reg.l); }
+    void swap_phl();
 
     void inc_bc() { inc_rr(reg.b, reg.c); }
     void inc_de() { inc_rr(reg.d, reg.e); }
@@ -376,6 +399,274 @@ public:
     void jr_nz();
     void jr_c();
     void jr_nc();
+
+    // CB Instruction Set
+
+    void rlc_a() { rlc_r(reg.a); }
+    void rlc_b() { rlc_r(reg.b); }
+    void rlc_c() { rlc_r(reg.c); }
+    void rlc_d() { rlc_r(reg.d); }
+    void rlc_e() { rlc_r(reg.e); }
+    void rlc_h() { rlc_r(reg.h); }
+    void rlc_l() { rlc_r(reg.l); }
+
+    void rrc_a() { rrc_r(reg.a); }
+    void rrc_b() { rrc_r(reg.b); }
+    void rrc_c() { rrc_r(reg.c); }
+    void rrc_d() { rrc_r(reg.d); }
+    void rrc_e() { rrc_r(reg.e); }
+    void rrc_h() { rrc_r(reg.h); }
+    void rrc_l() { rrc_r(reg.l); }
+
+    void rl_a() { rl_r(reg.a); }
+    void rl_b() { rl_r(reg.b); }
+    void rl_c() { rl_r(reg.c); }
+    void rl_d() { rl_r(reg.d); }
+    void rl_e() { rl_r(reg.e); }
+    void rl_h() { rl_r(reg.h); }
+    void rl_l() { rl_r(reg.l); }
+
+    void rr_a() { rr_r(reg.a); }
+    void rr_b() { rr_r(reg.b); }
+    void rr_c() { rr_r(reg.c); }
+    void rr_d() { rr_r(reg.d); }
+    void rr_e() { rr_r(reg.e); }
+    void rr_h() { rr_r(reg.h); }
+    void rr_l() { rr_r(reg.l); }
+
+    void sla_a() { sla_r(reg.a); }
+    void sla_b() { sla_r(reg.b); }
+    void sla_c() { sla_r(reg.c); }
+    void sla_d() { sla_r(reg.d); }
+    void sla_e() { sla_r(reg.e); }
+    void sla_h() { sla_r(reg.h); }
+    void sla_l() { sla_r(reg.l); }
+
+    void sra_a() { sra_r(reg.a); }
+    void sra_b() { sra_r(reg.b); }
+    void sra_c() { sra_r(reg.c); }
+    void sra_d() { sra_r(reg.d); }
+    void sra_e() { sra_r(reg.e); }
+    void sra_h() { sra_r(reg.h); }
+    void sra_l() { sra_r(reg.l); }
+
+    void bit_0_a() { bit_i_r(0, reg.a); }
+    void bit_1_a() { bit_i_r(1, reg.a); }
+    void bit_2_a() { bit_i_r(2, reg.a); }
+    void bit_3_a() { bit_i_r(3, reg.a); }
+    void bit_4_a() { bit_i_r(4, reg.a); }
+    void bit_5_a() { bit_i_r(5, reg.a); }
+    void bit_6_a() { bit_i_r(6, reg.a); }
+    void bit_7_a() { bit_i_r(7, reg.a); }
+
+    void bit_0_b() { bit_i_r(0, reg.b); }
+    void bit_1_b() { bit_i_r(1, reg.b); }
+    void bit_2_b() { bit_i_r(2, reg.b); }
+    void bit_3_b() { bit_i_r(3, reg.b); }
+    void bit_4_b() { bit_i_r(4, reg.b); }
+    void bit_5_b() { bit_i_r(5, reg.b); }
+    void bit_6_b() { bit_i_r(6, reg.b); }
+    void bit_7_b() { bit_i_r(7, reg.b); }
+
+    void bit_0_c() { bit_i_r(0, reg.c); }
+    void bit_1_c() { bit_i_r(1, reg.c); }
+    void bit_2_c() { bit_i_r(2, reg.c); }
+    void bit_3_c() { bit_i_r(3, reg.c); }
+    void bit_4_c() { bit_i_r(4, reg.c); }
+    void bit_5_c() { bit_i_r(5, reg.c); }
+    void bit_6_c() { bit_i_r(6, reg.c); }
+    void bit_7_c() { bit_i_r(7, reg.c); }
+
+    void bit_0_d() { bit_i_r(0, reg.d); }
+    void bit_1_d() { bit_i_r(1, reg.d); }
+    void bit_2_d() { bit_i_r(2, reg.d); }
+    void bit_3_d() { bit_i_r(3, reg.d); }
+    void bit_4_d() { bit_i_r(4, reg.d); }
+    void bit_5_d() { bit_i_r(5, reg.d); }
+    void bit_6_d() { bit_i_r(6, reg.d); }
+    void bit_7_d() { bit_i_r(7, reg.d); }
+
+    void bit_0_e() { bit_i_r(0, reg.e); }
+    void bit_1_e() { bit_i_r(1, reg.e); }
+    void bit_2_e() { bit_i_r(2, reg.e); }
+    void bit_3_e() { bit_i_r(3, reg.e); }
+    void bit_4_e() { bit_i_r(4, reg.e); }
+    void bit_5_e() { bit_i_r(5, reg.e); }
+    void bit_6_e() { bit_i_r(6, reg.e); }
+    void bit_7_e() { bit_i_r(7, reg.e); }
+
+    void bit_0_h() { bit_i_r(0, reg.h); }
+    void bit_1_h() { bit_i_r(1, reg.h); }
+    void bit_2_h() { bit_i_r(2, reg.h); }
+    void bit_3_h() { bit_i_r(3, reg.h); }
+    void bit_4_h() { bit_i_r(4, reg.h); }
+    void bit_5_h() { bit_i_r(5, reg.h); }
+    void bit_6_h() { bit_i_r(6, reg.h); }
+    void bit_7_h() { bit_i_r(7, reg.h); }
+
+    void bit_0_l() { bit_i_r(0, reg.l); }
+    void bit_1_l() { bit_i_r(1, reg.l); }
+    void bit_2_l() { bit_i_r(2, reg.l); }
+    void bit_3_l() { bit_i_r(3, reg.l); }
+    void bit_4_l() { bit_i_r(4, reg.l); }
+    void bit_5_l() { bit_i_r(5, reg.l); }
+    void bit_6_l() { bit_i_r(6, reg.l); }
+    void bit_7_l() { bit_i_r(7, reg.l); }
+
+    void bit_0_phl() { bit_i_phl(0); }
+    void bit_1_phl() { bit_i_phl(1); }
+    void bit_2_phl() { bit_i_phl(2); }
+    void bit_3_phl() { bit_i_phl(3); }
+    void bit_4_phl() { bit_i_phl(4); }
+    void bit_5_phl() { bit_i_phl(5); }
+    void bit_6_phl() { bit_i_phl(6); }
+    void bit_7_phl() { bit_i_phl(7); }
+
+
+    void set_0_a() { set_i_r(0, reg.a); }
+    void set_1_a() { set_i_r(1, reg.a); }
+    void set_2_a() { set_i_r(2, reg.a); }
+    void set_3_a() { set_i_r(3, reg.a); }
+    void set_4_a() { set_i_r(4, reg.a); }
+    void set_5_a() { set_i_r(5, reg.a); }
+    void set_6_a() { set_i_r(6, reg.a); }
+    void set_7_a() { set_i_r(7, reg.a); }
+
+    void set_0_b() { set_i_r(0, reg.b); }
+    void set_1_b() { set_i_r(1, reg.b); }
+    void set_2_b() { set_i_r(2, reg.b); }
+    void set_3_b() { set_i_r(3, reg.b); }
+    void set_4_b() { set_i_r(4, reg.b); }
+    void set_5_b() { set_i_r(5, reg.b); }
+    void set_6_b() { set_i_r(6, reg.b); }
+    void set_7_b() { set_i_r(7, reg.b); }
+
+    void set_0_c() { set_i_r(0, reg.c); }
+    void set_1_c() { set_i_r(1, reg.c); }
+    void set_2_c() { set_i_r(2, reg.c); }
+    void set_3_c() { set_i_r(3, reg.c); }
+    void set_4_c() { set_i_r(4, reg.c); }
+    void set_5_c() { set_i_r(5, reg.c); }
+    void set_6_c() { set_i_r(6, reg.c); }
+    void set_7_c() { set_i_r(7, reg.c); }
+
+    void set_0_d() { set_i_r(0, reg.d); }
+    void set_1_d() { set_i_r(1, reg.d); }
+    void set_2_d() { set_i_r(2, reg.d); }
+    void set_3_d() { set_i_r(3, reg.d); }
+    void set_4_d() { set_i_r(4, reg.d); }
+    void set_5_d() { set_i_r(5, reg.d); }
+    void set_6_d() { set_i_r(6, reg.d); }
+    void set_7_d() { set_i_r(7, reg.d); }
+
+    void set_0_e() { set_i_r(0, reg.e); }
+    void set_1_e() { set_i_r(1, reg.e); }
+    void set_2_e() { set_i_r(2, reg.e); }
+    void set_3_e() { set_i_r(3, reg.e); }
+    void set_4_e() { set_i_r(4, reg.e); }
+    void set_5_e() { set_i_r(5, reg.e); }
+    void set_6_e() { set_i_r(6, reg.e); }
+    void set_7_e() { set_i_r(7, reg.e); }
+
+    void set_0_h() { set_i_r(0, reg.h); }
+    void set_1_h() { set_i_r(1, reg.h); }
+    void set_2_h() { set_i_r(2, reg.h); }
+    void set_3_h() { set_i_r(3, reg.h); }
+    void set_4_h() { set_i_r(4, reg.h); }
+    void set_5_h() { set_i_r(5, reg.h); }
+    void set_6_h() { set_i_r(6, reg.h); }
+    void set_7_h() { set_i_r(7, reg.h); }
+
+    void set_0_l() { set_i_r(0, reg.l); }
+    void set_1_l() { set_i_r(1, reg.l); }
+    void set_2_l() { set_i_r(2, reg.l); }
+    void set_3_l() { set_i_r(3, reg.l); }
+    void set_4_l() { set_i_r(4, reg.l); }
+    void set_5_l() { set_i_r(5, reg.l); }
+    void set_6_l() { set_i_r(6, reg.l); }
+    void set_7_l() { set_i_r(7, reg.l); }
+
+    void set_0_phl() { set_i_phl(0); }
+    void set_1_phl() { set_i_phl(1); }
+    void set_2_phl() { set_i_phl(2); }
+    void set_3_phl() { set_i_phl(3); }
+    void set_4_phl() { set_i_phl(4); }
+    void set_5_phl() { set_i_phl(5); }
+    void set_6_phl() { set_i_phl(6); }
+    void set_7_phl() { set_i_phl(7); }
+
+    void res_0_a() { res_i_r(0, reg.a); }
+    void res_1_a() { res_i_r(1, reg.a); }
+    void res_2_a() { res_i_r(2, reg.a); }
+    void res_3_a() { res_i_r(3, reg.a); }
+    void res_4_a() { res_i_r(4, reg.a); }
+    void res_5_a() { res_i_r(5, reg.a); }
+    void res_6_a() { res_i_r(6, reg.a); }
+    void res_7_a() { res_i_r(7, reg.a); }
+
+    void res_0_b() { res_i_r(0, reg.b); }
+    void res_1_b() { res_i_r(1, reg.b); }
+    void res_2_b() { res_i_r(2, reg.b); }
+    void res_3_b() { res_i_r(3, reg.b); }
+    void res_4_b() { res_i_r(4, reg.b); }
+    void res_5_b() { res_i_r(5, reg.b); }
+    void res_6_b() { res_i_r(6, reg.b); }
+    void res_7_b() { res_i_r(7, reg.b); }
+
+    void res_0_c() { res_i_r(0, reg.c); }
+    void res_1_c() { res_i_r(1, reg.c); }
+    void res_2_c() { res_i_r(2, reg.c); }
+    void res_3_c() { res_i_r(3, reg.c); }
+    void res_4_c() { res_i_r(4, reg.c); }
+    void res_5_c() { res_i_r(5, reg.c); }
+    void res_6_c() { res_i_r(6, reg.c); }
+    void res_7_c() { res_i_r(7, reg.c); }
+
+    void res_0_d() { res_i_r(0, reg.d); }
+    void res_1_d() { res_i_r(1, reg.d); }
+    void res_2_d() { res_i_r(2, reg.d); }
+    void res_3_d() { res_i_r(3, reg.d); }
+    void res_4_d() { res_i_r(4, reg.d); }
+    void res_5_d() { res_i_r(5, reg.d); }
+    void res_6_d() { res_i_r(6, reg.d); }
+    void res_7_d() { res_i_r(7, reg.d); }
+
+    void res_0_e() { res_i_r(0, reg.e); }
+    void res_1_e() { res_i_r(1, reg.e); }
+    void res_2_e() { res_i_r(2, reg.e); }
+    void res_3_e() { res_i_r(3, reg.e); }
+    void res_4_e() { res_i_r(4, reg.e); }
+    void res_5_e() { res_i_r(5, reg.e); }
+    void res_6_e() { res_i_r(6, reg.e); }
+    void res_7_e() { res_i_r(7, reg.e); }
+
+    void res_0_h() { res_i_r(0, reg.h); }
+    void res_1_h() { res_i_r(1, reg.h); }
+    void res_2_h() { res_i_r(2, reg.h); }
+    void res_3_h() { res_i_r(3, reg.h); }
+    void res_4_h() { res_i_r(4, reg.h); }
+    void res_5_h() { res_i_r(5, reg.h); }
+    void res_6_h() { res_i_r(6, reg.h); }
+    void res_7_h() { res_i_r(7, reg.h); }
+
+    void res_0_l() { res_i_r(0, reg.l); }
+    void res_1_l() { res_i_r(1, reg.l); }
+    void res_2_l() { res_i_r(2, reg.l); }
+    void res_3_l() { res_i_r(3, reg.l); }
+    void res_4_l() { res_i_r(4, reg.l); }
+    void res_5_l() { res_i_r(5, reg.l); }
+    void res_6_l() { res_i_r(6, reg.l); }
+    void res_7_l() { res_i_r(7, reg.l); }
+
+    void res_0_phl() { res_i_phl(0); }
+    void res_1_phl() { res_i_phl(1); }
+    void res_2_phl() { res_i_phl(2); }
+    void res_3_phl() { res_i_phl(3); }
+    void res_4_phl() { res_i_phl(4); }
+    void res_5_phl() { res_i_phl(5); }
+    void res_6_phl() { res_i_phl(6); }
+    void res_7_phl() { res_i_phl(7); }
+
 };
 
 #endif

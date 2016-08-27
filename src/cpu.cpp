@@ -37,10 +37,12 @@ inline void split16(const uint16_t& src, uint8_t& msb, uint8_t& lsb) {
 }
 
 Z80::Z80() {
-    instruction_map.reserve(256);
-    cb_instruction_map =
-        std::vector<void (Z80::*)()>(256, &Z80::not_implemented_error);
+    init_instrunction_map();
+    init_cb_instrunction_map();
+}
 
+void Z80::init_instrunction_map() {
+    instruction_map.reserve(256);
     instruction_map[0x00] = &Z80::nop;
     instruction_map[0x01] = &Z80::ld_bc_nn;
     instruction_map[0x02] = &Z80::ld_pbc_a;
@@ -312,6 +314,274 @@ Z80::Z80() {
     instruction_map[0xFD] = &Z80::not_supported_error;
     instruction_map[0xFE] = &Z80::cp_n;
     instruction_map[0xFF] = &Z80::rst_38;
+}
+
+void Z80::init_cb_instrunction_map() {
+    cb_instruction_map.reserve(256);
+
+    cb_instruction_map[0x00] = &Z80::rlc_b;
+    cb_instruction_map[0x01] = &Z80::rlc_c;
+    cb_instruction_map[0x02] = &Z80::rlc_d;
+    cb_instruction_map[0x03] = &Z80::rlc_e;
+    cb_instruction_map[0x04] = &Z80::rlc_h;
+    cb_instruction_map[0x05] = &Z80::rlc_l;
+    cb_instruction_map[0x06] = &Z80::rlc_phl;
+    cb_instruction_map[0x07] = &Z80::rlc_a;
+    cb_instruction_map[0x08] = &Z80::rrc_b;
+    cb_instruction_map[0x09] = &Z80::rrc_c;
+    cb_instruction_map[0x0A] = &Z80::rrc_d;
+    cb_instruction_map[0x0B] = &Z80::rrc_e;
+    cb_instruction_map[0x0C] = &Z80::rrc_h;
+    cb_instruction_map[0x0D] = &Z80::rrc_l;
+    cb_instruction_map[0x0E] = &Z80::rrc_phl;
+    cb_instruction_map[0x0F] = &Z80::rrc_a;
+
+    cb_instruction_map[0x10] = &Z80::rl_b;
+    cb_instruction_map[0x11] = &Z80::rl_c;
+    cb_instruction_map[0x12] = &Z80::rl_d;
+    cb_instruction_map[0x13] = &Z80::rl_e;
+    cb_instruction_map[0x14] = &Z80::rl_h;
+    cb_instruction_map[0x15] = &Z80::rl_l;
+    cb_instruction_map[0x16] = &Z80::rl_phl;
+    cb_instruction_map[0x17] = &Z80::rl_a;
+    cb_instruction_map[0x18] = &Z80::rr_b;
+    cb_instruction_map[0x19] = &Z80::rr_c;
+    cb_instruction_map[0x1A] = &Z80::rr_d;
+    cb_instruction_map[0x1B] = &Z80::rr_e;
+    cb_instruction_map[0x1C] = &Z80::rr_h;
+    cb_instruction_map[0x1D] = &Z80::rr_l;
+    cb_instruction_map[0x1E] = &Z80::rr_phl;
+    cb_instruction_map[0x1F] = &Z80::rr_a;
+
+    cb_instruction_map[0x20] = &Z80::sla_b;
+    cb_instruction_map[0x21] = &Z80::sla_c;
+    cb_instruction_map[0x22] = &Z80::sla_d;
+    cb_instruction_map[0x23] = &Z80::sla_e;
+    cb_instruction_map[0x24] = &Z80::sla_h;
+    cb_instruction_map[0x25] = &Z80::sla_l;
+    cb_instruction_map[0x26] = &Z80::sla_phl;
+    cb_instruction_map[0x27] = &Z80::sla_a;
+    cb_instruction_map[0x28] = &Z80::sra_b;
+    cb_instruction_map[0x29] = &Z80::sra_c;
+    cb_instruction_map[0x2A] = &Z80::sra_d;
+    cb_instruction_map[0x2B] = &Z80::sra_e;
+    cb_instruction_map[0x2C] = &Z80::sra_h;
+    cb_instruction_map[0x2D] = &Z80::sra_l;
+    cb_instruction_map[0x2E] = &Z80::sra_phl;
+    cb_instruction_map[0x2F] = &Z80::sra_a;
+
+    cb_instruction_map[0x30] = &Z80::swap_b;
+    cb_instruction_map[0x31] = &Z80::swap_c;
+    cb_instruction_map[0x32] = &Z80::swap_d;
+    cb_instruction_map[0x33] = &Z80::swap_e;
+    cb_instruction_map[0x34] = &Z80::swap_h;
+    cb_instruction_map[0x35] = &Z80::swap_l;
+    cb_instruction_map[0x36] = &Z80::swap_phl;
+    cb_instruction_map[0x37] = &Z80::swap_a;
+
+    cb_instruction_map[0x40] = &Z80::bit_0_b;
+    cb_instruction_map[0x41] = &Z80::bit_0_c;
+    cb_instruction_map[0x42] = &Z80::bit_0_d;
+    cb_instruction_map[0x43] = &Z80::bit_0_e;
+    cb_instruction_map[0x44] = &Z80::bit_0_h;
+    cb_instruction_map[0x45] = &Z80::bit_0_l;
+    cb_instruction_map[0x46] = &Z80::bit_0_phl;
+    cb_instruction_map[0x47] = &Z80::bit_0_a;
+    cb_instruction_map[0x48] = &Z80::bit_1_b;
+    cb_instruction_map[0x49] = &Z80::bit_1_c;
+    cb_instruction_map[0x4A] = &Z80::bit_1_d;
+    cb_instruction_map[0x4B] = &Z80::bit_1_e;
+    cb_instruction_map[0x4C] = &Z80::bit_1_h;
+    cb_instruction_map[0x4D] = &Z80::bit_1_l;
+    cb_instruction_map[0x4E] = &Z80::bit_1_phl;
+    cb_instruction_map[0x4F] = &Z80::bit_1_a;
+
+    cb_instruction_map[0x50] = &Z80::bit_2_b;
+    cb_instruction_map[0x51] = &Z80::bit_2_c;
+    cb_instruction_map[0x52] = &Z80::bit_2_d;
+    cb_instruction_map[0x53] = &Z80::bit_2_e;
+    cb_instruction_map[0x54] = &Z80::bit_2_h;
+    cb_instruction_map[0x55] = &Z80::bit_2_l;
+    cb_instruction_map[0x56] = &Z80::bit_2_phl;
+    cb_instruction_map[0x57] = &Z80::bit_2_a;
+    cb_instruction_map[0x58] = &Z80::bit_3_b;
+    cb_instruction_map[0x59] = &Z80::bit_3_c;
+    cb_instruction_map[0x5A] = &Z80::bit_3_d;
+    cb_instruction_map[0x5B] = &Z80::bit_3_e;
+    cb_instruction_map[0x5C] = &Z80::bit_3_h;
+    cb_instruction_map[0x5D] = &Z80::bit_3_l;
+    cb_instruction_map[0x5E] = &Z80::bit_3_phl;
+    cb_instruction_map[0x5F] = &Z80::bit_3_a;
+
+    cb_instruction_map[0x60] = &Z80::bit_4_b;
+    cb_instruction_map[0x61] = &Z80::bit_4_c;
+    cb_instruction_map[0x62] = &Z80::bit_4_d;
+    cb_instruction_map[0x63] = &Z80::bit_4_e;
+    cb_instruction_map[0x64] = &Z80::bit_4_h;
+    cb_instruction_map[0x65] = &Z80::bit_4_l;
+    cb_instruction_map[0x66] = &Z80::bit_4_phl;
+    cb_instruction_map[0x67] = &Z80::bit_4_a;
+    cb_instruction_map[0x68] = &Z80::bit_5_b;
+    cb_instruction_map[0x69] = &Z80::bit_5_c;
+    cb_instruction_map[0x6A] = &Z80::bit_5_d;
+    cb_instruction_map[0x6B] = &Z80::bit_5_e;
+    cb_instruction_map[0x6C] = &Z80::bit_5_h;
+    cb_instruction_map[0x6D] = &Z80::bit_5_l;
+    cb_instruction_map[0x6E] = &Z80::bit_5_phl;
+    cb_instruction_map[0x6F] = &Z80::bit_5_a;
+
+    cb_instruction_map[0x70] = &Z80::bit_6_b;
+    cb_instruction_map[0x71] = &Z80::bit_6_c;
+    cb_instruction_map[0x72] = &Z80::bit_6_d;
+    cb_instruction_map[0x73] = &Z80::bit_6_e;
+    cb_instruction_map[0x74] = &Z80::bit_6_h;
+    cb_instruction_map[0x75] = &Z80::bit_6_l;
+    cb_instruction_map[0x76] = &Z80::bit_6_phl;
+    cb_instruction_map[0x77] = &Z80::bit_6_a;
+    cb_instruction_map[0x78] = &Z80::bit_7_b;
+    cb_instruction_map[0x79] = &Z80::bit_7_c;
+    cb_instruction_map[0x7A] = &Z80::bit_7_d;
+    cb_instruction_map[0x7B] = &Z80::bit_7_e;
+    cb_instruction_map[0x7C] = &Z80::bit_7_h;
+    cb_instruction_map[0x7D] = &Z80::bit_7_l;
+    cb_instruction_map[0x7E] = &Z80::bit_7_phl;
+    cb_instruction_map[0x7F] = &Z80::bit_7_a;
+
+    cb_instruction_map[0x80] = &Z80::res_0_b;
+    cb_instruction_map[0x81] = &Z80::res_0_c;
+    cb_instruction_map[0x82] = &Z80::res_0_d;
+    cb_instruction_map[0x83] = &Z80::res_0_e;
+    cb_instruction_map[0x84] = &Z80::res_0_h;
+    cb_instruction_map[0x85] = &Z80::res_0_l;
+    cb_instruction_map[0x86] = &Z80::res_0_phl;
+    cb_instruction_map[0x87] = &Z80::res_0_a;
+    cb_instruction_map[0x88] = &Z80::res_1_b;
+    cb_instruction_map[0x89] = &Z80::res_1_c;
+    cb_instruction_map[0x8A] = &Z80::res_1_d;
+    cb_instruction_map[0x8B] = &Z80::res_1_e;
+    cb_instruction_map[0x8C] = &Z80::res_1_h;
+    cb_instruction_map[0x8D] = &Z80::res_1_l;
+    cb_instruction_map[0x8E] = &Z80::res_1_phl;
+    cb_instruction_map[0x8F] = &Z80::res_1_a;
+
+    cb_instruction_map[0x90] = &Z80::res_2_b;
+    cb_instruction_map[0x91] = &Z80::res_2_c;
+    cb_instruction_map[0x92] = &Z80::res_2_d;
+    cb_instruction_map[0x93] = &Z80::res_2_e;
+    cb_instruction_map[0x94] = &Z80::res_2_h;
+    cb_instruction_map[0x95] = &Z80::res_2_l;
+    cb_instruction_map[0x96] = &Z80::res_2_phl;
+    cb_instruction_map[0x97] = &Z80::res_2_a;
+    cb_instruction_map[0x98] = &Z80::res_3_b;
+    cb_instruction_map[0x99] = &Z80::res_3_c;
+    cb_instruction_map[0x9A] = &Z80::res_3_d;
+    cb_instruction_map[0x9B] = &Z80::res_3_e;
+    cb_instruction_map[0x9C] = &Z80::res_3_h;
+    cb_instruction_map[0x9D] = &Z80::res_3_l;
+    cb_instruction_map[0x9E] = &Z80::res_3_phl;
+    cb_instruction_map[0x9F] = &Z80::res_3_a;
+
+    cb_instruction_map[0xA0] = &Z80::res_4_b;
+    cb_instruction_map[0xA1] = &Z80::res_4_c;
+    cb_instruction_map[0xA2] = &Z80::res_4_d;
+    cb_instruction_map[0xA3] = &Z80::res_4_e;
+    cb_instruction_map[0xA4] = &Z80::res_4_h;
+    cb_instruction_map[0xA5] = &Z80::res_4_l;
+    cb_instruction_map[0xA6] = &Z80::res_4_phl;
+    cb_instruction_map[0xA7] = &Z80::res_4_a;
+    cb_instruction_map[0xA8] = &Z80::res_5_b;
+    cb_instruction_map[0xA9] = &Z80::res_5_c;
+    cb_instruction_map[0xAA] = &Z80::res_5_d;
+    cb_instruction_map[0xAB] = &Z80::res_5_e;
+    cb_instruction_map[0xAC] = &Z80::res_5_h;
+    cb_instruction_map[0xAD] = &Z80::res_5_l;
+    cb_instruction_map[0xAE] = &Z80::res_5_phl;
+    cb_instruction_map[0xAF] = &Z80::res_5_a;
+
+    cb_instruction_map[0xB0] = &Z80::res_6_b;
+    cb_instruction_map[0xB1] = &Z80::res_6_c;
+    cb_instruction_map[0xB2] = &Z80::res_6_d;
+    cb_instruction_map[0xB3] = &Z80::res_6_e;
+    cb_instruction_map[0xB4] = &Z80::res_6_h;
+    cb_instruction_map[0xB5] = &Z80::res_6_l;
+    cb_instruction_map[0xB6] = &Z80::res_6_phl;
+    cb_instruction_map[0xB7] = &Z80::res_6_a;
+    cb_instruction_map[0xB8] = &Z80::res_7_b;
+    cb_instruction_map[0xB9] = &Z80::res_7_c;
+    cb_instruction_map[0xBA] = &Z80::res_7_d;
+    cb_instruction_map[0xBB] = &Z80::res_7_e;
+    cb_instruction_map[0xBC] = &Z80::res_7_h;
+    cb_instruction_map[0xBD] = &Z80::res_7_l;
+    cb_instruction_map[0xBE] = &Z80::res_7_phl;
+    cb_instruction_map[0xBF] = &Z80::res_7_a;
+
+    cb_instruction_map[0xC0] = &Z80::set_0_b;
+    cb_instruction_map[0xC1] = &Z80::set_0_c;
+    cb_instruction_map[0xC2] = &Z80::set_0_d;
+    cb_instruction_map[0xC3] = &Z80::set_0_e;
+    cb_instruction_map[0xC4] = &Z80::set_0_h;
+    cb_instruction_map[0xC5] = &Z80::set_0_l;
+    cb_instruction_map[0xC6] = &Z80::set_0_phl;
+    cb_instruction_map[0xC7] = &Z80::set_0_a;
+    cb_instruction_map[0xC8] = &Z80::set_1_b;
+    cb_instruction_map[0xC9] = &Z80::set_1_c;
+    cb_instruction_map[0xCA] = &Z80::set_1_d;
+    cb_instruction_map[0xCB] = &Z80::set_1_e;
+    cb_instruction_map[0xCC] = &Z80::set_1_h;
+    cb_instruction_map[0xCD] = &Z80::set_1_l;
+    cb_instruction_map[0xCE] = &Z80::set_1_phl;
+    cb_instruction_map[0xCF] = &Z80::set_1_a;
+
+    cb_instruction_map[0xD0] = &Z80::set_2_b;
+    cb_instruction_map[0xD1] = &Z80::set_2_c;
+    cb_instruction_map[0xD2] = &Z80::set_2_d;
+    cb_instruction_map[0xD3] = &Z80::set_2_e;
+    cb_instruction_map[0xD4] = &Z80::set_2_h;
+    cb_instruction_map[0xD5] = &Z80::set_2_l;
+    cb_instruction_map[0xD6] = &Z80::set_2_phl;
+    cb_instruction_map[0xD7] = &Z80::set_2_a;
+    cb_instruction_map[0xD8] = &Z80::set_3_b;
+    cb_instruction_map[0xD9] = &Z80::set_3_c;
+    cb_instruction_map[0xDA] = &Z80::set_3_d;
+    cb_instruction_map[0xDB] = &Z80::set_3_e;
+    cb_instruction_map[0xDC] = &Z80::set_3_h;
+    cb_instruction_map[0xDD] = &Z80::set_3_l;
+    cb_instruction_map[0xDE] = &Z80::set_3_phl;
+    cb_instruction_map[0xDF] = &Z80::set_3_a;
+
+    cb_instruction_map[0xE0] = &Z80::set_4_b;
+    cb_instruction_map[0xE1] = &Z80::set_4_c;
+    cb_instruction_map[0xE2] = &Z80::set_4_d;
+    cb_instruction_map[0xE3] = &Z80::set_4_e;
+    cb_instruction_map[0xE4] = &Z80::set_4_h;
+    cb_instruction_map[0xE5] = &Z80::set_4_l;
+    cb_instruction_map[0xE6] = &Z80::set_4_phl;
+    cb_instruction_map[0xE7] = &Z80::set_4_a;
+    cb_instruction_map[0xE8] = &Z80::set_5_b;
+    cb_instruction_map[0xE9] = &Z80::set_5_c;
+    cb_instruction_map[0xEA] = &Z80::set_5_d;
+    cb_instruction_map[0xEB] = &Z80::set_5_e;
+    cb_instruction_map[0xEC] = &Z80::set_5_h;
+    cb_instruction_map[0xED] = &Z80::set_5_l;
+    cb_instruction_map[0xEE] = &Z80::set_5_phl;
+    cb_instruction_map[0xEF] = &Z80::set_5_a;
+
+    cb_instruction_map[0xF0] = &Z80::set_6_b;
+    cb_instruction_map[0xF1] = &Z80::set_6_c;
+    cb_instruction_map[0xF2] = &Z80::set_6_d;
+    cb_instruction_map[0xF3] = &Z80::set_6_e;
+    cb_instruction_map[0xF4] = &Z80::set_6_h;
+    cb_instruction_map[0xF5] = &Z80::set_6_l;
+    cb_instruction_map[0xF6] = &Z80::set_6_phl;
+    cb_instruction_map[0xF7] = &Z80::set_6_a;
+    cb_instruction_map[0xF8] = &Z80::set_7_b;
+    cb_instruction_map[0xF9] = &Z80::set_7_c;
+    cb_instruction_map[0xFA] = &Z80::set_7_d;
+    cb_instruction_map[0xFB] = &Z80::set_7_e;
+    cb_instruction_map[0xFC] = &Z80::set_7_h;
+    cb_instruction_map[0xFD] = &Z80::set_7_l;
+    cb_instruction_map[0xFE] = &Z80::set_7_phl;
+    cb_instruction_map[0xFF] = &Z80::set_7_a;
 
 }
 
@@ -637,6 +907,18 @@ void Z80::dec_r(uint8_t& r) {
 void Z80::swap_r(uint8_t& r) {
     r = static_cast<uint8_t>(((r << 4) & 0xf0) | ((r >> 4) & 0x0f));
     reg.f = check_z(r);
+    clock += Clock(2);
+}
+
+/**
+ * SWAP (HL)
+ */
+void Z80::swap_phl() {
+    uint16_t addr = combine16(reg.h, reg.l);
+    uint8_t value = mmu.read_byte(addr);
+    clock += Clock(2);
+    swap_r(value);
+    mmu.write_byte(addr, value);
 }
 
 /**
@@ -704,6 +986,147 @@ void Z80::ld_pnn_a() {
     mmu.write_byte(addr, reg.a);
 
     clock += Clock(4);
+}
+
+void Z80::bit_i_r(const uint8_t index, const uint8_t& r) {
+    uint8_t mask = static_cast<uint8_t>(1 << index);
+    reg.f = (reg.f & kFlagC) | kFlagH | ((r & mask) ? kFlagZ : 0);
+    clock += Clock(2);
+}
+
+void Z80::set_i_r(const uint8_t index, uint8_t& r) {
+    uint8_t mask = static_cast<uint8_t>(1 << index);
+    r |= mask;
+    clock += Clock(2);
+}
+
+void Z80::res_i_r(const uint8_t index, uint8_t& r) {
+    uint8_t mask = static_cast<uint8_t>(1 << index);
+    r &= ~mask;
+    clock += Clock(2);
+}
+
+void Z80::rlc_r(uint8_t& r) {
+    bool has_carry = (r & 0x80) != 0;
+    r = (r << 1) | (r >> 7);
+    reg.f = check_z(r) | (has_carry ? kFlagC : 0);
+    clock += Clock(2);
+}
+
+void Z80::rrc_r(uint8_t& r) {
+    bool has_carry = (r & 0x01) != 0;
+    r = (r >> 1) | (r << 7);
+    reg.f = check_z(r) | (has_carry ? kFlagC : 0);
+    clock += Clock(2);
+}
+
+void Z80::rl_r(uint8_t& r) {
+    bool has_carry = (r & 0x80) != 0;
+    r = (r << 1) | (reg.f & kFlagC ? 0x01 : 0x00);
+    reg.f = check_z(r) | (has_carry ? kFlagC : 0);
+    clock += Clock(2);
+}
+
+void Z80::rr_r(uint8_t& r) {
+    bool has_carry = (r & 0x01) != 0;
+    r = (r >> 1) | (reg.f & kFlagC ? 0x80 : 0x00);
+    reg.f = check_z(r) | (has_carry ? kFlagC : 0);
+    clock += Clock(2);
+}
+
+void Z80::sla_r(uint8_t& r) {
+    bool has_carry = (r & 0x80) != 0;
+    r = (r << 1);
+    reg.f = check_z(r) | (has_carry ? kFlagC : 0);
+    clock += Clock(2);
+}
+
+void Z80::sra_r(uint8_t& r) {
+    bool has_carry = (r & 0x01) != 0;
+    r = (r & 0x80)| (r >> 1);
+    reg.f = check_z(r) | (has_carry ? kFlagC : 0);
+    clock += Clock(2);
+}
+
+void Z80::bit_i_phl(const uint8_t index) {
+    uint16_t addr = combine16(reg.h, reg.l);
+    uint8_t value = mmu.read_byte(addr);
+    clock += Clock(2);
+
+    bit_i_r(index, value);
+    mmu.write_byte(addr, value);
+}
+
+void Z80::set_i_phl(const uint8_t index) {
+    uint16_t addr = combine16(reg.h, reg.l);
+    uint8_t value = mmu.read_byte(addr);
+    clock += Clock(2);
+
+    set_i_r(index, value);
+    mmu.write_byte(addr, value);
+}
+
+void Z80::res_i_phl(const uint8_t index) {
+    uint16_t addr = combine16(reg.h, reg.l);
+    uint8_t value = mmu.read_byte(addr);
+    clock += Clock(2);
+
+    res_i_r(index, value);
+    mmu.write_byte(addr, value);
+}
+
+void Z80::rlc_phl() {
+    uint16_t addr = combine16(reg.h, reg.l);
+    uint8_t value = mmu.read_byte(addr);
+    clock += Clock(2);
+
+    rlc_r(value);
+    mmu.write_byte(addr, value);
+}
+
+void Z80::rrc_phl() {
+    uint16_t addr = combine16(reg.h, reg.l);
+    uint8_t value = mmu.read_byte(addr);
+    clock += Clock(2);
+
+    rrc_r(value);
+    mmu.write_byte(addr, value);
+}
+
+void Z80::rl_phl() {
+    uint16_t addr = combine16(reg.h, reg.l);
+    uint8_t value = mmu.read_byte(addr);
+    clock += Clock(2);
+
+    rl_r(value);
+    mmu.write_byte(addr, value);
+}
+
+void Z80::rr_phl() {
+    uint16_t addr = combine16(reg.h, reg.l);
+    uint8_t value = mmu.read_byte(addr);
+    clock += Clock(2);
+
+    rr_r(value);
+    mmu.write_byte(addr, value);
+}
+
+void Z80::sla_phl() {
+    uint16_t addr = combine16(reg.h, reg.l);
+    uint8_t value = mmu.read_byte(addr);
+    clock += Clock(2);
+
+    sla_r(value);
+    mmu.write_byte(addr, value);
+}
+
+void Z80::sra_phl() {
+    uint16_t addr = combine16(reg.h, reg.l);
+    uint8_t value = mmu.read_byte(addr);
+    clock += Clock(2);
+
+    sra_r(value);
+    mmu.write_byte(addr, value);
 }
 
 /**
