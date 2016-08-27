@@ -26,7 +26,7 @@ uint8_t kInstrunctionLength[256] = {
     2, 1, 2, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1     // 0xF0 ~ 0xFF
 };
 
-const char* kZ80InstrunctionNames[256] = {
+const char* kGBCPUInstrunctionNames[256] = {
     // 0x00 ~ 0x0F
     "nop",
     "ld bc, nn",

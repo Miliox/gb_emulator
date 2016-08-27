@@ -1,10 +1,11 @@
 #include "main.hpp"
 
-void dump_inst(uint8_t, const Z80&);
-void dump_cpu(const Z80&);
+void dump_inst(uint8_t, const GBCPU&);
+void dump_cpu(const GBCPU&);
 
 int main(int argc, char** argv) {
-    Z80 cpu;
+    GBMMU mmu;
+    GBCPU cpu(mmu);
 
     while(true) {
         // fetch
@@ -12,7 +13,7 @@ int main(int argc, char** argv) {
         dump_inst(op, cpu);
 
         // decode
-        auto& instruction = cpu.instruction_map[op];
+        auto& instruction = cpu.instruction_map.at(op);
 
         // execute
         (cpu.*instruction)();
@@ -25,10 +26,10 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void dump_inst(uint8_t opcode, const Z80& cpu) {
+void dump_inst(uint8_t opcode, const GBCPU& cpu) {
     std::cout << std::hex;
     if (opcode != 0xcb) {
-        std::cout << kZ80InstrunctionNames[opcode];
+        std::cout << kGBCPUInstrunctionNames[opcode];
 
         std::cout << " : " << static_cast<uint16_t>(opcode);
         for (int i = 1; i < kInstrunctionLength[opcode]; i++) {
@@ -42,7 +43,7 @@ void dump_inst(uint8_t opcode, const Z80& cpu) {
     std::cout << std::dec << std::endl;
 }
 
-void dump_cpu(const Z80& cpu) {
+void dump_cpu(const GBCPU& cpu) {
     std::cout << std::hex;
     std::cout << "a:" << static_cast<uint16_t>(cpu.reg.a) << ", ";
     std::cout << "f:" << static_cast<uint16_t>(cpu.reg.f) << ", ";

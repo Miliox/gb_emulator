@@ -28,23 +28,26 @@ public:
     Registers() : a(0), f(0), b(0), c(0), d(0), e(0), h(0), l (0), pc(0), sp(0) {}
 };
 
-class Z80 {
+class GBCPU {
 private:
     int32_t acc;
 
-    void init_instrunction_map();
-    void init_cb_instrunction_map();
+    void fill_instrunction_map();
+    void fill_cb_instrunction_map();
 public:
-    MMU mmu;
-    Clock clock; // global system clock
+    Clock clock;
     Registers reg;
+
+    GBMMU& mmu;
 
     bool ime; // interrupt master enable flag
 
-    std::vector<void (Z80::*)()> instruction_map;
-    std::vector<void (Z80::*)()> cb_instruction_map;
+    std::vector<void (GBCPU::*)()> instruction_map;
+    std::vector<void (GBCPU::*)()> cb_instruction_map;
 
-    Z80();
+    GBCPU(GBMMU& mmu);
+    GBCPU(const GBCPU&) = delete;
+
     void reset();
 
     // Common Instruction Behavior
@@ -102,7 +105,7 @@ public:
 
     void cb_branch() {
         uint8_t op = mmu.read_byte(reg.pc++);
-        (*this.*cb_instruction_map[op])();
+        (*this.*cb_instruction_map.at(op))();
     }
 
     // Instruction Set

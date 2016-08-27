@@ -10,254 +10,262 @@
 #include "catch.hpp"
 #include "cpu.hpp"
 
-TEST_CASE("Z80 Constructor", "[Z80]") {
-    Z80 z80;
+TEST_CASE("GBCPU Constructor", "[GBCPU]") {
+    GBMMU mmu;
+    GBCPU cpu(mmu);
 
-    REQUIRE(z80.reg.a == 0);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 0);
-    REQUIRE(z80.reg.f == 0);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 0);
-    REQUIRE(z80.clock.t == 0);
+    REQUIRE(cpu.reg.a == 0);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 0);
+    REQUIRE(cpu.reg.f == 0);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 0);
+    REQUIRE(cpu.clock.t == 0);
 }
 
 
-TEST_CASE("Reset Z80", "[Z80]") {
-    Z80 z80;
+TEST_CASE("Reset GBCPU", "[GBCPU]") {
+    GBMMU mmu;
+    GBCPU cpu(mmu);
 
     // dirty internal registers
-    z80.reg.a = 1;
-    z80.reg.b = 2;
-    z80.reg.c = 3;
-    z80.reg.d = 4;
-    z80.reg.e = 5;
-    z80.reg.f = 6;
-    z80.reg.h = 7;
-    z80.reg.l = 8;
+    cpu.reg.a = 1;
+    cpu.reg.b = 2;
+    cpu.reg.c = 3;
+    cpu.reg.d = 4;
+    cpu.reg.e = 5;
+    cpu.reg.f = 6;
+    cpu.reg.h = 7;
+    cpu.reg.l = 8;
 
     // dirty clock
-    z80.clock.m = 50;
-    z80.clock.t = 200;
+    cpu.clock.m = 50;
+    cpu.clock.t = 200;
 
-    z80.reset();
+    cpu.reset();
 
-    REQUIRE(z80.reg.a == 0);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 0);
-    REQUIRE(z80.reg.f == 0);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 0);
-    REQUIRE(z80.clock.t == 0);
+    REQUIRE(cpu.reg.a == 0);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 0);
+    REQUIRE(cpu.reg.f == 0);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 0);
+    REQUIRE(cpu.clock.t == 0);
 }
 
-TEST_CASE("Z80 NOP", "[Z80]") {
-    Z80 z80;
-    z80.nop();
+TEST_CASE("GBCPU NOP", "[GBCPU]") {
+    GBMMU mmu;
+    GBCPU cpu(mmu);
 
-    REQUIRE(z80.reg.a == 0);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 0);
-    REQUIRE(z80.reg.f == 0);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 1);
-    REQUIRE(z80.clock.t == 4);
+    cpu.nop();
+    REQUIRE(cpu.reg.a == 0);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 0);
+    REQUIRE(cpu.reg.f == 0);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 1);
+    REQUIRE(cpu.clock.t == 4);
 }
 
-TEST_CASE("Z80 ADD A,E", "[Z80]") {
-    Z80 z80;
-    z80.reg.a = 1;
-    z80.reg.e = 1;
-    z80.add_a_e();
+TEST_CASE("GBCPU ADD A,E", "[GBCPU]") {
+    GBMMU mmu;
+    GBCPU cpu(mmu);
 
-    REQUIRE(z80.reg.a == 2);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 1);
-    REQUIRE(z80.reg.f == 0);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 1);
-    REQUIRE(z80.clock.t == 4);
+    cpu.reg.a = 1;
+    cpu.reg.e = 1;
+    cpu.add_a_e();
+
+    REQUIRE(cpu.reg.a == 2);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 1);
+    REQUIRE(cpu.reg.f == 0);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 1);
+    REQUIRE(cpu.clock.t == 4);
 
     // Zero Flag
-    z80.reg.a = 0;
-    z80.reg.e = 0;
-    z80.add_a_e();
+    cpu.reg.a = 0;
+    cpu.reg.e = 0;
+    cpu.add_a_e();
 
-    REQUIRE(z80.reg.a == 0);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 0);
-    REQUIRE(z80.reg.f == (uint16_t) 0x80);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 2);
-    REQUIRE(z80.clock.t == 8);
+    REQUIRE(cpu.reg.a == 0);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 0);
+    REQUIRE(cpu.reg.f == (uint16_t) 0x80);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 2);
+    REQUIRE(cpu.clock.t == 8);
 
     // Carry Flag
-    z80.reg.a = 128;
-    z80.reg.e = 200;
-    z80.add_a_e();
+    cpu.reg.a = 128;
+    cpu.reg.e = 200;
+    cpu.add_a_e();
 
-    REQUIRE(z80.reg.a == 72);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 200);
-    REQUIRE(z80.reg.f == (uint16_t) 0x10);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 3);
-    REQUIRE(z80.clock.t == 12);
+    REQUIRE(cpu.reg.a == 72);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 200);
+    REQUIRE(cpu.reg.f == (uint16_t) 0x10);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 3);
+    REQUIRE(cpu.clock.t == 12);
 
     // Zero + Carry Flag
-    z80.reg.a = 128;
-    z80.reg.e = 128;
-    z80.add_a_e();
+    cpu.reg.a = 128;
+    cpu.reg.e = 128;
+    cpu.add_a_e();
 
-    REQUIRE(z80.reg.a == 0);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 128);
-    REQUIRE(z80.reg.f == (uint16_t) 0x90);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 4);
-    REQUIRE(z80.clock.t == 16);
+    REQUIRE(cpu.reg.a == 0);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 128);
+    REQUIRE(cpu.reg.f == (uint16_t) 0x90);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 4);
+    REQUIRE(cpu.clock.t == 16);
 }
 
-TEST_CASE("Increment Registers from Z80", "[Z80]") {
-    Z80 z80;
+TEST_CASE("Increment Registers from GBCPU", "[GBCPU]") {
+    GBMMU mmu;
+    GBCPU cpu(mmu);
 
-    z80.inc_a();
-    REQUIRE(z80.reg.a == 1);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 0);
-    REQUIRE(z80.reg.f == 0);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 1);
-    REQUIRE(z80.clock.t == 4);
+    cpu.inc_a();
+    REQUIRE(cpu.reg.a == 1);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 0);
+    REQUIRE(cpu.reg.f == 0);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 1);
+    REQUIRE(cpu.clock.t == 4);
 
-    z80.inc_a();
-    REQUIRE(z80.reg.a == 2);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 0);
-    REQUIRE(z80.reg.f == 0);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 2);
-    REQUIRE(z80.clock.t == 8);
+    cpu.inc_a();
+    REQUIRE(cpu.reg.a == 2);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 0);
+    REQUIRE(cpu.reg.f == 0);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 2);
+    REQUIRE(cpu.clock.t == 8);
 
-    z80.inc_e();
-    REQUIRE(z80.reg.a == 2);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 1);
-    REQUIRE(z80.reg.f == 0);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 3);
-    REQUIRE(z80.clock.t == 12);
+    cpu.inc_e();
+    REQUIRE(cpu.reg.a == 2);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 1);
+    REQUIRE(cpu.reg.f == 0);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 3);
+    REQUIRE(cpu.clock.t == 12);
 
-    z80.inc_l();
-    REQUIRE(z80.reg.a == 2);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 1);
-    REQUIRE(z80.reg.f == 0);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 1);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 4);
-    REQUIRE(z80.clock.t == 16);
+    cpu.inc_l();
+    REQUIRE(cpu.reg.a == 2);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 1);
+    REQUIRE(cpu.reg.f == 0);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 1);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 4);
+    REQUIRE(cpu.clock.t == 16);
 }
 
-TEST_CASE("Decrement Registers from Z80", "[Z80]") {
-    Z80 z80;
+TEST_CASE("Decrement Registers from GBCPU", "[GBCPU]") {
+    GBMMU mmu;
+    GBCPU cpu(mmu);
 
-    z80.inc_a();
-    REQUIRE(z80.reg.a == 1);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 0);
-    REQUIRE(z80.reg.f == 0);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 1);
-    REQUIRE(z80.clock.t == 4);
+    cpu.inc_a();
+    REQUIRE(cpu.reg.a == 1);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 0);
+    REQUIRE(cpu.reg.f == 0);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 1);
+    REQUIRE(cpu.clock.t == 4);
 
-    z80.dec_a();
-    REQUIRE(z80.reg.a == 0);
-    REQUIRE(z80.reg.b == 0);
-    REQUIRE(z80.reg.c == 0);
-    REQUIRE(z80.reg.d == 0);
-    REQUIRE(z80.reg.e == 0);
-    REQUIRE(z80.reg.f == 0xC0);
-    REQUIRE(z80.reg.h == 0);
-    REQUIRE(z80.reg.l == 0);
-    REQUIRE(z80.reg.sp == 0);
-    REQUIRE(z80.reg.pc == 0);
-    REQUIRE(z80.clock.m == 2);
-    REQUIRE(z80.clock.t == 8);
+    cpu.dec_a();
+    REQUIRE(cpu.reg.a == 0);
+    REQUIRE(cpu.reg.b == 0);
+    REQUIRE(cpu.reg.c == 0);
+    REQUIRE(cpu.reg.d == 0);
+    REQUIRE(cpu.reg.e == 0);
+    REQUIRE(cpu.reg.f == 0xC0);
+    REQUIRE(cpu.reg.h == 0);
+    REQUIRE(cpu.reg.l == 0);
+    REQUIRE(cpu.reg.sp == 0);
+    REQUIRE(cpu.reg.pc == 0);
+    REQUIRE(cpu.clock.m == 2);
+    REQUIRE(cpu.clock.t == 8);
 }
 
-TEST_CASE("PUSH/POP Z80", "[Z80]") {
-    Z80 z80;
+TEST_CASE("PUSH/POP GBCPU", "[GBCPU]") {
+    GBMMU mmu;
+    GBCPU cpu(mmu);
 
-    z80.reg.sp = 0xfffe; // init stack
+    cpu.reg.sp = 0xfffe; // init stack
 
-    z80.reg.b = 0x10;
-    z80.reg.c = 0x08;
-    z80.push_bc();
+    cpu.reg.b = 0x10;
+    cpu.reg.c = 0x08;
+    cpu.push_bc();
 
-    z80.reg.b = 0xff;
-    z80.reg.c = 0xff;
-    z80.pop_bc();
+    cpu.reg.b = 0xff;
+    cpu.reg.c = 0xff;
+    cpu.pop_bc();
 
-    REQUIRE(z80.reg.c == 0x08);
-    REQUIRE(z80.reg.b == 0x10);
+    REQUIRE(cpu.reg.c == 0x08);
+    REQUIRE(cpu.reg.b == 0x10);
 }

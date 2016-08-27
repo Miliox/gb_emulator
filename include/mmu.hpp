@@ -5,19 +5,21 @@
 #include <vector>
 #include <memory>
 
-class MMU {
+class GBMMU {
 private:
     bool bios_loaded;
 
-    std::unique_ptr<uint8_t[]> character_ram;
-    std::unique_ptr<uint8_t[]> oam_ram;
-    std::unique_ptr<uint8_t[]> zeropage_ram;
-    std::unique_ptr<uint8_t[]> internal_ram;
-    std::unique_ptr<uint8_t[]> bgdata_ram;
-public:
-    MMU();
+    std::vector<uint8_t> character_memory;
+    std::vector<uint8_t> object_attribute_memory;
+    std::vector<uint8_t> zeropage_memory;
+    std::vector<uint8_t> internal_ram_memory;
+    std::vector<uint8_t> bgdata_memory;
 
-    uint8_t read_byte(uint16_t addr) const;
+public:
+    GBMMU();
+    GBMMU(const GBMMU&) = delete;
+
+    uint8_t  read_byte(uint16_t addr) const;
     uint16_t read_word(uint16_t addr) const;
 
     void write_byte(uint16_t addr, uint8_t value);

@@ -36,557 +36,562 @@ inline void split16(const uint16_t& src, uint8_t& msb, uint8_t& lsb) {
     lsb = static_cast<uint8_t>(src);
 }
 
-Z80::Z80() {
-    init_instrunction_map();
-    init_cb_instrunction_map();
+GBCPU::GBCPU(GBMMU& mmu) :
+    mmu(mmu),
+    instruction_map(256, &GBCPU::not_implemented_error),
+    cb_instruction_map(256, &GBCPU::not_implemented_error) {
+
+    fill_instrunction_map();
+    fill_cb_instrunction_map();
 }
 
-void Z80::init_instrunction_map() {
+void GBCPU::fill_instrunction_map() {
     instruction_map.reserve(256);
-    instruction_map[0x00] = &Z80::nop;
-    instruction_map[0x01] = &Z80::ld_bc_nn;
-    instruction_map[0x02] = &Z80::ld_pbc_a;
-    instruction_map[0x03] = &Z80::inc_bc;
-    instruction_map[0x04] = &Z80::inc_b;
-    instruction_map[0x05] = &Z80::dec_b;
-    instruction_map[0x06] = &Z80::ld_b_n;
-    instruction_map[0x07] = &Z80::rlca;
-    instruction_map[0x08] = &Z80::ld_pnn_sp;
-    instruction_map[0x09] = &Z80::add_hl_bc;
-    instruction_map[0x0A] = &Z80::ld_a_pbc;
-    instruction_map[0x0B] = &Z80::dec_bc;
-    instruction_map[0x0C] = &Z80::inc_c;
-    instruction_map[0x0D] = &Z80::dec_c;
-    instruction_map[0x0E] = &Z80::ld_c_n;
-    instruction_map[0x0F] = &Z80::rrca;
 
-    instruction_map[0x10] = &Z80::stop;
-    instruction_map[0x11] = &Z80::ld_de_nn;
-    instruction_map[0x12] = &Z80::ld_pde_a;
-    instruction_map[0x13] = &Z80::inc_de;
-    instruction_map[0x14] = &Z80::inc_d;
-    instruction_map[0x15] = &Z80::dec_d;
-    instruction_map[0x16] = &Z80::ld_d_n;
-    instruction_map[0x17] = &Z80::rla;
-    instruction_map[0x18] = &Z80::jr;
-    instruction_map[0x19] = &Z80::add_hl_de;
-    instruction_map[0x1A] = &Z80::ld_a_pde;
-    instruction_map[0x1B] = &Z80::dec_de;
-    instruction_map[0x1C] = &Z80::inc_e;
-    instruction_map[0x1D] = &Z80::dec_e;
-    instruction_map[0x1E] = &Z80::ld_e_n;
-    instruction_map[0x1F] = &Z80::rra;
+    instruction_map[0x00] = &GBCPU::nop;
+    instruction_map[0x01] = &GBCPU::ld_bc_nn;
+    instruction_map[0x02] = &GBCPU::ld_pbc_a;
+    instruction_map[0x03] = &GBCPU::inc_bc;
+    instruction_map[0x04] = &GBCPU::inc_b;
+    instruction_map[0x05] = &GBCPU::dec_b;
+    instruction_map[0x06] = &GBCPU::ld_b_n;
+    instruction_map[0x07] = &GBCPU::rlca;
+    instruction_map[0x08] = &GBCPU::ld_pnn_sp;
+    instruction_map[0x09] = &GBCPU::add_hl_bc;
+    instruction_map[0x0A] = &GBCPU::ld_a_pbc;
+    instruction_map[0x0B] = &GBCPU::dec_bc;
+    instruction_map[0x0C] = &GBCPU::inc_c;
+    instruction_map[0x0D] = &GBCPU::dec_c;
+    instruction_map[0x0E] = &GBCPU::ld_c_n;
+    instruction_map[0x0F] = &GBCPU::rrca;
 
-    instruction_map[0x20] = &Z80::jr_nz;
-    instruction_map[0x21] = &Z80::ld_hl_nn;
-    instruction_map[0x22] = &Z80::ldi_phl_a;
-    instruction_map[0x23] = &Z80::inc_hl;
-    instruction_map[0x24] = &Z80::inc_h;
-    instruction_map[0x25] = &Z80::dec_h;
-    instruction_map[0x26] = &Z80::ld_h_n;
-    instruction_map[0x27] = &Z80::not_implemented_error; // DAA
-    instruction_map[0x28] = &Z80::jr_z;
-    instruction_map[0x29] = &Z80::add_hl_hl;
-    instruction_map[0x2A] = &Z80::ldi_a_phl;
-    instruction_map[0x2B] = &Z80::dec_hl;
-    instruction_map[0x2C] = &Z80::inc_l;
-    instruction_map[0x2D] = &Z80::dec_l;
-    instruction_map[0x2E] = &Z80::ld_l_n;
-    instruction_map[0x2F] = &Z80::cpl;
+    instruction_map[0x10] = &GBCPU::stop;
+    instruction_map[0x11] = &GBCPU::ld_de_nn;
+    instruction_map[0x12] = &GBCPU::ld_pde_a;
+    instruction_map[0x13] = &GBCPU::inc_de;
+    instruction_map[0x14] = &GBCPU::inc_d;
+    instruction_map[0x15] = &GBCPU::dec_d;
+    instruction_map[0x16] = &GBCPU::ld_d_n;
+    instruction_map[0x17] = &GBCPU::rla;
+    instruction_map[0x18] = &GBCPU::jr;
+    instruction_map[0x19] = &GBCPU::add_hl_de;
+    instruction_map[0x1A] = &GBCPU::ld_a_pde;
+    instruction_map[0x1B] = &GBCPU::dec_de;
+    instruction_map[0x1C] = &GBCPU::inc_e;
+    instruction_map[0x1D] = &GBCPU::dec_e;
+    instruction_map[0x1E] = &GBCPU::ld_e_n;
+    instruction_map[0x1F] = &GBCPU::rra;
 
-    instruction_map[0x30] = &Z80::jr_nc;
-    instruction_map[0x31] = &Z80::ld_sp_nn;
-    instruction_map[0x32] = &Z80::ldd_phl_a;
-    instruction_map[0x33] = &Z80::inc_sp;
-    instruction_map[0x34] = &Z80::inc_phl;
-    instruction_map[0x35] = &Z80::dec_phl;
-    instruction_map[0x36] = &Z80::ld_phl_n;
-    instruction_map[0x37] = &Z80::scf;
-    instruction_map[0x38] = &Z80::jr_c;
-    instruction_map[0x39] = &Z80::add_hl_sp;
-    instruction_map[0x3A] = &Z80::ldd_a_phl;
-    instruction_map[0x3B] = &Z80::dec_sp;
-    instruction_map[0x3C] = &Z80::inc_a;
-    instruction_map[0x3D] = &Z80::dec_a;
-    instruction_map[0x3E] = &Z80::ld_a_n;
-    instruction_map[0x3F] = &Z80::ccf;
+    instruction_map[0x20] = &GBCPU::jr_nz;
+    instruction_map[0x21] = &GBCPU::ld_hl_nn;
+    instruction_map[0x22] = &GBCPU::ldi_phl_a;
+    instruction_map[0x23] = &GBCPU::inc_hl;
+    instruction_map[0x24] = &GBCPU::inc_h;
+    instruction_map[0x25] = &GBCPU::dec_h;
+    instruction_map[0x26] = &GBCPU::ld_h_n;
+    instruction_map[0x27] = &GBCPU::not_implemented_error; // DAA
+    instruction_map[0x28] = &GBCPU::jr_z;
+    instruction_map[0x29] = &GBCPU::add_hl_hl;
+    instruction_map[0x2A] = &GBCPU::ldi_a_phl;
+    instruction_map[0x2B] = &GBCPU::dec_hl;
+    instruction_map[0x2C] = &GBCPU::inc_l;
+    instruction_map[0x2D] = &GBCPU::dec_l;
+    instruction_map[0x2E] = &GBCPU::ld_l_n;
+    instruction_map[0x2F] = &GBCPU::cpl;
 
-    instruction_map[0x40] = &Z80::ld_b_b;
-    instruction_map[0x41] = &Z80::ld_b_c;
-    instruction_map[0x42] = &Z80::ld_b_d;
-    instruction_map[0x43] = &Z80::ld_b_e;
-    instruction_map[0x44] = &Z80::ld_b_h;
-    instruction_map[0x45] = &Z80::ld_b_l;
-    instruction_map[0x46] = &Z80::ld_b_phl;
-    instruction_map[0x47] = &Z80::ld_b_a;
-    instruction_map[0x48] = &Z80::ld_c_b;
-    instruction_map[0x49] = &Z80::ld_c_c;
-    instruction_map[0x4A] = &Z80::ld_c_d;
-    instruction_map[0x4B] = &Z80::ld_c_e;
-    instruction_map[0x4C] = &Z80::ld_c_h;
-    instruction_map[0x4D] = &Z80::ld_c_l;
-    instruction_map[0x4E] = &Z80::ld_c_phl;
-    instruction_map[0x4F] = &Z80::ld_c_a;
+    instruction_map[0x30] = &GBCPU::jr_nc;
+    instruction_map[0x31] = &GBCPU::ld_sp_nn;
+    instruction_map[0x32] = &GBCPU::ldd_phl_a;
+    instruction_map[0x33] = &GBCPU::inc_sp;
+    instruction_map[0x34] = &GBCPU::inc_phl;
+    instruction_map[0x35] = &GBCPU::dec_phl;
+    instruction_map[0x36] = &GBCPU::ld_phl_n;
+    instruction_map[0x37] = &GBCPU::scf;
+    instruction_map[0x38] = &GBCPU::jr_c;
+    instruction_map[0x39] = &GBCPU::add_hl_sp;
+    instruction_map[0x3A] = &GBCPU::ldd_a_phl;
+    instruction_map[0x3B] = &GBCPU::dec_sp;
+    instruction_map[0x3C] = &GBCPU::inc_a;
+    instruction_map[0x3D] = &GBCPU::dec_a;
+    instruction_map[0x3E] = &GBCPU::ld_a_n;
+    instruction_map[0x3F] = &GBCPU::ccf;
 
-    instruction_map[0x50] = &Z80::ld_d_b;
-    instruction_map[0x51] = &Z80::ld_d_c;
-    instruction_map[0x52] = &Z80::ld_d_d;
-    instruction_map[0x53] = &Z80::ld_d_e;
-    instruction_map[0x54] = &Z80::ld_d_h;
-    instruction_map[0x55] = &Z80::ld_d_l;
-    instruction_map[0x56] = &Z80::ld_d_phl;
-    instruction_map[0x57] = &Z80::ld_d_a;
-    instruction_map[0x58] = &Z80::ld_e_b;
-    instruction_map[0x59] = &Z80::ld_e_c;
-    instruction_map[0x5A] = &Z80::ld_e_d;
-    instruction_map[0x5B] = &Z80::ld_e_e;
-    instruction_map[0x5C] = &Z80::ld_e_h;
-    instruction_map[0x5D] = &Z80::ld_e_l;
-    instruction_map[0x5E] = &Z80::ld_e_phl;
-    instruction_map[0x5F] = &Z80::ld_e_a;
+    instruction_map[0x40] = &GBCPU::ld_b_b;
+    instruction_map[0x41] = &GBCPU::ld_b_c;
+    instruction_map[0x42] = &GBCPU::ld_b_d;
+    instruction_map[0x43] = &GBCPU::ld_b_e;
+    instruction_map[0x44] = &GBCPU::ld_b_h;
+    instruction_map[0x45] = &GBCPU::ld_b_l;
+    instruction_map[0x46] = &GBCPU::ld_b_phl;
+    instruction_map[0x47] = &GBCPU::ld_b_a;
+    instruction_map[0x48] = &GBCPU::ld_c_b;
+    instruction_map[0x49] = &GBCPU::ld_c_c;
+    instruction_map[0x4A] = &GBCPU::ld_c_d;
+    instruction_map[0x4B] = &GBCPU::ld_c_e;
+    instruction_map[0x4C] = &GBCPU::ld_c_h;
+    instruction_map[0x4D] = &GBCPU::ld_c_l;
+    instruction_map[0x4E] = &GBCPU::ld_c_phl;
+    instruction_map[0x4F] = &GBCPU::ld_c_a;
 
-    instruction_map[0x60] = &Z80::ld_h_b;
-    instruction_map[0x61] = &Z80::ld_h_c;
-    instruction_map[0x62] = &Z80::ld_h_d;
-    instruction_map[0x63] = &Z80::ld_h_e;
-    instruction_map[0x64] = &Z80::ld_h_h;
-    instruction_map[0x65] = &Z80::ld_h_l;
-    instruction_map[0x66] = &Z80::ld_h_phl;
-    instruction_map[0x67] = &Z80::ld_h_a;
-    instruction_map[0x68] = &Z80::ld_l_b;
-    instruction_map[0x69] = &Z80::ld_l_c;
-    instruction_map[0x6A] = &Z80::ld_l_d;
-    instruction_map[0x6B] = &Z80::ld_l_e;
-    instruction_map[0x6C] = &Z80::ld_l_h;
-    instruction_map[0x6D] = &Z80::ld_l_l;
-    instruction_map[0x6E] = &Z80::ld_l_phl;
-    instruction_map[0x6F] = &Z80::ld_l_a;
+    instruction_map[0x50] = &GBCPU::ld_d_b;
+    instruction_map[0x51] = &GBCPU::ld_d_c;
+    instruction_map[0x52] = &GBCPU::ld_d_d;
+    instruction_map[0x53] = &GBCPU::ld_d_e;
+    instruction_map[0x54] = &GBCPU::ld_d_h;
+    instruction_map[0x55] = &GBCPU::ld_d_l;
+    instruction_map[0x56] = &GBCPU::ld_d_phl;
+    instruction_map[0x57] = &GBCPU::ld_d_a;
+    instruction_map[0x58] = &GBCPU::ld_e_b;
+    instruction_map[0x59] = &GBCPU::ld_e_c;
+    instruction_map[0x5A] = &GBCPU::ld_e_d;
+    instruction_map[0x5B] = &GBCPU::ld_e_e;
+    instruction_map[0x5C] = &GBCPU::ld_e_h;
+    instruction_map[0x5D] = &GBCPU::ld_e_l;
+    instruction_map[0x5E] = &GBCPU::ld_e_phl;
+    instruction_map[0x5F] = &GBCPU::ld_e_a;
 
-    instruction_map[0x70] = &Z80::ld_phl_b;
-    instruction_map[0x71] = &Z80::ld_phl_c;
-    instruction_map[0x72] = &Z80::ld_phl_d;
-    instruction_map[0x73] = &Z80::ld_phl_e;
-    instruction_map[0x74] = &Z80::ld_phl_h;
-    instruction_map[0x75] = &Z80::ld_phl_l;
-    instruction_map[0x76] = &Z80::halt;
-    instruction_map[0x77] = &Z80::ld_phl_a;
-    instruction_map[0x78] = &Z80::ld_a_b;
-    instruction_map[0x79] = &Z80::ld_a_c;
-    instruction_map[0x7A] = &Z80::ld_a_d;
-    instruction_map[0x7B] = &Z80::ld_a_e;
-    instruction_map[0x7C] = &Z80::ld_a_h;
-    instruction_map[0x7D] = &Z80::ld_a_l;
-    instruction_map[0x7E] = &Z80::ld_a_phl;
-    instruction_map[0x7F] = &Z80::ld_a_a;
+    instruction_map[0x60] = &GBCPU::ld_h_b;
+    instruction_map[0x61] = &GBCPU::ld_h_c;
+    instruction_map[0x62] = &GBCPU::ld_h_d;
+    instruction_map[0x63] = &GBCPU::ld_h_e;
+    instruction_map[0x64] = &GBCPU::ld_h_h;
+    instruction_map[0x65] = &GBCPU::ld_h_l;
+    instruction_map[0x66] = &GBCPU::ld_h_phl;
+    instruction_map[0x67] = &GBCPU::ld_h_a;
+    instruction_map[0x68] = &GBCPU::ld_l_b;
+    instruction_map[0x69] = &GBCPU::ld_l_c;
+    instruction_map[0x6A] = &GBCPU::ld_l_d;
+    instruction_map[0x6B] = &GBCPU::ld_l_e;
+    instruction_map[0x6C] = &GBCPU::ld_l_h;
+    instruction_map[0x6D] = &GBCPU::ld_l_l;
+    instruction_map[0x6E] = &GBCPU::ld_l_phl;
+    instruction_map[0x6F] = &GBCPU::ld_l_a;
 
-    instruction_map[0x80] = &Z80::add_a_b;
-    instruction_map[0x81] = &Z80::add_a_c;
-    instruction_map[0x82] = &Z80::add_a_d;
-    instruction_map[0x83] = &Z80::add_a_e;
-    instruction_map[0x84] = &Z80::add_a_h;
-    instruction_map[0x85] = &Z80::add_a_l;
-    instruction_map[0x86] = &Z80::add_a_phl;
-    instruction_map[0x87] = &Z80::add_a_a;
-    instruction_map[0x88] = &Z80::adc_a_b;
-    instruction_map[0x89] = &Z80::adc_a_c;
-    instruction_map[0x8A] = &Z80::adc_a_d;
-    instruction_map[0x8B] = &Z80::adc_a_e;
-    instruction_map[0x8C] = &Z80::adc_a_h;
-    instruction_map[0x8D] = &Z80::adc_a_l;
-    instruction_map[0x8E] = &Z80::adc_a_phl;
-    instruction_map[0x8F] = &Z80::adc_a_a;
+    instruction_map[0x70] = &GBCPU::ld_phl_b;
+    instruction_map[0x71] = &GBCPU::ld_phl_c;
+    instruction_map[0x72] = &GBCPU::ld_phl_d;
+    instruction_map[0x73] = &GBCPU::ld_phl_e;
+    instruction_map[0x74] = &GBCPU::ld_phl_h;
+    instruction_map[0x75] = &GBCPU::ld_phl_l;
+    instruction_map[0x76] = &GBCPU::halt;
+    instruction_map[0x77] = &GBCPU::ld_phl_a;
+    instruction_map[0x78] = &GBCPU::ld_a_b;
+    instruction_map[0x79] = &GBCPU::ld_a_c;
+    instruction_map[0x7A] = &GBCPU::ld_a_d;
+    instruction_map[0x7B] = &GBCPU::ld_a_e;
+    instruction_map[0x7C] = &GBCPU::ld_a_h;
+    instruction_map[0x7D] = &GBCPU::ld_a_l;
+    instruction_map[0x7E] = &GBCPU::ld_a_phl;
+    instruction_map[0x7F] = &GBCPU::ld_a_a;
 
-    instruction_map[0x90] = &Z80::sub_b;
-    instruction_map[0x91] = &Z80::sub_c;
-    instruction_map[0x92] = &Z80::sub_d;
-    instruction_map[0x93] = &Z80::sub_e;
-    instruction_map[0x94] = &Z80::sub_h;
-    instruction_map[0x95] = &Z80::sub_l;
-    instruction_map[0x96] = &Z80::sub_phl;
-    instruction_map[0x97] = &Z80::sub_a;
-    instruction_map[0x98] = &Z80::sbc_a_b;
-    instruction_map[0x99] = &Z80::sbc_a_c;
-    instruction_map[0x9A] = &Z80::sbc_a_d;
-    instruction_map[0x9B] = &Z80::sbc_a_e;
-    instruction_map[0x9C] = &Z80::sbc_a_h;
-    instruction_map[0x9D] = &Z80::sbc_a_l;
-    instruction_map[0x9E] = &Z80::sbc_a_phl;
-    instruction_map[0x9F] = &Z80::sbc_a_a;
+    instruction_map[0x80] = &GBCPU::add_a_b;
+    instruction_map[0x81] = &GBCPU::add_a_c;
+    instruction_map[0x82] = &GBCPU::add_a_d;
+    instruction_map[0x83] = &GBCPU::add_a_e;
+    instruction_map[0x84] = &GBCPU::add_a_h;
+    instruction_map[0x85] = &GBCPU::add_a_l;
+    instruction_map[0x86] = &GBCPU::add_a_phl;
+    instruction_map[0x87] = &GBCPU::add_a_a;
+    instruction_map[0x88] = &GBCPU::adc_a_b;
+    instruction_map[0x89] = &GBCPU::adc_a_c;
+    instruction_map[0x8A] = &GBCPU::adc_a_d;
+    instruction_map[0x8B] = &GBCPU::adc_a_e;
+    instruction_map[0x8C] = &GBCPU::adc_a_h;
+    instruction_map[0x8D] = &GBCPU::adc_a_l;
+    instruction_map[0x8E] = &GBCPU::adc_a_phl;
+    instruction_map[0x8F] = &GBCPU::adc_a_a;
 
-    instruction_map[0xA0] = &Z80::and_b;
-    instruction_map[0xA1] = &Z80::and_c;
-    instruction_map[0xA2] = &Z80::and_d;
-    instruction_map[0xA3] = &Z80::and_e;
-    instruction_map[0xA4] = &Z80::and_h;
-    instruction_map[0xA5] = &Z80::and_l;
-    instruction_map[0xA6] = &Z80::and_phl;
-    instruction_map[0xA7] = &Z80::and_a;
-    instruction_map[0xA8] = &Z80::xor_b;
-    instruction_map[0xA9] = &Z80::xor_c;
-    instruction_map[0xAA] = &Z80::xor_d;
-    instruction_map[0xAB] = &Z80::xor_e;
-    instruction_map[0xAC] = &Z80::xor_h;
-    instruction_map[0xAD] = &Z80::xor_l;
-    instruction_map[0xAE] = &Z80::xor_phl;
-    instruction_map[0xAF] = &Z80::xor_a;
+    instruction_map[0x90] = &GBCPU::sub_b;
+    instruction_map[0x91] = &GBCPU::sub_c;
+    instruction_map[0x92] = &GBCPU::sub_d;
+    instruction_map[0x93] = &GBCPU::sub_e;
+    instruction_map[0x94] = &GBCPU::sub_h;
+    instruction_map[0x95] = &GBCPU::sub_l;
+    instruction_map[0x96] = &GBCPU::sub_phl;
+    instruction_map[0x97] = &GBCPU::sub_a;
+    instruction_map[0x98] = &GBCPU::sbc_a_b;
+    instruction_map[0x99] = &GBCPU::sbc_a_c;
+    instruction_map[0x9A] = &GBCPU::sbc_a_d;
+    instruction_map[0x9B] = &GBCPU::sbc_a_e;
+    instruction_map[0x9C] = &GBCPU::sbc_a_h;
+    instruction_map[0x9D] = &GBCPU::sbc_a_l;
+    instruction_map[0x9E] = &GBCPU::sbc_a_phl;
+    instruction_map[0x9F] = &GBCPU::sbc_a_a;
 
-    instruction_map[0xB0] = &Z80::or_b;
-    instruction_map[0xB1] = &Z80::or_c;
-    instruction_map[0xB2] = &Z80::or_d;
-    instruction_map[0xB3] = &Z80::or_e;
-    instruction_map[0xB4] = &Z80::or_h;
-    instruction_map[0xB5] = &Z80::or_l;
-    instruction_map[0xB6] = &Z80::or_phl;
-    instruction_map[0xB7] = &Z80::or_a;
-    instruction_map[0xB8] = &Z80::cp_b;
-    instruction_map[0xB9] = &Z80::cp_c;
-    instruction_map[0xBA] = &Z80::cp_d;
-    instruction_map[0xBB] = &Z80::cp_e;
-    instruction_map[0xBC] = &Z80::cp_h;
-    instruction_map[0xBD] = &Z80::cp_l;
-    instruction_map[0xBE] = &Z80::cp_phl;
-    instruction_map[0xBF] = &Z80::cp_a;
+    instruction_map[0xA0] = &GBCPU::and_b;
+    instruction_map[0xA1] = &GBCPU::and_c;
+    instruction_map[0xA2] = &GBCPU::and_d;
+    instruction_map[0xA3] = &GBCPU::and_e;
+    instruction_map[0xA4] = &GBCPU::and_h;
+    instruction_map[0xA5] = &GBCPU::and_l;
+    instruction_map[0xA6] = &GBCPU::and_phl;
+    instruction_map[0xA7] = &GBCPU::and_a;
+    instruction_map[0xA8] = &GBCPU::xor_b;
+    instruction_map[0xA9] = &GBCPU::xor_c;
+    instruction_map[0xAA] = &GBCPU::xor_d;
+    instruction_map[0xAB] = &GBCPU::xor_e;
+    instruction_map[0xAC] = &GBCPU::xor_h;
+    instruction_map[0xAD] = &GBCPU::xor_l;
+    instruction_map[0xAE] = &GBCPU::xor_phl;
+    instruction_map[0xAF] = &GBCPU::xor_a;
 
-    instruction_map[0xC0] = &Z80::ret_nz;
-    instruction_map[0xC1] = &Z80::pop_bc;
-    instruction_map[0xC2] = &Z80::jp_nz;
-    instruction_map[0xC3] = &Z80::jp;
-    instruction_map[0xC4] = &Z80::call_nz;
-    instruction_map[0xC5] = &Z80::push_bc;
-    instruction_map[0xC6] = &Z80::add_a_n;
-    instruction_map[0xC7] = &Z80::rst_00;
-    instruction_map[0xC8] = &Z80::ret_z;
-    instruction_map[0xC9] = &Z80::ret;
-    instruction_map[0xCA] = &Z80::jp_z;
-    instruction_map[0xCB] = &Z80::cb_branch;
-    instruction_map[0xCC] = &Z80::call_z;
-    instruction_map[0xCD] = &Z80::call;
-    instruction_map[0xCE] = &Z80::adc_a_n;
-    instruction_map[0xCF] = &Z80::rst_08;
+    instruction_map[0xB0] = &GBCPU::or_b;
+    instruction_map[0xB1] = &GBCPU::or_c;
+    instruction_map[0xB2] = &GBCPU::or_d;
+    instruction_map[0xB3] = &GBCPU::or_e;
+    instruction_map[0xB4] = &GBCPU::or_h;
+    instruction_map[0xB5] = &GBCPU::or_l;
+    instruction_map[0xB6] = &GBCPU::or_phl;
+    instruction_map[0xB7] = &GBCPU::or_a;
+    instruction_map[0xB8] = &GBCPU::cp_b;
+    instruction_map[0xB9] = &GBCPU::cp_c;
+    instruction_map[0xBA] = &GBCPU::cp_d;
+    instruction_map[0xBB] = &GBCPU::cp_e;
+    instruction_map[0xBC] = &GBCPU::cp_h;
+    instruction_map[0xBD] = &GBCPU::cp_l;
+    instruction_map[0xBE] = &GBCPU::cp_phl;
+    instruction_map[0xBF] = &GBCPU::cp_a;
 
-    instruction_map[0xD0] = &Z80::ret_nc;
-    instruction_map[0xD1] = &Z80::pop_de;
-    instruction_map[0xD2] = &Z80::jp_nc;
-    instruction_map[0xD3] = &Z80::not_supported_error;
-    instruction_map[0xD4] = &Z80::call_nc;
-    instruction_map[0xD5] = &Z80::push_de;
-    instruction_map[0xD6] = &Z80::sub_n;
-    instruction_map[0xD7] = &Z80::rst_10;
-    instruction_map[0xD8] = &Z80::ret_c;
-    instruction_map[0xD9] = &Z80::reti;
-    instruction_map[0xDA] = &Z80::jp_c;
-    instruction_map[0xDB] = &Z80::not_supported_error;
-    instruction_map[0xDC] = &Z80::call_c;
-    instruction_map[0xDD] = &Z80::not_supported_error;
-    instruction_map[0xDE] = &Z80::sbc_a_n;
-    instruction_map[0xDF] = &Z80::rst_18;
+    instruction_map[0xC0] = &GBCPU::ret_nz;
+    instruction_map[0xC1] = &GBCPU::pop_bc;
+    instruction_map[0xC2] = &GBCPU::jp_nz;
+    instruction_map[0xC3] = &GBCPU::jp;
+    instruction_map[0xC4] = &GBCPU::call_nz;
+    instruction_map[0xC5] = &GBCPU::push_bc;
+    instruction_map[0xC6] = &GBCPU::add_a_n;
+    instruction_map[0xC7] = &GBCPU::rst_00;
+    instruction_map[0xC8] = &GBCPU::ret_z;
+    instruction_map[0xC9] = &GBCPU::ret;
+    instruction_map[0xCA] = &GBCPU::jp_z;
+    instruction_map[0xCB] = &GBCPU::cb_branch;
+    instruction_map[0xCC] = &GBCPU::call_z;
+    instruction_map[0xCD] = &GBCPU::call;
+    instruction_map[0xCE] = &GBCPU::adc_a_n;
+    instruction_map[0xCF] = &GBCPU::rst_08;
 
-    instruction_map[0xE0] = &Z80::ldh_offn_a;
-    instruction_map[0xE1] = &Z80::pop_hl;
-    instruction_map[0xE2] = &Z80::ld_offc_a;
-    instruction_map[0xE3] = &Z80::not_supported_error;
-    instruction_map[0xE4] = &Z80::not_supported_error;
-    instruction_map[0xE5] = &Z80::push_hl;
-    instruction_map[0xE6] = &Z80::and_n;
-    instruction_map[0xE7] = &Z80::rst_20;
-    instruction_map[0xE8] = &Z80::add_sp_n;
-    instruction_map[0xE9] = &Z80::jp_hl;
-    instruction_map[0xEA] = &Z80::ld_pnn_a;
-    instruction_map[0xEB] = &Z80::not_supported_error;
-    instruction_map[0xEC] = &Z80::not_supported_error;
-    instruction_map[0xED] = &Z80::not_supported_error;
-    instruction_map[0xEE] = &Z80::xor_n;
-    instruction_map[0xEF] = &Z80::rst_28;
+    instruction_map[0xD0] = &GBCPU::ret_nc;
+    instruction_map[0xD1] = &GBCPU::pop_de;
+    instruction_map[0xD2] = &GBCPU::jp_nc;
+    instruction_map[0xD3] = &GBCPU::not_supported_error;
+    instruction_map[0xD4] = &GBCPU::call_nc;
+    instruction_map[0xD5] = &GBCPU::push_de;
+    instruction_map[0xD6] = &GBCPU::sub_n;
+    instruction_map[0xD7] = &GBCPU::rst_10;
+    instruction_map[0xD8] = &GBCPU::ret_c;
+    instruction_map[0xD9] = &GBCPU::reti;
+    instruction_map[0xDA] = &GBCPU::jp_c;
+    instruction_map[0xDB] = &GBCPU::not_supported_error;
+    instruction_map[0xDC] = &GBCPU::call_c;
+    instruction_map[0xDD] = &GBCPU::not_supported_error;
+    instruction_map[0xDE] = &GBCPU::sbc_a_n;
+    instruction_map[0xDF] = &GBCPU::rst_18;
 
-    instruction_map[0xF0] = &Z80::ldh_a_offn;
-    instruction_map[0xF1] = &Z80::pop_af;
-    instruction_map[0xF2] = &Z80::ld_a_offc;
-    instruction_map[0xF3] = &Z80::di;
-    instruction_map[0xF4] = &Z80::not_supported_error;
-    instruction_map[0xF5] = &Z80::push_af;
-    instruction_map[0xF6] = &Z80::or_n;
-    instruction_map[0xF7] = &Z80::rst_30;
-    instruction_map[0xF8] = &Z80::ld_hl_spn;
-    instruction_map[0xF9] = &Z80::ld_sp_hl;
-    instruction_map[0xFA] = &Z80::ld_a_pnn;
-    instruction_map[0xFB] = &Z80::ei;
-    instruction_map[0xFC] = &Z80::not_supported_error;
-    instruction_map[0xFD] = &Z80::not_supported_error;
-    instruction_map[0xFE] = &Z80::cp_n;
-    instruction_map[0xFF] = &Z80::rst_38;
+    instruction_map[0xE0] = &GBCPU::ldh_offn_a;
+    instruction_map[0xE1] = &GBCPU::pop_hl;
+    instruction_map[0xE2] = &GBCPU::ld_offc_a;
+    instruction_map[0xE3] = &GBCPU::not_supported_error;
+    instruction_map[0xE4] = &GBCPU::not_supported_error;
+    instruction_map[0xE5] = &GBCPU::push_hl;
+    instruction_map[0xE6] = &GBCPU::and_n;
+    instruction_map[0xE7] = &GBCPU::rst_20;
+    instruction_map[0xE8] = &GBCPU::add_sp_n;
+    instruction_map[0xE9] = &GBCPU::jp_hl;
+    instruction_map[0xEA] = &GBCPU::ld_pnn_a;
+    instruction_map[0xEB] = &GBCPU::not_supported_error;
+    instruction_map[0xEC] = &GBCPU::not_supported_error;
+    instruction_map[0xED] = &GBCPU::not_supported_error;
+    instruction_map[0xEE] = &GBCPU::xor_n;
+    instruction_map[0xEF] = &GBCPU::rst_28;
+
+    instruction_map[0xF0] = &GBCPU::ldh_a_offn;
+    instruction_map[0xF1] = &GBCPU::pop_af;
+    instruction_map[0xF2] = &GBCPU::ld_a_offc;
+    instruction_map[0xF3] = &GBCPU::di;
+    instruction_map[0xF4] = &GBCPU::not_supported_error;
+    instruction_map[0xF5] = &GBCPU::push_af;
+    instruction_map[0xF6] = &GBCPU::or_n;
+    instruction_map[0xF7] = &GBCPU::rst_30;
+    instruction_map[0xF8] = &GBCPU::ld_hl_spn;
+    instruction_map[0xF9] = &GBCPU::ld_sp_hl;
+    instruction_map[0xFA] = &GBCPU::ld_a_pnn;
+    instruction_map[0xFB] = &GBCPU::ei;
+    instruction_map[0xFC] = &GBCPU::not_supported_error;
+    instruction_map[0xFD] = &GBCPU::not_supported_error;
+    instruction_map[0xFE] = &GBCPU::cp_n;
+    instruction_map[0xFF] = &GBCPU::rst_38;
 }
 
-void Z80::init_cb_instrunction_map() {
+void GBCPU::fill_cb_instrunction_map() {
     cb_instruction_map.reserve(256);
 
-    cb_instruction_map[0x00] = &Z80::rlc_b;
-    cb_instruction_map[0x01] = &Z80::rlc_c;
-    cb_instruction_map[0x02] = &Z80::rlc_d;
-    cb_instruction_map[0x03] = &Z80::rlc_e;
-    cb_instruction_map[0x04] = &Z80::rlc_h;
-    cb_instruction_map[0x05] = &Z80::rlc_l;
-    cb_instruction_map[0x06] = &Z80::rlc_phl;
-    cb_instruction_map[0x07] = &Z80::rlc_a;
-    cb_instruction_map[0x08] = &Z80::rrc_b;
-    cb_instruction_map[0x09] = &Z80::rrc_c;
-    cb_instruction_map[0x0A] = &Z80::rrc_d;
-    cb_instruction_map[0x0B] = &Z80::rrc_e;
-    cb_instruction_map[0x0C] = &Z80::rrc_h;
-    cb_instruction_map[0x0D] = &Z80::rrc_l;
-    cb_instruction_map[0x0E] = &Z80::rrc_phl;
-    cb_instruction_map[0x0F] = &Z80::rrc_a;
+    cb_instruction_map[0x00] = &GBCPU::rlc_b;
+    cb_instruction_map[0x01] = &GBCPU::rlc_c;
+    cb_instruction_map[0x02] = &GBCPU::rlc_d;
+    cb_instruction_map[0x03] = &GBCPU::rlc_e;
+    cb_instruction_map[0x04] = &GBCPU::rlc_h;
+    cb_instruction_map[0x05] = &GBCPU::rlc_l;
+    cb_instruction_map[0x06] = &GBCPU::rlc_phl;
+    cb_instruction_map[0x07] = &GBCPU::rlc_a;
+    cb_instruction_map[0x08] = &GBCPU::rrc_b;
+    cb_instruction_map[0x09] = &GBCPU::rrc_c;
+    cb_instruction_map[0x0A] = &GBCPU::rrc_d;
+    cb_instruction_map[0x0B] = &GBCPU::rrc_e;
+    cb_instruction_map[0x0C] = &GBCPU::rrc_h;
+    cb_instruction_map[0x0D] = &GBCPU::rrc_l;
+    cb_instruction_map[0x0E] = &GBCPU::rrc_phl;
+    cb_instruction_map[0x0F] = &GBCPU::rrc_a;
 
-    cb_instruction_map[0x10] = &Z80::rl_b;
-    cb_instruction_map[0x11] = &Z80::rl_c;
-    cb_instruction_map[0x12] = &Z80::rl_d;
-    cb_instruction_map[0x13] = &Z80::rl_e;
-    cb_instruction_map[0x14] = &Z80::rl_h;
-    cb_instruction_map[0x15] = &Z80::rl_l;
-    cb_instruction_map[0x16] = &Z80::rl_phl;
-    cb_instruction_map[0x17] = &Z80::rl_a;
-    cb_instruction_map[0x18] = &Z80::rr_b;
-    cb_instruction_map[0x19] = &Z80::rr_c;
-    cb_instruction_map[0x1A] = &Z80::rr_d;
-    cb_instruction_map[0x1B] = &Z80::rr_e;
-    cb_instruction_map[0x1C] = &Z80::rr_h;
-    cb_instruction_map[0x1D] = &Z80::rr_l;
-    cb_instruction_map[0x1E] = &Z80::rr_phl;
-    cb_instruction_map[0x1F] = &Z80::rr_a;
+    cb_instruction_map[0x10] = &GBCPU::rl_b;
+    cb_instruction_map[0x11] = &GBCPU::rl_c;
+    cb_instruction_map[0x12] = &GBCPU::rl_d;
+    cb_instruction_map[0x13] = &GBCPU::rl_e;
+    cb_instruction_map[0x14] = &GBCPU::rl_h;
+    cb_instruction_map[0x15] = &GBCPU::rl_l;
+    cb_instruction_map[0x16] = &GBCPU::rl_phl;
+    cb_instruction_map[0x17] = &GBCPU::rl_a;
+    cb_instruction_map[0x18] = &GBCPU::rr_b;
+    cb_instruction_map[0x19] = &GBCPU::rr_c;
+    cb_instruction_map[0x1A] = &GBCPU::rr_d;
+    cb_instruction_map[0x1B] = &GBCPU::rr_e;
+    cb_instruction_map[0x1C] = &GBCPU::rr_h;
+    cb_instruction_map[0x1D] = &GBCPU::rr_l;
+    cb_instruction_map[0x1E] = &GBCPU::rr_phl;
+    cb_instruction_map[0x1F] = &GBCPU::rr_a;
 
-    cb_instruction_map[0x20] = &Z80::sla_b;
-    cb_instruction_map[0x21] = &Z80::sla_c;
-    cb_instruction_map[0x22] = &Z80::sla_d;
-    cb_instruction_map[0x23] = &Z80::sla_e;
-    cb_instruction_map[0x24] = &Z80::sla_h;
-    cb_instruction_map[0x25] = &Z80::sla_l;
-    cb_instruction_map[0x26] = &Z80::sla_phl;
-    cb_instruction_map[0x27] = &Z80::sla_a;
-    cb_instruction_map[0x28] = &Z80::sra_b;
-    cb_instruction_map[0x29] = &Z80::sra_c;
-    cb_instruction_map[0x2A] = &Z80::sra_d;
-    cb_instruction_map[0x2B] = &Z80::sra_e;
-    cb_instruction_map[0x2C] = &Z80::sra_h;
-    cb_instruction_map[0x2D] = &Z80::sra_l;
-    cb_instruction_map[0x2E] = &Z80::sra_phl;
-    cb_instruction_map[0x2F] = &Z80::sra_a;
+    cb_instruction_map[0x20] = &GBCPU::sla_b;
+    cb_instruction_map[0x21] = &GBCPU::sla_c;
+    cb_instruction_map[0x22] = &GBCPU::sla_d;
+    cb_instruction_map[0x23] = &GBCPU::sla_e;
+    cb_instruction_map[0x24] = &GBCPU::sla_h;
+    cb_instruction_map[0x25] = &GBCPU::sla_l;
+    cb_instruction_map[0x26] = &GBCPU::sla_phl;
+    cb_instruction_map[0x27] = &GBCPU::sla_a;
+    cb_instruction_map[0x28] = &GBCPU::sra_b;
+    cb_instruction_map[0x29] = &GBCPU::sra_c;
+    cb_instruction_map[0x2A] = &GBCPU::sra_d;
+    cb_instruction_map[0x2B] = &GBCPU::sra_e;
+    cb_instruction_map[0x2C] = &GBCPU::sra_h;
+    cb_instruction_map[0x2D] = &GBCPU::sra_l;
+    cb_instruction_map[0x2E] = &GBCPU::sra_phl;
+    cb_instruction_map[0x2F] = &GBCPU::sra_a;
 
-    cb_instruction_map[0x30] = &Z80::swap_b;
-    cb_instruction_map[0x31] = &Z80::swap_c;
-    cb_instruction_map[0x32] = &Z80::swap_d;
-    cb_instruction_map[0x33] = &Z80::swap_e;
-    cb_instruction_map[0x34] = &Z80::swap_h;
-    cb_instruction_map[0x35] = &Z80::swap_l;
-    cb_instruction_map[0x36] = &Z80::swap_phl;
-    cb_instruction_map[0x37] = &Z80::swap_a;
+    cb_instruction_map[0x30] = &GBCPU::swap_b;
+    cb_instruction_map[0x31] = &GBCPU::swap_c;
+    cb_instruction_map[0x32] = &GBCPU::swap_d;
+    cb_instruction_map[0x33] = &GBCPU::swap_e;
+    cb_instruction_map[0x34] = &GBCPU::swap_h;
+    cb_instruction_map[0x35] = &GBCPU::swap_l;
+    cb_instruction_map[0x36] = &GBCPU::swap_phl;
+    cb_instruction_map[0x37] = &GBCPU::swap_a;
 
-    cb_instruction_map[0x40] = &Z80::bit_0_b;
-    cb_instruction_map[0x41] = &Z80::bit_0_c;
-    cb_instruction_map[0x42] = &Z80::bit_0_d;
-    cb_instruction_map[0x43] = &Z80::bit_0_e;
-    cb_instruction_map[0x44] = &Z80::bit_0_h;
-    cb_instruction_map[0x45] = &Z80::bit_0_l;
-    cb_instruction_map[0x46] = &Z80::bit_0_phl;
-    cb_instruction_map[0x47] = &Z80::bit_0_a;
-    cb_instruction_map[0x48] = &Z80::bit_1_b;
-    cb_instruction_map[0x49] = &Z80::bit_1_c;
-    cb_instruction_map[0x4A] = &Z80::bit_1_d;
-    cb_instruction_map[0x4B] = &Z80::bit_1_e;
-    cb_instruction_map[0x4C] = &Z80::bit_1_h;
-    cb_instruction_map[0x4D] = &Z80::bit_1_l;
-    cb_instruction_map[0x4E] = &Z80::bit_1_phl;
-    cb_instruction_map[0x4F] = &Z80::bit_1_a;
+    cb_instruction_map[0x40] = &GBCPU::bit_0_b;
+    cb_instruction_map[0x41] = &GBCPU::bit_0_c;
+    cb_instruction_map[0x42] = &GBCPU::bit_0_d;
+    cb_instruction_map[0x43] = &GBCPU::bit_0_e;
+    cb_instruction_map[0x44] = &GBCPU::bit_0_h;
+    cb_instruction_map[0x45] = &GBCPU::bit_0_l;
+    cb_instruction_map[0x46] = &GBCPU::bit_0_phl;
+    cb_instruction_map[0x47] = &GBCPU::bit_0_a;
+    cb_instruction_map[0x48] = &GBCPU::bit_1_b;
+    cb_instruction_map[0x49] = &GBCPU::bit_1_c;
+    cb_instruction_map[0x4A] = &GBCPU::bit_1_d;
+    cb_instruction_map[0x4B] = &GBCPU::bit_1_e;
+    cb_instruction_map[0x4C] = &GBCPU::bit_1_h;
+    cb_instruction_map[0x4D] = &GBCPU::bit_1_l;
+    cb_instruction_map[0x4E] = &GBCPU::bit_1_phl;
+    cb_instruction_map[0x4F] = &GBCPU::bit_1_a;
 
-    cb_instruction_map[0x50] = &Z80::bit_2_b;
-    cb_instruction_map[0x51] = &Z80::bit_2_c;
-    cb_instruction_map[0x52] = &Z80::bit_2_d;
-    cb_instruction_map[0x53] = &Z80::bit_2_e;
-    cb_instruction_map[0x54] = &Z80::bit_2_h;
-    cb_instruction_map[0x55] = &Z80::bit_2_l;
-    cb_instruction_map[0x56] = &Z80::bit_2_phl;
-    cb_instruction_map[0x57] = &Z80::bit_2_a;
-    cb_instruction_map[0x58] = &Z80::bit_3_b;
-    cb_instruction_map[0x59] = &Z80::bit_3_c;
-    cb_instruction_map[0x5A] = &Z80::bit_3_d;
-    cb_instruction_map[0x5B] = &Z80::bit_3_e;
-    cb_instruction_map[0x5C] = &Z80::bit_3_h;
-    cb_instruction_map[0x5D] = &Z80::bit_3_l;
-    cb_instruction_map[0x5E] = &Z80::bit_3_phl;
-    cb_instruction_map[0x5F] = &Z80::bit_3_a;
+    cb_instruction_map[0x50] = &GBCPU::bit_2_b;
+    cb_instruction_map[0x51] = &GBCPU::bit_2_c;
+    cb_instruction_map[0x52] = &GBCPU::bit_2_d;
+    cb_instruction_map[0x53] = &GBCPU::bit_2_e;
+    cb_instruction_map[0x54] = &GBCPU::bit_2_h;
+    cb_instruction_map[0x55] = &GBCPU::bit_2_l;
+    cb_instruction_map[0x56] = &GBCPU::bit_2_phl;
+    cb_instruction_map[0x57] = &GBCPU::bit_2_a;
+    cb_instruction_map[0x58] = &GBCPU::bit_3_b;
+    cb_instruction_map[0x59] = &GBCPU::bit_3_c;
+    cb_instruction_map[0x5A] = &GBCPU::bit_3_d;
+    cb_instruction_map[0x5B] = &GBCPU::bit_3_e;
+    cb_instruction_map[0x5C] = &GBCPU::bit_3_h;
+    cb_instruction_map[0x5D] = &GBCPU::bit_3_l;
+    cb_instruction_map[0x5E] = &GBCPU::bit_3_phl;
+    cb_instruction_map[0x5F] = &GBCPU::bit_3_a;
 
-    cb_instruction_map[0x60] = &Z80::bit_4_b;
-    cb_instruction_map[0x61] = &Z80::bit_4_c;
-    cb_instruction_map[0x62] = &Z80::bit_4_d;
-    cb_instruction_map[0x63] = &Z80::bit_4_e;
-    cb_instruction_map[0x64] = &Z80::bit_4_h;
-    cb_instruction_map[0x65] = &Z80::bit_4_l;
-    cb_instruction_map[0x66] = &Z80::bit_4_phl;
-    cb_instruction_map[0x67] = &Z80::bit_4_a;
-    cb_instruction_map[0x68] = &Z80::bit_5_b;
-    cb_instruction_map[0x69] = &Z80::bit_5_c;
-    cb_instruction_map[0x6A] = &Z80::bit_5_d;
-    cb_instruction_map[0x6B] = &Z80::bit_5_e;
-    cb_instruction_map[0x6C] = &Z80::bit_5_h;
-    cb_instruction_map[0x6D] = &Z80::bit_5_l;
-    cb_instruction_map[0x6E] = &Z80::bit_5_phl;
-    cb_instruction_map[0x6F] = &Z80::bit_5_a;
+    cb_instruction_map[0x60] = &GBCPU::bit_4_b;
+    cb_instruction_map[0x61] = &GBCPU::bit_4_c;
+    cb_instruction_map[0x62] = &GBCPU::bit_4_d;
+    cb_instruction_map[0x63] = &GBCPU::bit_4_e;
+    cb_instruction_map[0x64] = &GBCPU::bit_4_h;
+    cb_instruction_map[0x65] = &GBCPU::bit_4_l;
+    cb_instruction_map[0x66] = &GBCPU::bit_4_phl;
+    cb_instruction_map[0x67] = &GBCPU::bit_4_a;
+    cb_instruction_map[0x68] = &GBCPU::bit_5_b;
+    cb_instruction_map[0x69] = &GBCPU::bit_5_c;
+    cb_instruction_map[0x6A] = &GBCPU::bit_5_d;
+    cb_instruction_map[0x6B] = &GBCPU::bit_5_e;
+    cb_instruction_map[0x6C] = &GBCPU::bit_5_h;
+    cb_instruction_map[0x6D] = &GBCPU::bit_5_l;
+    cb_instruction_map[0x6E] = &GBCPU::bit_5_phl;
+    cb_instruction_map[0x6F] = &GBCPU::bit_5_a;
 
-    cb_instruction_map[0x70] = &Z80::bit_6_b;
-    cb_instruction_map[0x71] = &Z80::bit_6_c;
-    cb_instruction_map[0x72] = &Z80::bit_6_d;
-    cb_instruction_map[0x73] = &Z80::bit_6_e;
-    cb_instruction_map[0x74] = &Z80::bit_6_h;
-    cb_instruction_map[0x75] = &Z80::bit_6_l;
-    cb_instruction_map[0x76] = &Z80::bit_6_phl;
-    cb_instruction_map[0x77] = &Z80::bit_6_a;
-    cb_instruction_map[0x78] = &Z80::bit_7_b;
-    cb_instruction_map[0x79] = &Z80::bit_7_c;
-    cb_instruction_map[0x7A] = &Z80::bit_7_d;
-    cb_instruction_map[0x7B] = &Z80::bit_7_e;
-    cb_instruction_map[0x7C] = &Z80::bit_7_h;
-    cb_instruction_map[0x7D] = &Z80::bit_7_l;
-    cb_instruction_map[0x7E] = &Z80::bit_7_phl;
-    cb_instruction_map[0x7F] = &Z80::bit_7_a;
+    cb_instruction_map[0x70] = &GBCPU::bit_6_b;
+    cb_instruction_map[0x71] = &GBCPU::bit_6_c;
+    cb_instruction_map[0x72] = &GBCPU::bit_6_d;
+    cb_instruction_map[0x73] = &GBCPU::bit_6_e;
+    cb_instruction_map[0x74] = &GBCPU::bit_6_h;
+    cb_instruction_map[0x75] = &GBCPU::bit_6_l;
+    cb_instruction_map[0x76] = &GBCPU::bit_6_phl;
+    cb_instruction_map[0x77] = &GBCPU::bit_6_a;
+    cb_instruction_map[0x78] = &GBCPU::bit_7_b;
+    cb_instruction_map[0x79] = &GBCPU::bit_7_c;
+    cb_instruction_map[0x7A] = &GBCPU::bit_7_d;
+    cb_instruction_map[0x7B] = &GBCPU::bit_7_e;
+    cb_instruction_map[0x7C] = &GBCPU::bit_7_h;
+    cb_instruction_map[0x7D] = &GBCPU::bit_7_l;
+    cb_instruction_map[0x7E] = &GBCPU::bit_7_phl;
+    cb_instruction_map[0x7F] = &GBCPU::bit_7_a;
 
-    cb_instruction_map[0x80] = &Z80::res_0_b;
-    cb_instruction_map[0x81] = &Z80::res_0_c;
-    cb_instruction_map[0x82] = &Z80::res_0_d;
-    cb_instruction_map[0x83] = &Z80::res_0_e;
-    cb_instruction_map[0x84] = &Z80::res_0_h;
-    cb_instruction_map[0x85] = &Z80::res_0_l;
-    cb_instruction_map[0x86] = &Z80::res_0_phl;
-    cb_instruction_map[0x87] = &Z80::res_0_a;
-    cb_instruction_map[0x88] = &Z80::res_1_b;
-    cb_instruction_map[0x89] = &Z80::res_1_c;
-    cb_instruction_map[0x8A] = &Z80::res_1_d;
-    cb_instruction_map[0x8B] = &Z80::res_1_e;
-    cb_instruction_map[0x8C] = &Z80::res_1_h;
-    cb_instruction_map[0x8D] = &Z80::res_1_l;
-    cb_instruction_map[0x8E] = &Z80::res_1_phl;
-    cb_instruction_map[0x8F] = &Z80::res_1_a;
+    cb_instruction_map[0x80] = &GBCPU::res_0_b;
+    cb_instruction_map[0x81] = &GBCPU::res_0_c;
+    cb_instruction_map[0x82] = &GBCPU::res_0_d;
+    cb_instruction_map[0x83] = &GBCPU::res_0_e;
+    cb_instruction_map[0x84] = &GBCPU::res_0_h;
+    cb_instruction_map[0x85] = &GBCPU::res_0_l;
+    cb_instruction_map[0x86] = &GBCPU::res_0_phl;
+    cb_instruction_map[0x87] = &GBCPU::res_0_a;
+    cb_instruction_map[0x88] = &GBCPU::res_1_b;
+    cb_instruction_map[0x89] = &GBCPU::res_1_c;
+    cb_instruction_map[0x8A] = &GBCPU::res_1_d;
+    cb_instruction_map[0x8B] = &GBCPU::res_1_e;
+    cb_instruction_map[0x8C] = &GBCPU::res_1_h;
+    cb_instruction_map[0x8D] = &GBCPU::res_1_l;
+    cb_instruction_map[0x8E] = &GBCPU::res_1_phl;
+    cb_instruction_map[0x8F] = &GBCPU::res_1_a;
 
-    cb_instruction_map[0x90] = &Z80::res_2_b;
-    cb_instruction_map[0x91] = &Z80::res_2_c;
-    cb_instruction_map[0x92] = &Z80::res_2_d;
-    cb_instruction_map[0x93] = &Z80::res_2_e;
-    cb_instruction_map[0x94] = &Z80::res_2_h;
-    cb_instruction_map[0x95] = &Z80::res_2_l;
-    cb_instruction_map[0x96] = &Z80::res_2_phl;
-    cb_instruction_map[0x97] = &Z80::res_2_a;
-    cb_instruction_map[0x98] = &Z80::res_3_b;
-    cb_instruction_map[0x99] = &Z80::res_3_c;
-    cb_instruction_map[0x9A] = &Z80::res_3_d;
-    cb_instruction_map[0x9B] = &Z80::res_3_e;
-    cb_instruction_map[0x9C] = &Z80::res_3_h;
-    cb_instruction_map[0x9D] = &Z80::res_3_l;
-    cb_instruction_map[0x9E] = &Z80::res_3_phl;
-    cb_instruction_map[0x9F] = &Z80::res_3_a;
+    cb_instruction_map[0x90] = &GBCPU::res_2_b;
+    cb_instruction_map[0x91] = &GBCPU::res_2_c;
+    cb_instruction_map[0x92] = &GBCPU::res_2_d;
+    cb_instruction_map[0x93] = &GBCPU::res_2_e;
+    cb_instruction_map[0x94] = &GBCPU::res_2_h;
+    cb_instruction_map[0x95] = &GBCPU::res_2_l;
+    cb_instruction_map[0x96] = &GBCPU::res_2_phl;
+    cb_instruction_map[0x97] = &GBCPU::res_2_a;
+    cb_instruction_map[0x98] = &GBCPU::res_3_b;
+    cb_instruction_map[0x99] = &GBCPU::res_3_c;
+    cb_instruction_map[0x9A] = &GBCPU::res_3_d;
+    cb_instruction_map[0x9B] = &GBCPU::res_3_e;
+    cb_instruction_map[0x9C] = &GBCPU::res_3_h;
+    cb_instruction_map[0x9D] = &GBCPU::res_3_l;
+    cb_instruction_map[0x9E] = &GBCPU::res_3_phl;
+    cb_instruction_map[0x9F] = &GBCPU::res_3_a;
 
-    cb_instruction_map[0xA0] = &Z80::res_4_b;
-    cb_instruction_map[0xA1] = &Z80::res_4_c;
-    cb_instruction_map[0xA2] = &Z80::res_4_d;
-    cb_instruction_map[0xA3] = &Z80::res_4_e;
-    cb_instruction_map[0xA4] = &Z80::res_4_h;
-    cb_instruction_map[0xA5] = &Z80::res_4_l;
-    cb_instruction_map[0xA6] = &Z80::res_4_phl;
-    cb_instruction_map[0xA7] = &Z80::res_4_a;
-    cb_instruction_map[0xA8] = &Z80::res_5_b;
-    cb_instruction_map[0xA9] = &Z80::res_5_c;
-    cb_instruction_map[0xAA] = &Z80::res_5_d;
-    cb_instruction_map[0xAB] = &Z80::res_5_e;
-    cb_instruction_map[0xAC] = &Z80::res_5_h;
-    cb_instruction_map[0xAD] = &Z80::res_5_l;
-    cb_instruction_map[0xAE] = &Z80::res_5_phl;
-    cb_instruction_map[0xAF] = &Z80::res_5_a;
+    cb_instruction_map[0xA0] = &GBCPU::res_4_b;
+    cb_instruction_map[0xA1] = &GBCPU::res_4_c;
+    cb_instruction_map[0xA2] = &GBCPU::res_4_d;
+    cb_instruction_map[0xA3] = &GBCPU::res_4_e;
+    cb_instruction_map[0xA4] = &GBCPU::res_4_h;
+    cb_instruction_map[0xA5] = &GBCPU::res_4_l;
+    cb_instruction_map[0xA6] = &GBCPU::res_4_phl;
+    cb_instruction_map[0xA7] = &GBCPU::res_4_a;
+    cb_instruction_map[0xA8] = &GBCPU::res_5_b;
+    cb_instruction_map[0xA9] = &GBCPU::res_5_c;
+    cb_instruction_map[0xAA] = &GBCPU::res_5_d;
+    cb_instruction_map[0xAB] = &GBCPU::res_5_e;
+    cb_instruction_map[0xAC] = &GBCPU::res_5_h;
+    cb_instruction_map[0xAD] = &GBCPU::res_5_l;
+    cb_instruction_map[0xAE] = &GBCPU::res_5_phl;
+    cb_instruction_map[0xAF] = &GBCPU::res_5_a;
 
-    cb_instruction_map[0xB0] = &Z80::res_6_b;
-    cb_instruction_map[0xB1] = &Z80::res_6_c;
-    cb_instruction_map[0xB2] = &Z80::res_6_d;
-    cb_instruction_map[0xB3] = &Z80::res_6_e;
-    cb_instruction_map[0xB4] = &Z80::res_6_h;
-    cb_instruction_map[0xB5] = &Z80::res_6_l;
-    cb_instruction_map[0xB6] = &Z80::res_6_phl;
-    cb_instruction_map[0xB7] = &Z80::res_6_a;
-    cb_instruction_map[0xB8] = &Z80::res_7_b;
-    cb_instruction_map[0xB9] = &Z80::res_7_c;
-    cb_instruction_map[0xBA] = &Z80::res_7_d;
-    cb_instruction_map[0xBB] = &Z80::res_7_e;
-    cb_instruction_map[0xBC] = &Z80::res_7_h;
-    cb_instruction_map[0xBD] = &Z80::res_7_l;
-    cb_instruction_map[0xBE] = &Z80::res_7_phl;
-    cb_instruction_map[0xBF] = &Z80::res_7_a;
+    cb_instruction_map[0xB0] = &GBCPU::res_6_b;
+    cb_instruction_map[0xB1] = &GBCPU::res_6_c;
+    cb_instruction_map[0xB2] = &GBCPU::res_6_d;
+    cb_instruction_map[0xB3] = &GBCPU::res_6_e;
+    cb_instruction_map[0xB4] = &GBCPU::res_6_h;
+    cb_instruction_map[0xB5] = &GBCPU::res_6_l;
+    cb_instruction_map[0xB6] = &GBCPU::res_6_phl;
+    cb_instruction_map[0xB7] = &GBCPU::res_6_a;
+    cb_instruction_map[0xB8] = &GBCPU::res_7_b;
+    cb_instruction_map[0xB9] = &GBCPU::res_7_c;
+    cb_instruction_map[0xBA] = &GBCPU::res_7_d;
+    cb_instruction_map[0xBB] = &GBCPU::res_7_e;
+    cb_instruction_map[0xBC] = &GBCPU::res_7_h;
+    cb_instruction_map[0xBD] = &GBCPU::res_7_l;
+    cb_instruction_map[0xBE] = &GBCPU::res_7_phl;
+    cb_instruction_map[0xBF] = &GBCPU::res_7_a;
 
-    cb_instruction_map[0xC0] = &Z80::set_0_b;
-    cb_instruction_map[0xC1] = &Z80::set_0_c;
-    cb_instruction_map[0xC2] = &Z80::set_0_d;
-    cb_instruction_map[0xC3] = &Z80::set_0_e;
-    cb_instruction_map[0xC4] = &Z80::set_0_h;
-    cb_instruction_map[0xC5] = &Z80::set_0_l;
-    cb_instruction_map[0xC6] = &Z80::set_0_phl;
-    cb_instruction_map[0xC7] = &Z80::set_0_a;
-    cb_instruction_map[0xC8] = &Z80::set_1_b;
-    cb_instruction_map[0xC9] = &Z80::set_1_c;
-    cb_instruction_map[0xCA] = &Z80::set_1_d;
-    cb_instruction_map[0xCB] = &Z80::set_1_e;
-    cb_instruction_map[0xCC] = &Z80::set_1_h;
-    cb_instruction_map[0xCD] = &Z80::set_1_l;
-    cb_instruction_map[0xCE] = &Z80::set_1_phl;
-    cb_instruction_map[0xCF] = &Z80::set_1_a;
+    cb_instruction_map[0xC0] = &GBCPU::set_0_b;
+    cb_instruction_map[0xC1] = &GBCPU::set_0_c;
+    cb_instruction_map[0xC2] = &GBCPU::set_0_d;
+    cb_instruction_map[0xC3] = &GBCPU::set_0_e;
+    cb_instruction_map[0xC4] = &GBCPU::set_0_h;
+    cb_instruction_map[0xC5] = &GBCPU::set_0_l;
+    cb_instruction_map[0xC6] = &GBCPU::set_0_phl;
+    cb_instruction_map[0xC7] = &GBCPU::set_0_a;
+    cb_instruction_map[0xC8] = &GBCPU::set_1_b;
+    cb_instruction_map[0xC9] = &GBCPU::set_1_c;
+    cb_instruction_map[0xCA] = &GBCPU::set_1_d;
+    cb_instruction_map[0xCB] = &GBCPU::set_1_e;
+    cb_instruction_map[0xCC] = &GBCPU::set_1_h;
+    cb_instruction_map[0xCD] = &GBCPU::set_1_l;
+    cb_instruction_map[0xCE] = &GBCPU::set_1_phl;
+    cb_instruction_map[0xCF] = &GBCPU::set_1_a;
 
-    cb_instruction_map[0xD0] = &Z80::set_2_b;
-    cb_instruction_map[0xD1] = &Z80::set_2_c;
-    cb_instruction_map[0xD2] = &Z80::set_2_d;
-    cb_instruction_map[0xD3] = &Z80::set_2_e;
-    cb_instruction_map[0xD4] = &Z80::set_2_h;
-    cb_instruction_map[0xD5] = &Z80::set_2_l;
-    cb_instruction_map[0xD6] = &Z80::set_2_phl;
-    cb_instruction_map[0xD7] = &Z80::set_2_a;
-    cb_instruction_map[0xD8] = &Z80::set_3_b;
-    cb_instruction_map[0xD9] = &Z80::set_3_c;
-    cb_instruction_map[0xDA] = &Z80::set_3_d;
-    cb_instruction_map[0xDB] = &Z80::set_3_e;
-    cb_instruction_map[0xDC] = &Z80::set_3_h;
-    cb_instruction_map[0xDD] = &Z80::set_3_l;
-    cb_instruction_map[0xDE] = &Z80::set_3_phl;
-    cb_instruction_map[0xDF] = &Z80::set_3_a;
+    cb_instruction_map[0xD0] = &GBCPU::set_2_b;
+    cb_instruction_map[0xD1] = &GBCPU::set_2_c;
+    cb_instruction_map[0xD2] = &GBCPU::set_2_d;
+    cb_instruction_map[0xD3] = &GBCPU::set_2_e;
+    cb_instruction_map[0xD4] = &GBCPU::set_2_h;
+    cb_instruction_map[0xD5] = &GBCPU::set_2_l;
+    cb_instruction_map[0xD6] = &GBCPU::set_2_phl;
+    cb_instruction_map[0xD7] = &GBCPU::set_2_a;
+    cb_instruction_map[0xD8] = &GBCPU::set_3_b;
+    cb_instruction_map[0xD9] = &GBCPU::set_3_c;
+    cb_instruction_map[0xDA] = &GBCPU::set_3_d;
+    cb_instruction_map[0xDB] = &GBCPU::set_3_e;
+    cb_instruction_map[0xDC] = &GBCPU::set_3_h;
+    cb_instruction_map[0xDD] = &GBCPU::set_3_l;
+    cb_instruction_map[0xDE] = &GBCPU::set_3_phl;
+    cb_instruction_map[0xDF] = &GBCPU::set_3_a;
 
-    cb_instruction_map[0xE0] = &Z80::set_4_b;
-    cb_instruction_map[0xE1] = &Z80::set_4_c;
-    cb_instruction_map[0xE2] = &Z80::set_4_d;
-    cb_instruction_map[0xE3] = &Z80::set_4_e;
-    cb_instruction_map[0xE4] = &Z80::set_4_h;
-    cb_instruction_map[0xE5] = &Z80::set_4_l;
-    cb_instruction_map[0xE6] = &Z80::set_4_phl;
-    cb_instruction_map[0xE7] = &Z80::set_4_a;
-    cb_instruction_map[0xE8] = &Z80::set_5_b;
-    cb_instruction_map[0xE9] = &Z80::set_5_c;
-    cb_instruction_map[0xEA] = &Z80::set_5_d;
-    cb_instruction_map[0xEB] = &Z80::set_5_e;
-    cb_instruction_map[0xEC] = &Z80::set_5_h;
-    cb_instruction_map[0xED] = &Z80::set_5_l;
-    cb_instruction_map[0xEE] = &Z80::set_5_phl;
-    cb_instruction_map[0xEF] = &Z80::set_5_a;
+    cb_instruction_map[0xE0] = &GBCPU::set_4_b;
+    cb_instruction_map[0xE1] = &GBCPU::set_4_c;
+    cb_instruction_map[0xE2] = &GBCPU::set_4_d;
+    cb_instruction_map[0xE3] = &GBCPU::set_4_e;
+    cb_instruction_map[0xE4] = &GBCPU::set_4_h;
+    cb_instruction_map[0xE5] = &GBCPU::set_4_l;
+    cb_instruction_map[0xE6] = &GBCPU::set_4_phl;
+    cb_instruction_map[0xE7] = &GBCPU::set_4_a;
+    cb_instruction_map[0xE8] = &GBCPU::set_5_b;
+    cb_instruction_map[0xE9] = &GBCPU::set_5_c;
+    cb_instruction_map[0xEA] = &GBCPU::set_5_d;
+    cb_instruction_map[0xEB] = &GBCPU::set_5_e;
+    cb_instruction_map[0xEC] = &GBCPU::set_5_h;
+    cb_instruction_map[0xED] = &GBCPU::set_5_l;
+    cb_instruction_map[0xEE] = &GBCPU::set_5_phl;
+    cb_instruction_map[0xEF] = &GBCPU::set_5_a;
 
-    cb_instruction_map[0xF0] = &Z80::set_6_b;
-    cb_instruction_map[0xF1] = &Z80::set_6_c;
-    cb_instruction_map[0xF2] = &Z80::set_6_d;
-    cb_instruction_map[0xF3] = &Z80::set_6_e;
-    cb_instruction_map[0xF4] = &Z80::set_6_h;
-    cb_instruction_map[0xF5] = &Z80::set_6_l;
-    cb_instruction_map[0xF6] = &Z80::set_6_phl;
-    cb_instruction_map[0xF7] = &Z80::set_6_a;
-    cb_instruction_map[0xF8] = &Z80::set_7_b;
-    cb_instruction_map[0xF9] = &Z80::set_7_c;
-    cb_instruction_map[0xFA] = &Z80::set_7_d;
-    cb_instruction_map[0xFB] = &Z80::set_7_e;
-    cb_instruction_map[0xFC] = &Z80::set_7_h;
-    cb_instruction_map[0xFD] = &Z80::set_7_l;
-    cb_instruction_map[0xFE] = &Z80::set_7_phl;
-    cb_instruction_map[0xFF] = &Z80::set_7_a;
+    cb_instruction_map[0xF0] = &GBCPU::set_6_b;
+    cb_instruction_map[0xF1] = &GBCPU::set_6_c;
+    cb_instruction_map[0xF2] = &GBCPU::set_6_d;
+    cb_instruction_map[0xF3] = &GBCPU::set_6_e;
+    cb_instruction_map[0xF4] = &GBCPU::set_6_h;
+    cb_instruction_map[0xF5] = &GBCPU::set_6_l;
+    cb_instruction_map[0xF6] = &GBCPU::set_6_phl;
+    cb_instruction_map[0xF7] = &GBCPU::set_6_a;
+    cb_instruction_map[0xF8] = &GBCPU::set_7_b;
+    cb_instruction_map[0xF9] = &GBCPU::set_7_c;
+    cb_instruction_map[0xFA] = &GBCPU::set_7_d;
+    cb_instruction_map[0xFB] = &GBCPU::set_7_e;
+    cb_instruction_map[0xFC] = &GBCPU::set_7_h;
+    cb_instruction_map[0xFD] = &GBCPU::set_7_l;
+    cb_instruction_map[0xFE] = &GBCPU::set_7_phl;
+    cb_instruction_map[0xFF] = &GBCPU::set_7_a;
 
 }
 
-void Z80::reset() {
-    std::memset(this, 0, sizeof(Z80));
+void GBCPU::reset() {
+    std::memset(this, 0, sizeof(GBCPU));
 }
 
 // Template Instruction
@@ -596,7 +601,7 @@ void Z80::reset() {
  *
  * Put value r2 into r1
  */
-void Z80::ld_r_r(uint8_t& dst, const uint8_t& src) {
+void GBCPU::ld_r_r(uint8_t& dst, const uint8_t& src) {
     dst = src;
     clock += Clock(1);
 }
@@ -606,7 +611,7 @@ void Z80::ld_r_r(uint8_t& dst, const uint8_t& src) {
  *
  * Put value from address HL into r
  */
-void Z80::ld_r_prr(uint8_t& dst, const uint8_t& rh, const uint8_t& rl) {
+void GBCPU::ld_r_prr(uint8_t& dst, const uint8_t& rh, const uint8_t& rl) {
     uint16_t addr = combine16(rh, rl);
     dst = mmu.read_byte(addr);
 
@@ -618,19 +623,19 @@ void Z80::ld_r_prr(uint8_t& dst, const uint8_t& rh, const uint8_t& rl) {
  *
  * Put value r into address from HL
  */
-void Z80::ld_prr_r(const uint8_t& rh, const uint8_t& rl, const uint8_t& src) {
+void GBCPU::ld_prr_r(const uint8_t& rh, const uint8_t& rl, const uint8_t& src) {
     uint16_t addr = combine16(rh, rl);
     mmu.write_byte(addr, src);
 
     clock += Clock(2);
 }
 
-void Z80::ld_r_n(uint8_t& r) {
+void GBCPU::ld_r_n(uint8_t& r) {
     r = mmu.read_byte(reg.pc++);
     clock += Clock(2);
 }
 
-void Z80::ld_rr_nn(uint8_t& rh, uint8_t& rl) {
+void GBCPU::ld_rr_nn(uint8_t& rh, uint8_t& rl) {
     rl = mmu.read_byte(reg.pc++);
     rh = mmu.read_byte(reg.pc++);
     clock += Clock(3);
@@ -640,7 +645,7 @@ void Z80::ld_rr_nn(uint8_t& rh, uint8_t& rl) {
  * Push register pair onto the stack
  * Decrement stack pointer twice
 */
-void Z80::push_rr(const uint8_t& rh, const uint8_t& rl) {
+void GBCPU::push_rr(const uint8_t& rh, const uint8_t& rl) {
     mmu.write_byte(reg.sp--, rl);
     mmu.write_byte(reg.sp--, rh);
     clock += Clock(4);
@@ -650,7 +655,7 @@ void Z80::push_rr(const uint8_t& rh, const uint8_t& rl) {
  * Pop two bytes from the stack into register pair
  * Increment stack pointer twice
 */
-void Z80::pop_rr(uint8_t& rh, uint8_t& rl) {
+void GBCPU::pop_rr(uint8_t& rh, uint8_t& rl) {
     rh = mmu.read_byte(++reg.sp);
     rl = mmu.read_byte(++reg.sp);
     clock += Clock(3);
@@ -668,7 +673,7 @@ void Z80::pop_rr(uint8_t& rh, uint8_t& rl) {
  * H - Set if carry from bit 3
  * C - Set if carry from bit 7
  */
-void Z80::add_a_r(const uint8_t& r) {
+void GBCPU::add_a_r(const uint8_t& r) {
     acc = reg.a + r;
     reg.f = check_z(acc & 0xff) + check_h(acc) + check_c(acc);
     reg.a = static_cast<uint8_t>(acc);
@@ -688,7 +693,7 @@ void Z80::add_a_r(const uint8_t& r) {
  * H - Set if carry from bit 11
  * C - Set if carry from bit 15
  */
-void Z80::add_hl_rr(const uint8_t& rh, const uint8_t& rl) {
+void GBCPU::add_hl_rr(const uint8_t& rh, const uint8_t& rl) {
     acc = (reg.h << 8) + reg.l;
     acc += (rh << 8) + rl;
 
@@ -710,7 +715,7 @@ void Z80::add_hl_rr(const uint8_t& rh, const uint8_t& rl) {
  * H - Set if carry from bit 3
  * C - Set if carry from bit 7
  */
-void Z80::adc_a_r(const uint8_t& r) {
+void GBCPU::adc_a_r(const uint8_t& r) {
     acc = reg.a + r;
     acc += reg.f & kFlagC ? 1 : 0;
 
@@ -732,7 +737,7 @@ void Z80::adc_a_r(const uint8_t& r) {
  * H - Set if borrow from bit 4
  * C - Set if no borrow
  */
-void Z80::sub(const uint8_t& r) {
+void GBCPU::sub(const uint8_t& r) {
     acc = reg.a - r;
 
     reg.f = check_z(acc & 0xff) | kFlagN;
@@ -755,7 +760,7 @@ void Z80::sub(const uint8_t& r) {
  * H - Set if borrow from bit 4
  * C - Set if no borrow
  */
-void Z80::sbc_a_r(const uint8_t& r) {
+void GBCPU::sbc_a_r(const uint8_t& r) {
     acc = reg.a - r;
     acc -= reg.f & kFlagC ? 1 : 0;
 
@@ -779,7 +784,7 @@ void Z80::sbc_a_r(const uint8_t& r) {
  * H - Set
  * C - Reset
  */
-void Z80::and_r(const uint8_t& r) {
+void GBCPU::and_r(const uint8_t& r) {
     reg.a &= r;
 
     reg.f = check_z(reg.a) | kFlagH;
@@ -799,7 +804,7 @@ void Z80::and_r(const uint8_t& r) {
  * H - Reset
  * C - Reset
  */
-void Z80::or_r(const uint8_t& r) {
+void GBCPU::or_r(const uint8_t& r) {
     reg.a |= r;
 
     reg.f = check_z(reg.a);
@@ -819,7 +824,7 @@ void Z80::or_r(const uint8_t& r) {
  * H - Reset
  * C - Reset
  */
-void Z80::xor_r(const uint8_t& r) {
+void GBCPU::xor_r(const uint8_t& r) {
     reg.a = static_cast<uint8_t>((!r & reg.a) | (r & !reg.a));
     reg.f = check_z(reg.a);
 
@@ -838,7 +843,7 @@ void Z80::xor_r(const uint8_t& r) {
  * H - Set if no borrow from bit 4
  * C - Set for no borrow (Set if A < n)
  */
-void Z80::cp_r(const uint8_t& r) {
+void GBCPU::cp_r(const uint8_t& r) {
     acc = reg.a - r;
 
     reg.f = check_z(acc & 0xff) | kFlagN;
@@ -860,7 +865,7 @@ void Z80::cp_r(const uint8_t& r) {
  * H - Set if carry from bit 3
  * C - Not affected
  */
-void Z80::inc_r(uint8_t& r) {
+void GBCPU::inc_r(uint8_t& r) {
     bool half_carry = (r & 0x0f) == 0x0f;
     r += 1;
 
@@ -882,7 +887,7 @@ void Z80::inc_r(uint8_t& r) {
  * H - Set if no borrow from bit 4
  * C - Not affected
  */
-void Z80::dec_r(uint8_t& r) {
+void GBCPU::dec_r(uint8_t& r) {
     bool half_carry = (r & 0x18) == 0x10;
     r -= 1;
 
@@ -904,7 +909,7 @@ void Z80::dec_r(uint8_t& r) {
  * H - Reset
  * C - Reset
  */
-void Z80::swap_r(uint8_t& r) {
+void GBCPU::swap_r(uint8_t& r) {
     r = static_cast<uint8_t>(((r << 4) & 0xf0) | ((r >> 4) & 0x0f));
     reg.f = check_z(r);
     clock += Clock(2);
@@ -913,7 +918,7 @@ void Z80::swap_r(uint8_t& r) {
 /**
  * SWAP (HL)
  */
-void Z80::swap_phl() {
+void GBCPU::swap_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(2);
@@ -927,7 +932,7 @@ void Z80::swap_phl() {
  * Increment rr register by one
  * rr: BC, DE, HL or SP
  */
-void Z80::inc_rr(uint8_t& rh, uint8_t& rl) {
+void GBCPU::inc_rr(uint8_t& rh, uint8_t& rl) {
     uint16_t w = (rh << 8) | rl;
     w += 1;
     split16(w, rh, rl);
@@ -941,7 +946,7 @@ void Z80::inc_rr(uint8_t& rh, uint8_t& rl) {
  * Decrement rr register by one
  * rr: BC, DE, HL or SP
  */
-void Z80::dec_rr(uint8_t& rh, uint8_t& rl) {
+void GBCPU::dec_rr(uint8_t& rh, uint8_t& rl) {
     uint16_t w = (rh << 8) | rl;
     w -= 1;
     split16(w, rh, rl);
@@ -954,7 +959,7 @@ void Z80::dec_rr(uint8_t& rh, uint8_t& rl) {
   *
   * Push present address onto stack and jump to address 0x0000 + n
   */
-void Z80::rst(const uint16_t addr) {
+void GBCPU::rst(const uint16_t addr) {
     mmu.write_word(reg.sp, reg.pc);
     reg.sp -= 2;
     reg.pc = addr;
@@ -964,11 +969,11 @@ void Z80::rst(const uint16_t addr) {
 /**
  * No operation
  */
-void Z80::nop() {
+void GBCPU::nop() {
     clock += Clock(1);
 }
 
-void Z80::ld_a_pnn() {
+void GBCPU::ld_a_pnn() {
     uint8_t addr_lsb = mmu.read_byte(reg.pc++);
     uint8_t addr_msb = mmu.read_byte(reg.pc++);
 
@@ -978,7 +983,7 @@ void Z80::ld_a_pnn() {
     clock += Clock(4);
 }
 
-void Z80::ld_pnn_a() {
+void GBCPU::ld_pnn_a() {
     uint8_t addr_lsb = mmu.read_byte(reg.pc++);
     uint8_t addr_msb = mmu.read_byte(reg.pc++);
 
@@ -988,67 +993,67 @@ void Z80::ld_pnn_a() {
     clock += Clock(4);
 }
 
-void Z80::bit_i_r(const uint8_t index, const uint8_t& r) {
+void GBCPU::bit_i_r(const uint8_t index, const uint8_t& r) {
     uint8_t mask = static_cast<uint8_t>(1 << index);
     reg.f = (reg.f & kFlagC) | kFlagH | ((r & mask) ? kFlagZ : 0);
     clock += Clock(2);
 }
 
-void Z80::set_i_r(const uint8_t index, uint8_t& r) {
+void GBCPU::set_i_r(const uint8_t index, uint8_t& r) {
     uint8_t mask = static_cast<uint8_t>(1 << index);
     r |= mask;
     clock += Clock(2);
 }
 
-void Z80::res_i_r(const uint8_t index, uint8_t& r) {
+void GBCPU::res_i_r(const uint8_t index, uint8_t& r) {
     uint8_t mask = static_cast<uint8_t>(1 << index);
     r &= ~mask;
     clock += Clock(2);
 }
 
-void Z80::rlc_r(uint8_t& r) {
+void GBCPU::rlc_r(uint8_t& r) {
     bool has_carry = (r & 0x80) != 0;
     r = (r << 1) | (r >> 7);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
     clock += Clock(2);
 }
 
-void Z80::rrc_r(uint8_t& r) {
+void GBCPU::rrc_r(uint8_t& r) {
     bool has_carry = (r & 0x01) != 0;
     r = (r >> 1) | (r << 7);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
     clock += Clock(2);
 }
 
-void Z80::rl_r(uint8_t& r) {
+void GBCPU::rl_r(uint8_t& r) {
     bool has_carry = (r & 0x80) != 0;
     r = (r << 1) | (reg.f & kFlagC ? 0x01 : 0x00);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
     clock += Clock(2);
 }
 
-void Z80::rr_r(uint8_t& r) {
+void GBCPU::rr_r(uint8_t& r) {
     bool has_carry = (r & 0x01) != 0;
     r = (r >> 1) | (reg.f & kFlagC ? 0x80 : 0x00);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
     clock += Clock(2);
 }
 
-void Z80::sla_r(uint8_t& r) {
+void GBCPU::sla_r(uint8_t& r) {
     bool has_carry = (r & 0x80) != 0;
     r = (r << 1);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
     clock += Clock(2);
 }
 
-void Z80::sra_r(uint8_t& r) {
+void GBCPU::sra_r(uint8_t& r) {
     bool has_carry = (r & 0x01) != 0;
     r = (r & 0x80)| (r >> 1);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
     clock += Clock(2);
 }
 
-void Z80::bit_i_phl(const uint8_t index) {
+void GBCPU::bit_i_phl(const uint8_t index) {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(2);
@@ -1057,7 +1062,7 @@ void Z80::bit_i_phl(const uint8_t index) {
     mmu.write_byte(addr, value);
 }
 
-void Z80::set_i_phl(const uint8_t index) {
+void GBCPU::set_i_phl(const uint8_t index) {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(2);
@@ -1066,7 +1071,7 @@ void Z80::set_i_phl(const uint8_t index) {
     mmu.write_byte(addr, value);
 }
 
-void Z80::res_i_phl(const uint8_t index) {
+void GBCPU::res_i_phl(const uint8_t index) {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(2);
@@ -1075,7 +1080,7 @@ void Z80::res_i_phl(const uint8_t index) {
     mmu.write_byte(addr, value);
 }
 
-void Z80::rlc_phl() {
+void GBCPU::rlc_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(2);
@@ -1084,7 +1089,7 @@ void Z80::rlc_phl() {
     mmu.write_byte(addr, value);
 }
 
-void Z80::rrc_phl() {
+void GBCPU::rrc_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(2);
@@ -1093,7 +1098,7 @@ void Z80::rrc_phl() {
     mmu.write_byte(addr, value);
 }
 
-void Z80::rl_phl() {
+void GBCPU::rl_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(2);
@@ -1102,7 +1107,7 @@ void Z80::rl_phl() {
     mmu.write_byte(addr, value);
 }
 
-void Z80::rr_phl() {
+void GBCPU::rr_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(2);
@@ -1111,7 +1116,7 @@ void Z80::rr_phl() {
     mmu.write_byte(addr, value);
 }
 
-void Z80::sla_phl() {
+void GBCPU::sla_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(2);
@@ -1120,7 +1125,7 @@ void Z80::sla_phl() {
     mmu.write_byte(addr, value);
 }
 
-void Z80::sra_phl() {
+void GBCPU::sra_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(2);
@@ -1134,7 +1139,7 @@ void Z80::sra_phl() {
  *
  * Power down CPU until an interrup occurs
  */
-void Z80::halt() {
+void GBCPU::halt() {
     clock += Clock(1);
 }
 
@@ -1143,7 +1148,7 @@ void Z80::halt() {
  *
  * Halt CPU & LCD display until button pressed
  */
-void Z80::stop() {
+void GBCPU::stop() {
     // TODO: Suspend until interruption
     clock += Clock(1);
 }
@@ -1159,7 +1164,7 @@ void Z80::stop() {
  * H - Reset
  * C - Contains old bit 7
  */
-void Z80::rlca() {
+void GBCPU::rlca() {
     bool has_carry = static_cast<bool>(reg.a & 0x80);
 
     reg.a <<= 1;
@@ -1180,7 +1185,7 @@ void Z80::rlca() {
  * H - Reset
  * C - Contains old bit 7
  */
-void Z80::rla() {
+void GBCPU::rla() {
     bool has_carry = static_cast<bool>(reg.a & 0x80);
 
     reg.a <<= 1;
@@ -1201,7 +1206,7 @@ void Z80::rla() {
  * H - Reset
  * C - Contains old bit 0
  */
-void Z80::rrca() {
+void GBCPU::rrca() {
     bool has_carry = static_cast<bool>(reg.a & 0x01);
 
     reg.a >>= 1;
@@ -1222,7 +1227,7 @@ void Z80::rrca() {
  * H - Reset
  * C - Contains old bit 0
  */
-void Z80::rra() {
+void GBCPU::rra() {
     bool has_carry = static_cast<bool>(reg.a & 0x01);
 
     reg.a <<= 1;
@@ -1243,14 +1248,14 @@ void Z80::rra() {
  * H - Set
  * C - Not affected
  */
-void Z80::cpl() {
+void GBCPU::cpl() {
     reg.a = ~reg.a;
     reg.f |= kFlagN | kFlagH;
 
     clock += Clock(2);
 }
 
-void Z80::add_hl_sp() {
+void GBCPU::add_hl_sp() {
     uint8_t s = 0;
     uint8_t p = 0;
     split16(reg.sp, s, p);
@@ -1270,7 +1275,7 @@ void Z80::add_hl_sp() {
  * H - Reset
  * C - Set
  */
-void Z80::scf() {
+void GBCPU::scf() {
     reg.f = (reg.f & kFlagZ) | kFlagC;
     clock += Clock(1);
 }
@@ -1285,25 +1290,25 @@ void Z80::scf() {
  * H - Reset
  * C - Complemented
  */
-void Z80::ccf() {
+void GBCPU::ccf() {
     reg.f = (reg.f & kFlagZ) | (reg.f & kFlagC ? 0 : kFlagC);
     clock += Clock(1);
 }
 
-void Z80::add_a_phl() {
+void GBCPU::add_a_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     add_a_r(value);
 }
 
-void Z80::add_a_n() {
+void GBCPU::add_a_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
     clock += Clock(1);
     add_a_r(value);
 }
 
-void Z80::add_sp_n() {
+void GBCPU::add_sp_n() {
     int8_t offset = static_cast<uint8_t>(mmu.read_byte(reg.pc++));
     acc = reg.sp + offset;
 
@@ -1312,26 +1317,26 @@ void Z80::add_sp_n() {
     clock += Clock(4);
 }
 
-void Z80::adc_a_phl() {
+void GBCPU::adc_a_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     adc_a_r(value);
 }
 
-void Z80::adc_a_n() {
+void GBCPU::adc_a_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
     clock += Clock(1);
     adc_a_r(value);
 }
 
-void Z80::ld_sp_hl() {
+void GBCPU::ld_sp_hl() {
     uint16_t hl = combine16(reg.h, reg.l);
     mmu.write_word(reg.sp, hl);
     clock += Clock(2);
 }
 
-void Z80::ld_hl_spn() {
+void GBCPU::ld_hl_spn() {
     int8_t offset = static_cast<int8_t>(mmu.read_byte(reg.pc++));
     acc = reg.sp + offset;
 
@@ -1339,7 +1344,7 @@ void Z80::ld_hl_spn() {
     clock += Clock(3);
 }
 
-void Z80::ld_phl_n() {
+void GBCPU::ld_phl_n() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(reg.pc++);
     mmu.write_byte(addr, value);
@@ -1349,7 +1354,7 @@ void Z80::ld_phl_n() {
 /**
  * Put value at address FF00 + register C into A
  */
-void Z80::ld_a_offc() {
+void GBCPU::ld_a_offc() {
     uint16_t addr = static_cast<uint16_t>(0xff00 + reg.c);
     reg.a = mmu.read_byte(addr);
 
@@ -1359,14 +1364,14 @@ void Z80::ld_a_offc() {
 /**
  * Put A into FF00 + register C
  */
-void Z80::ld_offc_a() {
+void GBCPU::ld_offc_a() {
     uint16_t addr = static_cast<uint16_t>(0xff00 + reg.c);
     mmu.write_byte(addr, reg.a);
 
     clock += Clock(2);
 }
 
-void Z80::ld_sp_nn() {
+void GBCPU::ld_sp_nn() {
     uint8_t p = mmu.read_byte(reg.pc++);
     uint8_t s = mmu.read_byte(reg.pc++);
     reg.sp = combine16(s, p);
@@ -1374,7 +1379,7 @@ void Z80::ld_sp_nn() {
     clock += Clock(3);
 }
 
-void Z80::ld_pnn_sp() {
+void GBCPU::ld_pnn_sp() {
     uint8_t addr_lsb = mmu.read_byte(reg.pc++);
     uint8_t addr_msb = mmu.read_byte(reg.pc++);
 
@@ -1384,45 +1389,45 @@ void Z80::ld_pnn_sp() {
     clock += Clock(5);
 }
 
-void Z80::ldh_offn_a() {
+void GBCPU::ldh_offn_a() {
     uint16_t addr = static_cast<uint16_t>(0xff00 + mmu.read_byte(reg.pc++));
     mmu.write_byte(addr, reg.a);
 
     clock += Clock(3);
 }
 
-void Z80::ldh_a_offn() {
+void GBCPU::ldh_a_offn() {
     uint16_t addr = static_cast<uint16_t>(0xff00 + mmu.read_byte(reg.pc++));
     reg.a = mmu.read_byte(addr);
 
     clock += Clock(3);
 }
 
-void Z80::ldi_a_phl() {
+void GBCPU::ldi_a_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     mmu.write_byte(addr, reg.a);
     inc_rr(reg.h, reg.l);
 }
 
-void Z80::ldi_phl_a() {
+void GBCPU::ldi_phl_a() {
     uint16_t addr = combine16(reg.h, reg.l);
     reg.a = mmu.read_byte(addr);
     inc_rr(reg.h, reg.l);
 }
 
-void Z80::ldd_phl_a() {
+void GBCPU::ldd_phl_a() {
     uint16_t addr = combine16(reg.h, reg.l);
     mmu.write_byte(addr, reg.a);
     dec_rr(reg.h, reg.l);
 }
 
-void Z80::ldd_a_phl() {
+void GBCPU::ldd_a_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     reg.a = mmu.read_byte(addr);
     dec_rr(reg.h, reg.l);
 }
 
-void Z80::inc_phl() {
+void GBCPU::inc_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
 
@@ -1436,7 +1441,7 @@ void Z80::inc_phl() {
     clock += Clock(3);
 }
 
-void Z80::dec_phl() {
+void GBCPU::dec_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
 
@@ -1450,96 +1455,96 @@ void Z80::dec_phl() {
     clock += Clock(3);
 }
 
-void Z80::sub_phl() {
+void GBCPU::sub_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     sub(value);
 }
 
-void Z80::sub_n() {
+void GBCPU::sub_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
     clock += Clock(1);
     sub(value);
 }
 
-void Z80::sbc_a_phl() {
+void GBCPU::sbc_a_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     sbc_a_r(value);
 }
 
-void Z80::sbc_a_n() {
+void GBCPU::sbc_a_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
     clock += Clock(1);
     sbc_a_r(value);
 }
 
-void Z80::and_phl() {
+void GBCPU::and_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     and_r(value);
 }
 
-void Z80::and_n() {
+void GBCPU::and_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
     clock += Clock(1);
     and_r(value);
 }
 
-void Z80::or_phl() {
+void GBCPU::or_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     or_r(value);
 }
 
-void Z80::or_n() {
+void GBCPU::or_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
     clock += Clock(1);
     or_r(value);
 }
 
-void Z80::xor_phl() {
+void GBCPU::xor_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     xor_r(value);
 }
 
-void Z80::xor_n() {
+void GBCPU::xor_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
     clock += Clock(1);
     xor_r(value);
 }
 
-void Z80::cp_phl() {
+void GBCPU::cp_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
     clock += Clock(1);
     cp_r(value);
 }
 
-void Z80::cp_n() {
+void GBCPU::cp_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
     clock += Clock(1);
 
     cp_r(value);
 }
 
-void Z80::di() {
+void GBCPU::di() {
     ime = false;
     clock += Clock(1);
 }
 
-void Z80::ei() {
+void GBCPU::ei() {
     ime = true;
     clock += Clock(1);
 }
 
-void Z80::call() {
+void GBCPU::call() {
     uint8_t addr_lsb = mmu.read_byte(reg.pc++);
     uint8_t addr_msb = mmu.read_byte(reg.pc++);
 
@@ -1554,7 +1559,7 @@ void Z80::call() {
     clock += Clock(3);
 }
 
-void Z80::call_z() {
+void GBCPU::call_z() {
     if ((reg.f & kFlagZ) != 0) {
         call();
     } else {
@@ -1563,7 +1568,7 @@ void Z80::call_z() {
     }
 }
 
-void Z80::call_nz() {
+void GBCPU::call_nz() {
     if ((reg.f & kFlagZ) == 0) {
         call();
     } else {
@@ -1572,7 +1577,7 @@ void Z80::call_nz() {
     }
 }
 
-void Z80::call_c() {
+void GBCPU::call_c() {
     if ((reg.f & kFlagC) != 0) {
         call();
     } else {
@@ -1581,7 +1586,7 @@ void Z80::call_c() {
     }
 }
 
-void Z80::call_nc() {
+void GBCPU::call_nc() {
     if ((reg.f & kFlagC) == 0) {
         call();
     } else {
@@ -1590,7 +1595,7 @@ void Z80::call_nc() {
     }
 }
 
-void Z80::ret() {
+void GBCPU::ret() {
     uint8_t pc_msb = mmu.read_byte(++reg.sp);
     uint8_t pc_lsb = mmu.read_byte(++reg.sp);
     reg.pc = combine16(pc_msb, pc_lsb);
@@ -1598,12 +1603,12 @@ void Z80::ret() {
     clock += Clock(2);
 }
 
-void Z80::reti() {
+void GBCPU::reti() {
     ret();
     ime = true;
 }
 
-void Z80::ret_z() {
+void GBCPU::ret_z() {
     if ((reg.f & kFlagZ) != 0) {
         ret();
     } else {
@@ -1611,7 +1616,7 @@ void Z80::ret_z() {
     }
 }
 
-void Z80::ret_nz() {
+void GBCPU::ret_nz() {
     if ((reg.f & kFlagZ) == 0) {
         ret();
     } else {
@@ -1619,7 +1624,7 @@ void Z80::ret_nz() {
     }
 }
 
-void Z80::ret_c() {
+void GBCPU::ret_c() {
     if ((reg.f & kFlagC) != 0) {
         ret();
     } else {
@@ -1627,7 +1632,7 @@ void Z80::ret_c() {
     }
 }
 
-void Z80::ret_nc() {
+void GBCPU::ret_nc() {
     if ((reg.f & kFlagC) == 0) {
         ret();
     } else {
@@ -1635,7 +1640,7 @@ void Z80::ret_nc() {
     }
 }
 
-void Z80::jp() {
+void GBCPU::jp() {
     uint8_t l = mmu.read_byte(reg.pc++);
     uint8_t h = mmu.read_byte(reg.pc++);
     reg.pc = combine16(h, l);
@@ -1643,7 +1648,7 @@ void Z80::jp() {
     clock += Clock(3);
 }
 
-void Z80::jp_z() {
+void GBCPU::jp_z() {
     if ((reg.f & kFlagZ) != 0) {
         jp();
     } else {
@@ -1652,7 +1657,7 @@ void Z80::jp_z() {
     }
 }
 
-void Z80::jp_nz() {
+void GBCPU::jp_nz() {
     if ((reg.f & kFlagZ) == 0) {
         jp();
     } else {
@@ -1661,7 +1666,7 @@ void Z80::jp_nz() {
     }
 }
 
-void Z80::jp_c() {
+void GBCPU::jp_c() {
     if ((reg.f & kFlagC) != 0) {
         jp();
     } else {
@@ -1670,7 +1675,7 @@ void Z80::jp_c() {
     }
 }
 
-void Z80::jp_nc() {
+void GBCPU::jp_nc() {
     if ((reg.f & kFlagC) == 0) {
         jp();
     } else {
@@ -1679,19 +1684,19 @@ void Z80::jp_nc() {
     }
 }
 
-void Z80::jp_hl() {
+void GBCPU::jp_hl() {
     reg.pc = combine16(reg.h, reg.l);
     clock += Clock(1);
 }
 
-void Z80::jr() {
+void GBCPU::jr() {
     int8_t offset = static_cast<int8_t>(mmu.read_byte(reg.pc++));
     acc = static_cast<int32_t>(reg.pc) + offset;
     reg.pc = static_cast<uint8_t>(acc);
     clock += Clock(2);
 }
 
-void Z80::jr_z() {
+void GBCPU::jr_z() {
     if ((reg.f & kFlagZ) != 0) {
         jr();
     } else {
@@ -1700,7 +1705,7 @@ void Z80::jr_z() {
     }
 }
 
-void Z80::jr_nz() {
+void GBCPU::jr_nz() {
     if ((reg.f & kFlagZ) == 0) {
         jr();
     } else {
@@ -1709,7 +1714,7 @@ void Z80::jr_nz() {
     }
 }
 
-void Z80::jr_c() {
+void GBCPU::jr_c() {
     if ((reg.f & kFlagC) != 0) {
         jr();
     } else {
@@ -1718,7 +1723,7 @@ void Z80::jr_c() {
     }
 }
 
-void Z80::jr_nc() {
+void GBCPU::jr_nc() {
     if ((reg.f & kFlagC) == 0) {
         jr();
     } else {
