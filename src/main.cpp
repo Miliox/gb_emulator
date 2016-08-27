@@ -1,11 +1,6 @@
-#include <iostream>
-#include <thread>
-#include <chrono>
+#include "main.hpp"
 
-#include "cpu.hpp"
-
-using namespace std;
-
+void dump_inst(uint8_t, const Z80&);
 void dump_cpu(const Z80&);
 
 int main(int argc, char** argv) {
@@ -14,37 +9,54 @@ int main(int argc, char** argv) {
     while(true) {
         // fetch
         uint8_t op = cpu.mmu.read_byte(cpu.reg.pc++);
-        cout << "op:" << std::hex << static_cast<uint16_t>(op) << std::dec << endl;
-        if (op == 0xcb) {
-            cout << "op:" << std::hex << static_cast<uint16_t>(cpu.mmu.read_byte(cpu.reg.pc)) << std::dec << endl;
-        }
+        dump_inst(op, cpu);
 
         // decode
         auto& instruction = cpu.instruction_map[op];
 
         // execute
         (cpu.*instruction)();
-
         dump_cpu(cpu);
-        this_thread::sleep_for(std::chrono::seconds(1));
+        std::cout << std::endl;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     return 0;
 }
 
+void dump_inst(uint8_t opcode, const Z80& cpu) {
+    std::cout << std::hex;
+    if (opcode != 0xcb) {
+        std::cout << kZ80InstrunctionNames[opcode];
+
+        //std::cout << " : " << static_cast<uint16_t>(opcode);
+        for (int i = 1; i < kInstrunctionLength[opcode]; i++) {
+            std::cout << " " << static_cast<uint16_t>(cpu.mmu.read_byte(cpu.reg.pc + i - 1));
+        }
+
+    } else {
+        std::cout << "op:" << static_cast<uint16_t>(opcode);
+        std::cout << " " << static_cast<uint16_t>(cpu.mmu.read_byte(cpu.reg.pc));
+    }
+    std::cout << std::dec << std::endl;
+}
+
 void dump_cpu(const Z80& cpu) {
-    cout << "a:" << static_cast<uint16_t>(cpu.reg.a) << ", ";
-    cout << "f:" << std::hex << static_cast<uint16_t>(cpu.reg.f) << std::dec << ", ";
-    cout << "b:" << static_cast<uint16_t>(cpu.reg.b) << ", ";
-    cout << "c:" << static_cast<uint16_t>(cpu.reg.c) << ", ";
-    cout << "d:" << static_cast<uint16_t>(cpu.reg.d) << ", ";
-    cout << "e:" << static_cast<uint16_t>(cpu.reg.e) << ", ";
-    cout << "h:" << static_cast<uint16_t>(cpu.reg.h) << ", ";
-    cout << "l:" << static_cast<uint16_t>(cpu.reg.l) << ", ";
+    std::cout << std::hex;
+    std::cout << "a:" << static_cast<uint16_t>(cpu.reg.a) << ", ";
+    std::cout << "f:" << static_cast<uint16_t>(cpu.reg.f) << ", ";
+    std::cout << "b:" << static_cast<uint16_t>(cpu.reg.b) << ", ";
+    std::cout << "c:" << static_cast<uint16_t>(cpu.reg.c) << ", ";
+    std::cout << "d:" << static_cast<uint16_t>(cpu.reg.d) << ", ";
+    std::cout << "e:" << static_cast<uint16_t>(cpu.reg.e) << ", ";
+    std::cout << "h:" << static_cast<uint16_t>(cpu.reg.h) << ", ";
+    std::cout << "l:" << static_cast<uint16_t>(cpu.reg.l) << ", ";
 
-    cout << "sp: " << cpu.reg.sp << ", ";
-    cout << "pc: " << cpu.reg.pc << ", ";
+    std::cout << "sp: " << cpu.reg.sp << ", ";
+    std::cout << "pc: " << cpu.reg.pc << ", ";
+    std::cout << std::dec;
 
-    cout << "m: " << static_cast<uint16_t>(cpu.clock.m) << ", ";
-    cout << "t: " << static_cast<uint16_t>(cpu.clock.t) << endl;
+    std::cout << "m: " << static_cast<uint16_t>(cpu.clock.m) << ", ";
+    std::cout << "t: " << static_cast<uint16_t>(cpu.clock.t) << std::endl;
 }

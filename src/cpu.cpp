@@ -96,7 +96,7 @@ void Z80::init_instrunction_map() {
 
     instruction_map[0x30] = &Z80::jr_nc;
     instruction_map[0x31] = &Z80::ld_sp_nn;
-    instruction_map[0x32] = &Z80::ld_phl_a;
+    instruction_map[0x32] = &Z80::ldd_phl_a;
     instruction_map[0x33] = &Z80::inc_sp;
     instruction_map[0x34] = &Z80::inc_phl;
     instruction_map[0x35] = &Z80::dec_phl;
@@ -651,8 +651,8 @@ void Z80::push_rr(const uint8_t& rh, const uint8_t& rl) {
  * Increment stack pointer twice
 */
 void Z80::pop_rr(uint8_t& rh, uint8_t& rl) {
-    rh = mmu.read_byte(reg.sp++);
-    rl = mmu.read_byte(reg.sp++);
+    rh = mmu.read_byte(++reg.sp);
+    rl = mmu.read_byte(++reg.sp);
     clock += Clock(3);
 }
 
@@ -1367,8 +1367,8 @@ void Z80::ld_offc_a() {
 }
 
 void Z80::ld_sp_nn() {
-    uint8_t s = mmu.read_byte(reg.pc++);
     uint8_t p = mmu.read_byte(reg.pc++);
+    uint8_t s = mmu.read_byte(reg.pc++);
     reg.sp = combine16(s, p);
 
     clock += Clock(3);
@@ -1591,8 +1591,9 @@ void Z80::call_nc() {
 }
 
 void Z80::ret() {
-    reg.pc = mmu.read_word(reg.sp);
-    reg.sp += 2;
+    uint8_t pc_msb = mmu.read_byte(++reg.sp);
+    uint8_t pc_lsb = mmu.read_byte(++reg.sp);
+    reg.pc = combine16(pc_msb, pc_lsb);
 
     clock += Clock(2);
 }
@@ -1684,8 +1685,9 @@ void Z80::jp_hl() {
 }
 
 void Z80::jr() {
-    uint8_t offset = mmu.read_byte(reg.pc++);
-    reg.pc += offset;
+    int8_t offset = static_cast<int8_t>(mmu.read_byte(reg.pc++));
+    acc = static_cast<int32_t>(reg.pc) + offset;
+    reg.pc = static_cast<uint8_t>(acc);
     clock += Clock(2);
 }
 

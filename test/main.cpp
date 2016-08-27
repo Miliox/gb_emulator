@@ -244,3 +244,20 @@ TEST_CASE("Decrement Registers from Z80", "[Z80]") {
     REQUIRE(z80.clock.m == 2);
     REQUIRE(z80.clock.t == 8);
 }
+
+TEST_CASE("PUSH/POP Z80", "[Z80]") {
+    Z80 z80;
+
+    z80.reg.sp = 0xfffe; // init stack
+
+    z80.reg.b = 0x10;
+    z80.reg.c = 0x08;
+    z80.push_bc();
+
+    z80.reg.b = 0xff;
+    z80.reg.c = 0xff;
+    z80.pop_bc();
+
+    REQUIRE(z80.reg.c == 0x08);
+    REQUIRE(z80.reg.b == 0x10);
+}
