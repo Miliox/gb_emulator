@@ -1410,13 +1410,13 @@ void Z80::ldi_phl_a() {
     inc_rr(reg.h, reg.l);
 }
 
-void Z80::ldd_a_phl() {
+void Z80::ldd_phl_a() {
     uint16_t addr = combine16(reg.h, reg.l);
     mmu.write_byte(addr, reg.a);
     dec_rr(reg.h, reg.l);
 }
 
-void Z80::ldd_phl_a() {
+void Z80::ldd_a_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     reg.a = mmu.read_byte(addr);
     dec_rr(reg.h, reg.l);
