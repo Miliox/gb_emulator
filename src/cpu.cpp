@@ -38,7 +38,8 @@ inline void split16(const uint16_t& src, uint8_t& msb, uint8_t& lsb) {
 
 Z80::Z80() {
     instruction_map.reserve(256);
-    cb_instruction_map.reserve(256);
+    cb_instruction_map =
+        std::vector<void (Z80::*)()>(256, &Z80::iNotImplemented);
 
     instruction_map[0x00] = &Z80::iNOP;
     instruction_map[0x01] = &Z80::iLD_BC_NN;
@@ -48,7 +49,7 @@ Z80::Z80() {
     instruction_map[0x05] = &Z80::iDEC_B;
     instruction_map[0x06] = &Z80::iLD_B_N;
     instruction_map[0x07] = &Z80::iRLCA;
-    instruction_map[0x08] = &Z80::iNotImplemented; // LD (a16),SP
+    instruction_map[0x08] = &Z80::iLD_ADDR_NN_SP;
     instruction_map[0x09] = &Z80::iADD_HL_BC;
     instruction_map[0x0A] = &Z80::iLD_A_ADDR_BC;
     instruction_map[0x0B] = &Z80::iDEC_BC;
@@ -57,7 +58,7 @@ Z80::Z80() {
     instruction_map[0x0E] = &Z80::iLD_C_N;
     instruction_map[0x0F] = &Z80::iRRCA;
 
-    instruction_map[0x10] = &Z80::iNotImplemented; // STOP
+    instruction_map[0x10] = &Z80::iSTOP;
     instruction_map[0x11] = &Z80::iLD_DE_NN;
     instruction_map[0x12] = &Z80::iLD_ADDR_DE_A;
     instruction_map[0x13] = &Z80::iINC_DE;
@@ -97,7 +98,7 @@ Z80::Z80() {
     instruction_map[0x33] = &Z80::iINC_SP;
     instruction_map[0x34] = &Z80::iINC_ADDR_HL;
     instruction_map[0x35] = &Z80::iDEC_ADDR_HL;
-    instruction_map[0x36] = &Z80::iNotImplemented; // LD (HL),d8
+    instruction_map[0x36] = &Z80::iLD_ADDR_HL_N;
     instruction_map[0x37] = &Z80::iSCF;
     instruction_map[0x38] = &Z80::iJR_C;
     instruction_map[0x39] = &Z80::iADD_HL_SP;
@@ -255,7 +256,7 @@ Z80::Z80() {
     instruction_map[0xC8] = &Z80::iRET_Z;
     instruction_map[0xC9] = &Z80::iRET;
     instruction_map[0xCA] = &Z80::iJP_Z;
-    instruction_map[0xCB] = &Z80::iNotImplemented; // PREFIX CB
+    instruction_map[0xCB] = &Z80::iCB_CallBranch;
     instruction_map[0xCC] = &Z80::iCALL_Z;
     instruction_map[0xCD] = &Z80::iCALL;
     instruction_map[0xCE] = &Z80::iADC_A_N;
@@ -286,7 +287,7 @@ Z80::Z80() {
     instruction_map[0xE5] = &Z80::iPUSH_HL;
     instruction_map[0xE6] = &Z80::iAND_N;
     instruction_map[0xE7] = &Z80::iRST_20H;
-    instruction_map[0xE8] = &Z80::iNotImplemented; // ADD SP,r8
+    instruction_map[0xE8] = &Z80::iADD_SP_N;
     instruction_map[0xE9] = &Z80::iJP_HL;
     instruction_map[0xEA] = &Z80::iLD_ADDR_NN_A;
     instruction_map[0xEB] = &Z80::iNotSupported;
@@ -303,7 +304,7 @@ Z80::Z80() {
     instruction_map[0xF5] = &Z80::iPUSH_AF;
     instruction_map[0xF6] = &Z80::iOR_N;
     instruction_map[0xF7] = &Z80::iRST_30H;
-    instruction_map[0xF8] = &Z80::iNotImplemented; // LD HL,SP+r8
+    instruction_map[0xF8] = &Z80::iLD_HL_SPN;
     instruction_map[0xF9] = &Z80::iLD_SP_HL;
     instruction_map[0xFA] = &Z80::iLD_A_ADDR_NN;
     instruction_map[0xFB] = &Z80::iEI;
@@ -714,6 +715,16 @@ void Z80::iHALT() {
     clock += Clock(1);
 }
 
+/*
+ * STOP
+ *
+ * Halt CPU & LCD display until button pressed
+ */
+void Z80::iSTOP() {
+    // TODO: Suspend until interruption
+    clock += Clock(1);
+}
+
 /**
  * RLCA
  *
@@ -869,6 +880,15 @@ void Z80::iADD_A_N() {
     tADD_A_(value);
 }
 
+void Z80::iADD_SP_N() {
+    int8_t offset = static_cast<uint8_t>(mmu.read_byte(reg.pc++));
+    acc = reg.sp + offset;
+
+    reg.f = check_h(acc) + check_c(acc);
+    reg.sp = static_cast<uint16_t>(acc & 0xffff);
+    clock += Clock(4);
+}
+
 void Z80::iADC_A_ADDR_HL() {
     uint16_t addr = combine16(reg.h, reg.l);
     uint8_t value = mmu.read_byte(addr);
@@ -886,6 +906,21 @@ void Z80::iLD_SP_HL() {
     uint16_t hl = combine16(reg.h, reg.l);
     mmu.write_word(reg.sp, hl);
     clock += Clock(2);
+}
+
+void Z80::iLD_HL_SPN() {
+    int8_t offset = static_cast<int8_t>(mmu.read_byte(reg.pc++));
+    acc = reg.sp + offset;
+
+    reg.f = check_h(acc) | check_c(acc);
+    clock += Clock(3);
+}
+
+void Z80::iLD_ADDR_HL_N() {
+    uint16_t addr = combine16(reg.h, reg.l);
+    uint8_t value = mmu.read_byte(reg.pc++);
+    mmu.write_byte(addr, value);
+    clock += Clock(3);
 }
 
 /**
@@ -914,6 +949,16 @@ void Z80::iLD_SP_NN() {
     reg.sp = combine16(s, p);
 
     clock += Clock(3);
+}
+
+void Z80::iLD_ADDR_NN_SP() {
+    uint8_t addr_lsb = mmu.read_byte(reg.pc++);
+    uint8_t addr_msb = mmu.read_byte(reg.pc++);
+
+    uint16_t addr = combine16(addr_msb, addr_lsb);
+    mmu.write_word(addr, reg.sp);
+
+    clock += Clock(5);
 }
 
 void Z80::iLDH_OFFSET_N_A() {

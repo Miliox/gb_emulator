@@ -85,8 +85,14 @@ public:
         throw std::runtime_error("Instruction Not Supported");
     }
 
+    void iCB_CallBranch() {
+        uint8_t op = mmu.read_byte(reg.pc++);
+        (*this.*cb_instruction_map[op])();
+    }
+
     void iNOP();
     void iHALT();
+    void iSTOP();
     void iRLCA();
     void iRLA();
     void iRRCA();
@@ -162,6 +168,8 @@ public:
 
     void iLD_SP_HL();
 
+    void iLD_HL_SPN();
+
     void iLD_ADDR_HL_A() { tLD_ADDR_rr_r(reg.h, reg.l, reg.a); }
     void iLD_ADDR_HL_B() { tLD_ADDR_rr_r(reg.h, reg.l, reg.b); }
     void iLD_ADDR_HL_C() { tLD_ADDR_rr_r(reg.h, reg.l, reg.c); }
@@ -169,6 +177,7 @@ public:
     void iLD_ADDR_HL_E() { tLD_ADDR_rr_r(reg.h, reg.l, reg.e); }
     void iLD_ADDR_HL_H() { tLD_ADDR_rr_r(reg.h, reg.l, reg.h); }
     void iLD_ADDR_HL_L() { tLD_ADDR_rr_r(reg.h, reg.l, reg.l); }
+    void iLD_ADDR_HL_N();
 
     void iLD_ADDR_BC_A() { tLD_ADDR_rr_r(reg.b, reg.c, reg.a); }
     void iLD_ADDR_DE_A() { tLD_ADDR_rr_r(reg.d, reg.e, reg.a); }
@@ -176,6 +185,7 @@ public:
     void iLD_A_ADDR_BC() { tLD_r_ADDR_rr(reg.a, reg.b, reg.c); }
     void iLD_A_ADDR_DE() { tLD_r_ADDR_rr(reg.a, reg.d, reg.e); }
     void iLD_A_ADDR_NN();
+
     void iLD_ADDR_NN_A();
 
     void iLD_A_N() { tLD_r_N(reg.a); }
@@ -190,6 +200,8 @@ public:
     void iLD_DE_NN() { tLD_rr_NN(reg.d, reg.e); }
     void iLD_HL_NN() { tLD_rr_NN(reg.h, reg.l); }
     void iLD_SP_NN();
+
+    void iLD_ADDR_NN_SP();
 
     void iLD_A_OFFSET_ADDR_C();
     void iLD_OFFSET_ADDR_C_A();
@@ -212,6 +224,8 @@ public:
     void iADD_A_L() { tADD_A_(reg.l); }
     void iADD_A_ADDR_HL();
     void iADD_A_N();
+
+    void iADD_SP_N();
 
     void iADC_A_A() { tADC_A_(reg.a); }
     void iADC_A_B() { tADC_A_(reg.b); }
