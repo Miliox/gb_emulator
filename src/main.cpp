@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
         dump_cpu(cpu);
         std::cout << std::endl;
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     return 0;
@@ -30,7 +30,7 @@ void dump_inst(uint8_t opcode, const Z80& cpu) {
     if (opcode != 0xcb) {
         std::cout << kZ80InstrunctionNames[opcode];
 
-        //std::cout << " : " << static_cast<uint16_t>(opcode);
+        std::cout << " : " << static_cast<uint16_t>(opcode);
         for (int i = 1; i < kInstrunctionLength[opcode]; i++) {
             std::cout << " " << static_cast<uint16_t>(cpu.mmu.read_byte(cpu.reg.pc + i - 1));
         }

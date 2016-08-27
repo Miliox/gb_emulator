@@ -13,6 +13,7 @@ private:
     std::unique_ptr<uint8_t[]> oam_ram;
     std::unique_ptr<uint8_t[]> zeropage_ram;
     std::unique_ptr<uint8_t[]> internal_ram;
+    std::unique_ptr<uint8_t[]> bgdata_ram;
 public:
     MMU();
 
