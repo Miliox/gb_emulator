@@ -1,7 +1,14 @@
 #include "mmu.hpp"
 
+#include "gb_bios.hpp"
+
 uint8_t MMU::read_byte(uint16_t addr) {
+
     //TODO: To be implemented!
+    if (bios_loaded && addr < kGameBoyBiosLength) {
+        return kGameBoyBios[addr];
+    }
+
     return 0;
 }
 
