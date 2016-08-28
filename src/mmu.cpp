@@ -3,6 +3,7 @@
 #include "gb_bios.hpp"
 
 #include <iostream>
+#include <iomanip>
 
 // Base Address
 const uint16_t kAddrInterruptFlag     = 0xffff;
@@ -30,6 +31,7 @@ const uint16_t kSizeCartridgeROMBank = kAddrCartridgeROMBankN - kAddrCartridgeRO
 const uint16_t kSizeBGMapData        = kAddrCartridgeRAM      - kAddrBGMapData1;
 
 void dump_mmu_oper(const char * op, uint16_t offset, uint16_t value);
+void print_bytes(const std::vector<uint8_t>& data);
 
 GBMMU::GBMMU() : bios_loaded(true),
     character_memory(kSizeCharacterRAM, 0),
@@ -119,6 +121,7 @@ void GBMMU::write_byte(uint16_t addr, uint8_t value) {
         uint16_t offset = addr - kAddrBGMapData1;
         dump_mmu_oper("bgd w", offset, value);
         bgdata_memory.at(offset) = value;
+        //print_bytes(bgdata_memory);
     }
 }
 
@@ -135,4 +138,13 @@ void dump_mmu_oper(const char* op, uint16_t offset, uint16_t value) {
     std::cout << op << " @" << offset << " ";
     std::cout << value << "\n";
     std::cout << std::dec;
+}
+
+void print_bytes(const std::vector<uint8_t>& data) {
+    std::cout << std::setfill('0');
+    for(size_t i = 0; i < data.size(); ++i) {
+        std::cout << std::hex << std::setw(2) << (int)data[i];
+        std::cout << (((i + 1) % 32 == 0) ? "\n" : " ");
+    }
+    std::cout << "\n";
 }
