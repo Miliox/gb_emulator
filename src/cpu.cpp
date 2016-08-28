@@ -1403,13 +1403,13 @@ void GBCPU::ldh_a_offn() {
     clock += Clock(3);
 }
 
-void GBCPU::ldi_a_phl() {
+void GBCPU::ldi_phl_a() {
     uint16_t addr = combine16(reg.h, reg.l);
     mmu.write_byte(addr, reg.a);
     inc_rr(reg.h, reg.l);
 }
 
-void GBCPU::ldi_phl_a() {
+void GBCPU::ldi_a_phl() {
     uint16_t addr = combine16(reg.h, reg.l);
     reg.a = mmu.read_byte(addr);
     inc_rr(reg.h, reg.l);
