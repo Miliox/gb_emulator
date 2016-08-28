@@ -14,8 +14,11 @@ enum GPUMode : uint8_t {
 
 class GBGPU {
 private:
-    SDL_Window*  window;
-    SDL_Surface* screen;
+    SDL_Window*   window;
+    SDL_Renderer* renderer;
+    SDL_Texture*  texture;
+
+    Uint32* framebuffer;
 
     GPUMode   mode;
     uint16_t clock;
@@ -34,6 +37,8 @@ public:
 
     void black();
     void blank();
+
+    void renderscan();
     void refresh();
 
     void step(uint8_t elapsed_ticks);

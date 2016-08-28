@@ -11,37 +11,41 @@ void emulator() {
     bool running = true;
 
     gpu.show();
-    while(running) {
-        // fetch
-        uint8_t op = cpu.mmu.read_byte(cpu.reg.pc++);
-        dump_inst(op, cpu);
+    try {
+        while(running) {
+            // fetch
+            uint8_t op = cpu.mmu.read_byte(cpu.reg.pc++);
+            //dump_inst(op, cpu);
 
-        // decode
-        auto& instruction = cpu.instruction_map.at(op);
+            // decode
+            auto& instruction = cpu.instruction_map.at(op);
 
-        uint8_t t0 = cpu.clock.t;
+            uint8_t t0 = cpu.clock.t;
 
-        // execute
-        (cpu.*instruction)();
-        dump_cpu(cpu);
-        std::cout << "\n";
+            // execute
+            (cpu.*instruction)();
+            //dump_cpu(cpu);
+            //std::cout << "\n";
 
-        uint8_t t1 = cpu.clock.t;
-        uint8_t delta = (t1 >= t0) ? (t1 - t0) : ((0xffff - t0) + t1 + 1);
+            uint8_t t1 = cpu.clock.t;
+            uint8_t delta = (t1 >= t0) ? (t1 - t0) : ((0xffff - t0) + t1 + 1);
 
-        gpu.step(delta);
-        mmu.step(delta);
+            gpu.step(delta);
+            mmu.step(delta);
 
-        // check for quit interruption
-        SDL_Event event;
-        if (SDL_PollEvent(&event))
-        {
-            if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
-                running = false;
+            // check for quit interruption
+            SDL_Event event;
+            if (SDL_PollEvent(&event))
+            {
+                if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
+                    running = false;
+                }
             }
-        }
 
-        SDL_Delay(1);
+            //SDL_Delay(1);
+        }
+    } catch (std::exception& e) {
+        std::cout << "error: " << e.what() << "\n";
     }
     gpu.hide();
 }
