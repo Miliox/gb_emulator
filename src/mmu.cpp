@@ -78,7 +78,8 @@ const uint16_t kSizeBGMapData        = kAddrCartridgeRAM      - kAddrBGMapData1;
 void dump_mmu_oper(const char * op, uint16_t offset, uint16_t value);
 void print_bytes(const std::vector<uint8_t>& data);
 
-GBMMU::GBMMU() : bios_loaded(true),
+GBMMU::GBMMU() :
+    bios_loaded(true),
     character_memory(kSizeCharacterRAM, 0),
     object_attribute_memory(kSizeObjectAttMemory, 0),
     zeropage_memory(kSizeZeroPageMemory, 0),
@@ -143,33 +144,39 @@ uint8_t GBMMU::read_byte(uint16_t addr) const {
     }
 
     if (addr >= kAddrZeroPageMemory && addr < kAddrInterruptFlag) {
+        uint8_t value = read(addr, kAddrZeroPageMemory, zeropage_memory);
         //dump_mmu_oper("zp r", addr, value);
-        return read(addr, kAddrZeroPageMemory, zeropage_memory);
+        return value;
     }
 
     if (addr >= kAddrHardwareIOReg && addr < kAddrZeroPageMemory) {
+        uint8_t value = read_hwio(addr);
         //dump_mmu_oper("hw r", addr, value);
-        return read_hwio(addr);
+        return value;
     }
 
     if (addr >= kAddrCharacterRAM && addr < kAddrBGMapData1) {
+        uint8_t value = read(addr, kAddrCharacterRAM, character_memory);
         //dump_mmu_oper("ch r", addr, value);
-        return read(addr, kAddrCharacterRAM, character_memory);
+        return value;
     }
 
     if (addr >= kAddrInternalRAM0 && addr < kAddrEchoRAM) {
+        uint8_t value = read(addr, kAddrInternalRAM0, internal_ram_memory);
         //dump_mmu_oper("ram r", addr, value);
-        return read(addr, kAddrInternalRAM0, internal_ram_memory);
+        return value;
     }
 
     if (addr >= kAddrObjectAttMemory && addr < kAddrUnusableMemory) {
+        uint8_t value = read(addr, kAddrObjectAttMemory, object_attribute_memory);
         //dump_mmu_oper("oam r", addr, value);
-        return read(addr, kAddrObjectAttMemory, object_attribute_memory);
+        return value;
     }
 
     if (addr >= kAddrBGMapData1 && addr < kAddrCartridgeRAM) {
+        uint8_t value = read(addr, kAddrBGMapData1, bgdata_memory);
         //dump_mmu_oper("bgd r", addr, value);
-        return read(addr, kAddrBGMapData1, bgdata_memory);
+        return value;
     }
 
     return 0;
@@ -234,7 +241,7 @@ void GBMMU::write_word(uint16_t addr, uint16_t value) {
     write_byte(addr + 1, msb);
 }
 
-void GBMMU::step(uint16_t elapsed_ticks) {
+void GBMMU::step(uint8_t elapsed_ticks) {
     //TODO: To be implememted!
 }
 
@@ -422,7 +429,7 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             hwio_nr43 = value;
             break;
         case kAddrNR44:
-            hwio_nr41 = value & 0xC0;
+            hwio_nr41 = value & 0xc0;
             break;
         case kAddrNR50:
             hwio_nr50 = value;
@@ -455,7 +462,7 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             hwio_lcdc = value;
             break;
         case kAddrSTAT:
-            hwio_stat = value;
+            hwio_stat = (value & 0x7c) | (hwio_stat & 0x03);
             break;
         case kAddrSCY:
             hwio_scy = value;

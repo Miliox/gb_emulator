@@ -19,15 +19,15 @@ void emulator() {
         // decode
         auto& instruction = cpu.instruction_map.at(op);
 
-        uint16_t t0 = cpu.clock.t;
+        uint8_t t0 = cpu.clock.t;
 
         // execute
         (cpu.*instruction)();
         dump_cpu(cpu);
-        std::cout << std::endl;
+        std::cout << "\n";
 
-        uint16_t t1 = cpu.clock.t;
-        uint16_t delta = (t1 > t0) ? (t1 - t0) : (0xffff - t0 + t1);
+        uint8_t t1 = cpu.clock.t;
+        uint8_t delta = (t1 >= t0) ? (t1 - t0) : ((0xffff - t0) + t1 + 1);
 
         gpu.step(delta);
         mmu.step(delta);

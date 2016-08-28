@@ -5,24 +5,38 @@
 
 #include "mmu.hpp"
 
+enum GPUMode : uint8_t {
+    HBLANK  = 0,
+    VBLANK  = 1,
+    READOAM = 2,
+    WRIVRAM = 3
+};
+
 class GBGPU {
 private:
     SDL_Window*  window;
     SDL_Surface* screen;
 
+    GPUMode   mode;
+    uint16_t clock;
+
+    bool is_on;
+
+    void check_enable_changed();
 public:
+    GBMMU& mmu;
+
     GBGPU(GBMMU&);
     ~GBGPU();
-
-    GBMMU& mmu;
 
     void show();
     void hide();
 
+    void black();
     void blank();
     void refresh();
 
-    void step(uint16_t elapsed_ticks);
+    void step(uint8_t elapsed_ticks);
 };
 
 #endif

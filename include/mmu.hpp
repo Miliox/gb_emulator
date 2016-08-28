@@ -29,7 +29,7 @@ public:
     void write_byte(uint16_t addr, uint8_t value);
     void write_word(uint16_t addr, uint16_t value);
 
-    void step(uint16_t elapsed_ticks);
+    void step(uint8_t elapsed_ticks);
 
     uint8_t hwio_p1;
     uint8_t hwio_sb;
