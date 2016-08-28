@@ -66,3 +66,7 @@ void GBGPU::blank() {
 void GBGPU::refresh() {
     //TODO: To be implemented!
 }
+
+void GBGPU::step(uint16_t elapsed_ticks) {
+
+}

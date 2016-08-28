@@ -19,10 +19,18 @@ void emulator() {
         // decode
         auto& instruction = cpu.instruction_map.at(op);
 
+        uint16_t t0 = cpu.clock.t;
+
         // execute
         (cpu.*instruction)();
         dump_cpu(cpu);
         std::cout << std::endl;
+
+        uint16_t t1 = cpu.clock.t;
+        uint16_t delta = (t1 > t0) ? (t1 - t0) : (0xffff - t0 + t1);
+
+        gpu.step(delta);
+        mmu.step(delta);
 
         // check for quit interruption
         SDL_Event event;

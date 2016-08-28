@@ -21,6 +21,8 @@ public:
 
     void blank();
     void refresh();
+
+    void step(uint16_t elapsed_ticks);
 };
 
 #endif
