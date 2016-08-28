@@ -3,11 +3,15 @@
 void dump_inst(uint8_t, const GBCPU&);
 void dump_cpu(const GBCPU&);
 
-int main(int argc, char** argv) {
+void emulator() {
     GBMMU mmu;
     GBCPU cpu(mmu);
+    GBGPU gpu(mmu);
 
-    while(true) {
+    bool running = true;
+
+    gpu.show();
+    while(running) {
         // fetch
         uint8_t op = cpu.mmu.read_byte(cpu.reg.pc++);
         dump_inst(op, cpu);
@@ -20,9 +24,27 @@ int main(int argc, char** argv) {
         dump_cpu(cpu);
         std::cout << std::endl;
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
+        // check for quit interruption
+        SDL_Event event;
+        if (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
+                running = false;
+            }
+        }
 
+        SDL_Delay(1);
+    }
+    gpu.hide();
+}
+
+int main(int argc, char** argv) {
+    if (SDL_Init(SDL_INIT_VIDEO) >= 0) {
+        emulator();
+        SDL_Quit();
+    } else {
+        std::cerr << "Window could not be created! SDL_Error:" << SDL_GetError() << "\n";
+    }
     return 0;
 }
 

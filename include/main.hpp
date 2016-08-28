@@ -4,6 +4,8 @@
 #include <string>
 
 #include "cpu.hpp"
+#include "gpu.hpp"
+#include "mmu.hpp"
 
 uint8_t kInstrunctionLength[256] = {
     1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1,    // 0x00 ~ 0x0F
