@@ -2,6 +2,7 @@
 #define MMU_HPP
 
 #include <cstdint>
+#include <fstream>
 #include <vector>
 #include <memory>
 
@@ -9,6 +10,7 @@ class GBMMU {
 private:
     bool bios_loaded;
 
+    std::vector<uint8_t> cartridge_rom;
     std::vector<uint8_t> character_memory;
     std::vector<uint8_t> object_attribute_memory;
     std::vector<uint8_t> zeropage_memory;
@@ -22,6 +24,7 @@ private:
 public:
     GBMMU();
     GBMMU(const GBMMU&) = delete;
+    ~GBMMU();
 
     uint8_t  read_byte(uint16_t addr) const;
     uint16_t read_word(uint16_t addr) const;

@@ -80,6 +80,7 @@ void print_bytes(const std::vector<uint8_t>& data);
 
 GBMMU::GBMMU() :
     bios_loaded(true),
+    cartridge_rom(0x8000, 0),
     character_memory(kSizeCharacterRAM, 0),
     object_attribute_memory(kSizeObjectAttMemory, 0),
     zeropage_memory(kSizeZeroPageMemory, 0),
@@ -130,6 +131,33 @@ GBMMU::GBMMU() :
     hwio_wy = 0;
     hwio_wx = 0;
     hwio_ie = 0;
+
+    std::fstream cartridge("tetris.gb", std::fstream::in);
+    cartridge.read(reinterpret_cast<char*>(&cartridge_rom[0]), 0x8000);
+    cartridge.close();
+}
+
+GBMMU::~GBMMU() {
+    std::cout << "CHARACTER MEMORY: \n";
+    print_bytes(character_memory);
+    std::cout << "\n\n";
+
+    std::cout << "OAM: \n";
+    print_bytes(object_attribute_memory);
+    std::cout << "\n\n";
+
+    std::cout << "ZEROPAGE RAM: \n";
+    print_bytes(zeropage_memory);
+    std::cout << "\n\n";
+
+    std::cout << "INTERNAL RAM: \n";
+    print_bytes(internal_ram_memory);
+    std::cout << "\n\n";
+
+    std::cout << "BGDATA: \n";
+    print_bytes(bgdata_memory);
+    std::cout << "\n\n";
+
 }
 
 inline uint8_t read(uint16_t addr, uint16_t base,
@@ -141,6 +169,12 @@ inline uint8_t read(uint16_t addr, uint16_t base,
 uint8_t GBMMU::read_byte(uint16_t addr) const {
     if (bios_loaded && addr < kGameBoyBiosLength) {
         return kGameBoyBios[addr];
+    }
+
+    if (addr < kAddrCharacterRAM) {
+        uint8_t value = cartridge_rom.at(addr);
+        //dump_mmu_oper("car r", addr, value);
+        return value;
     }
 
     if (addr >= kAddrZeroPageMemory && addr < kAddrInterruptFlag) {
@@ -228,9 +262,10 @@ void GBMMU::write_byte(uint16_t addr, uint8_t value) {
     if (addr >= kAddrBGMapData1 && addr < kAddrCartridgeRAM) {
         //dump_mmu_oper("bgd w", addr, value);
         write(value, addr, kAddrBGMapData1, bgdata_memory);
-        //print_bytes(bgdata_memory);
         return;
     }
+
+    std::cout << "ign @" << addr << ": " << value << "\n";
 }
 
 void GBMMU::write_word(uint16_t addr, uint16_t value) {
@@ -481,6 +516,7 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             break;
         case kAddrDMA:
             //TODO: Implement DMA
+            throw std::runtime_error("DMA not implemented");
             break;
         case kAddrBGP:
             hwio_bgp = value;
@@ -508,10 +544,11 @@ void dump_mmu_oper(const char* op, uint16_t offset, uint16_t value) {
 }
 
 void print_bytes(const std::vector<uint8_t>& data) {
+    std::cout << "\n";
     std::cout << std::setfill('0');
     for(size_t i = 0; i < data.size(); ++i) {
         std::cout << std::hex << std::setw(2) << (int)data[i];
-        std::cout << (((i + 1) % 32 == 0) ? "\n" : " ");
+        std::cout << (((i + 1) % 16 == 0) ? "\n" : " ");
     }
     std::cout << "\n";
 }
