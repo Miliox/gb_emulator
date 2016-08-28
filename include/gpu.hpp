@@ -7,7 +7,8 @@
 
 class GBGPU {
 private:
-    SDL_Window* display;
+    SDL_Window*  window;
+    SDL_Surface* screen;
 
 public:
     GBGPU(GBMMU&);
@@ -17,6 +18,9 @@ public:
 
     void show();
     void hide();
+
+    void blank();
+    void refresh();
 };
 
 #endif
