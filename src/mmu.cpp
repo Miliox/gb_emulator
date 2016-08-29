@@ -68,6 +68,8 @@ const uint16_t kAddrOBP1 = 0xff49;
 const uint16_t kAddrWY   = 0xff4a;
 const uint16_t kAddrWX   = 0xff4b;
 
+const uint16_t kAddrUnloadBIOS = 0xff50;
+
 const uint16_t kSizeZeroPageMemory   = kAddrInterruptFlag     - kAddrZeroPageMemory;
 const uint16_t kSizeObjectAttMemory  = kAddrUnusableMemory    - kAddrObjectAttMemory;
 const uint16_t kSizeInternalRAMBank  = kAddrInternalRAMN      - kAddrInternalRAM0;
@@ -382,6 +384,7 @@ uint8_t GBMMU::read_hwio(uint16_t addr) const {
         case kAddrWX:
             return hwio_wx;
         default:
+            std::cerr << "ign r @" << addr << "\n";
             return 0;
     }
 }
@@ -532,6 +535,13 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             break;
         case kAddrWX:
             hwio_wx = value;
+            break;
+        case kAddrUnloadBIOS:
+            bios_loaded = (value) ? 0 : 1;
+            std::cout << ((bios_loaded) ? "loaded " : "unloaded ") << "bios\n";
+            break;
+        default:
+            std::cerr << "ign w @" << addr << " " << (uint16_t) value << "\n";
             break;
     }
 }
