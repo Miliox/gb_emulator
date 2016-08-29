@@ -10,6 +10,11 @@
 
 #define TILE_SIZE 16
 
+#define TILE_ROW  32
+#define TILE_COL  32
+
+#define TILE_HEIGHT 8
+
 // WHITE
 #define SHADE_0 0xFF9BBC0F
 // LIGHT GRAY
@@ -18,8 +23,6 @@
 #define SHADE_2 0xFF306230
 // BLACK
 #define SHADE_3 0xFF0f380f
-
-const Uint32 kLCDPalette[4] = {SHADE_0, SHADE_1, SHADE_2, SHADE_3};
 
 #define R(color) static_cast<Uint8>(color >> 16)
 #define G(color) static_cast<Uint8>(color >> 8)
@@ -118,86 +121,47 @@ void GBGPU::black() {
 }
 
 void GBGPU::renderscan() {
-    uint16_t wnbase_addr = (mmu.hwio_lcdc & (1 << 6)) ? 0x9c00 : 0x9800;
-    uint16_t bgbase_addr = (mmu.hwio_lcdc & (1 << 3)) ? 0x9c00 : 0x9800;
-    uint16_t tlbase_addr = (mmu.hwio_lcdc & (1 << 4)) ? 0x8000 : 0x8800;
+    const Uint32 palette[4] = {SHADE_0, SHADE_1, SHADE_2, SHADE_3};
+    uint8_t scanline = mmu.hwio_ly - 1;
 
-    uint16_t sprite_width = (mmu.hwio_lcdc & (1 << 2)) ? 16 : 8;
+    for (int i = 0; i < SCREEN_WIDTH; i+= 8) {
+        uint16_t addr = decode_background_address(scanline, i);
 
-    // uint8_t lin = mmu.hwio_ly + mmu.hwio_scy;
-    // uint8_t col = mmu.hwio_scx;
+        uint8_t lsb = mmu.read_byte(addr);
+        uint8_t msb = mmu.read_byte(addr + 1);
 
-    uint8_t lin = mmu.hwio_ly - 1;
-    uint8_t col = 0;
+        for (int j = 0; j < 8; j++) {
+            int bit_index = 7 - j;
 
-    uint8_t dy = lin / 8;
-    uint8_t ry = lin % 8;
+            int background_palette_index = 0;
+            background_palette_index += ((lsb >> bit_index) & 0x01) ? 2 : 0;
+            background_palette_index += ((msb >> bit_index) & 0x01) ? 1 : 0;
 
-    uint16_t map_addr = bgbase_addr + (dy * 32);
+            int pallete_index = (mmu.hwio_bgp >> (background_palette_index * 2)) & 0x3;
 
-    uint8_t tile = mmu.read_byte(map_addr);
+            int pos = (i + j) + (scanline * SCREEN_WIDTH);
+            framebuffer[pos] = palette[pallete_index];
+        }
+    }
 
-    uint8_t palette[4];
+}
 
-    uint16_t bg_addr = tlbase_addr;
-    if (bg_addr == 0x8000) {
-        bg_addr += tile * TILE_SIZE;
+uint16_t GBGPU::decode_background_address(const uint8_t line, const uint8_t column) {
+    uint16_t tile_addr = (mmu.hwio_lcdc & (1 << 3)) ? 0x9c00 : 0x9800;
+    tile_addr += ((line / TILE_HEIGHT) * TILE_ROW);
+    tile_addr += column / 8;
+
+    uint8_t tile = mmu.read_byte(tile_addr);
+
+    int addr = (mmu.hwio_lcdc & (1 << 4)) ? 0x8000 : 0x8800;
+    if (addr == 0x8000 || tile < 128) {
+        addr += tile * TILE_SIZE;
     } else {
-        int32_t aux(bg_addr);
-        aux += static_cast<int16_t>(tile) * TILE_SIZE;
-        bg_addr = static_cast<uint16_t>(aux);
+        addr += static_cast<int8_t>(tile) * TILE_SIZE;
     }
-    bg_addr += 2 * ry;
+    addr += 2 * (line % 8);
 
-    uint8_t bg[2];
-    bg[1] = mmu.read_byte(bg_addr);
-    bg[0] = mmu.read_byte(bg_addr + 1);
-
-    for (int i = 0; i < SCREEN_WIDTH; i++) {
-        int pos = i + lin * SCREEN_WIDTH;
-
-        int index = 7 - (i % 8);
-
-        int color = 0;
-        color += ((bg[0] >> index) & 0x01) ? 2 : 0;
-        color += ((bg[1] >> index) & 0x01) ? 1 : 0;
-
-        color = (mmu.hwio_bgp >> (color * 2)) & 0x3;
-
-        switch (color) {
-            case 0:
-                framebuffer[pos] = SHADE_0;
-                break;
-            case 1:
-                framebuffer[pos] = SHADE_1;
-                break;
-            case 2:
-                framebuffer[pos] = SHADE_2;
-                break;
-            case 3:
-                framebuffer[pos] = SHADE_3;
-                break;
-        }
-
-        if (i > 0 && (i % 8) == 0) {
-            map_addr += 1;
-            tile = mmu.read_byte(map_addr);
-
-            bg_addr = tlbase_addr;
-            if (bg_addr == 0x8000) {
-                bg_addr += tile * TILE_SIZE;
-            } else {
-                int32_t aux(bg_addr);
-                aux += static_cast<int16_t>(tile) * TILE_SIZE;
-                bg_addr = static_cast<uint16_t>(aux);
-            }
-            bg_addr += 2 * ry;
-
-            bg[1] = mmu.read_byte(bg_addr);
-            bg[0] = mmu.read_byte(bg_addr + 1);
-        }
-    }
-
+    return static_cast<uint16_t>(addr);
 }
 
 void GBGPU::refresh() {

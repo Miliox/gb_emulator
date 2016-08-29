@@ -548,7 +548,7 @@ void print_bytes(const std::vector<uint8_t>& data) {
     std::cout << std::setfill('0');
     for(size_t i = 0; i < data.size(); ++i) {
         std::cout << std::hex << std::setw(2) << (int)data[i];
-        std::cout << (((i + 1) % 16 == 0) ? "\n" : " ");
+        std::cout << (((i + 1) % 64 == 0) ? "\n" : " ");
     }
     std::cout << "\n";
 }
