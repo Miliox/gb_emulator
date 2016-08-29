@@ -122,10 +122,12 @@ void GBGPU::black() {
 
 void GBGPU::renderscan() {
     const Uint32 palette[4] = {SHADE_0, SHADE_1, SHADE_2, SHADE_3};
-    uint8_t scanline = mmu.hwio_ly - 1;
+
+    int scanline  = static_cast<int>(mmu.hwio_ly) - 1;
+    int tile_line = (scanline + static_cast<int>(mmu.hwio_scy)) % 256;
 
     for (int i = 0; i < SCREEN_WIDTH; i+= 8) {
-        uint16_t addr = decode_background_address(scanline, i);
+        uint16_t addr = decode_background_address(static_cast<uint8_t>(tile_line), i);
 
         uint8_t lsb = mmu.read_byte(addr);
         uint8_t msb = mmu.read_byte(addr + 1);
@@ -227,7 +229,7 @@ void GBGPU::step(uint8_t elapsed_ticks) {
     if (mmu.hwio_ly == mmu.hwio_lyc) {
         mmu.hwio_stat |= 0x40;
     }
-    mmu.hwio_stat = (mmu.hwio_stat & 0xfc) | (mode);
+    mmu.hwio_stat = (mmu.hwio_stat & 0xfc) | (mode & 0x03);
 }
 
 void GBGPU::check_enable_changed() {
