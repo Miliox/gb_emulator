@@ -1,4 +1,4 @@
-SOURCE = src/cpu.cpp src/clock.cpp src/mmu.cpp src/gpu.cpp
+SOURCE = src/cpu.cpp src/mmu.cpp src/gpu.cpp
 CFLAGS = -std=c++11 -Wall `(sdl2-config --cflags)` -Iinclude/ `(sdl2-config --libs)`
 
 .PHONY: test

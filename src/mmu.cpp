@@ -140,6 +140,7 @@ GBMMU::GBMMU() :
 }
 
 GBMMU::~GBMMU() {
+    /*
     std::cout << "CHARACTER MEMORY: \n";
     print_bytes(character_memory);
     std::cout << "\n\n";
@@ -159,7 +160,7 @@ GBMMU::~GBMMU() {
     std::cout << "BGDATA: \n";
     print_bytes(bgdata_memory);
     std::cout << "\n\n";
-
+    */
 }
 
 inline uint8_t read(uint16_t addr, uint16_t base,

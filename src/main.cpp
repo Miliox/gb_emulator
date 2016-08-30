@@ -1,5 +1,7 @@
 #include "main.hpp"
 
+#include <SDL.h>
+
 void dump_inst(uint8_t, const GBCPU&);
 void dump_cpu(const GBCPU&);
 
@@ -20,18 +22,13 @@ void emulator() {
             // decode
             auto& instruction = cpu.instruction_map.at(op);
 
-            uint8_t t0 = cpu.clock.t;
-
             // execute
-            (cpu.*instruction)();
+            tick_t t = (cpu.*instruction)();
             //dump_cpu(cpu);
             //std::cout << "\n";
 
-            uint8_t t1 = cpu.clock.t;
-            uint8_t delta = (t1 >= t0) ? (t1 - t0) : ((0xffff - t0) + t1 + 1);
-
-            gpu.step(delta);
-            mmu.step(delta);
+            gpu.step(t);
+            mmu.step(t);
 
             // check for quit interruption
             SDL_Event event;
@@ -89,9 +86,6 @@ void dump_cpu(const GBCPU& cpu) {
     std::cout << "l:" << static_cast<uint16_t>(cpu.reg.l) << ", ";
 
     std::cout << "sp: " << cpu.reg.sp << ", ";
-    std::cout << "pc: " << cpu.reg.pc << ", ";
+    std::cout << "pc: " << cpu.reg.pc;
     std::cout << std::dec;
-
-    std::cout << "m: " << static_cast<uint16_t>(cpu.clock.m) << ", ";
-    std::cout << "t: " << static_cast<uint16_t>(cpu.clock.t) << std::endl;
 }

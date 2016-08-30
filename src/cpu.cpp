@@ -36,6 +36,14 @@ inline void split16(const uint16_t& src, uint8_t& msb, uint8_t& lsb) {
     lsb = static_cast<uint8_t>(src);
 }
 
+inline uint8_t lower_byte(uint16_t b) {
+    return static_cast<uint8_t>(b);
+}
+
+inline uint8_t higher_byte(uint16_t b) {
+    return static_cast<uint8_t>(b >> 8);
+}
+
 GBCPU::GBCPU(GBMMU& mmu) :
     mmu(mmu),
     instruction_map(256, &GBCPU::not_implemented_error),
@@ -594,71 +602,42 @@ void GBCPU::reset() {
     std::memset(this, 0, sizeof(GBCPU));
 }
 
-// Template Instruction
-
-/**
- * LD r1,r2
- *
- * Put value r2 into r1
- */
-void GBCPU::ld_r_r(uint8_t& dst, const uint8_t& src) {
-    dst = src;
-    clock += Clock(1);
+tick_t GBCPU::ld_r_r(uint8_t& dst_reg, uint8_t src_reg) {
+    dst_reg = src_reg;
+    return 4;
 }
 
-/**
- * LD r,(HL)
- *
- * Put value from address HL into r
- */
-void GBCPU::ld_r_prr(uint8_t& dst, const uint8_t& rh, const uint8_t& rl) {
-    uint16_t addr = combine16(rh, rl);
-    dst = mmu.read_byte(addr);
-
-    clock += Clock(2);
+tick_t GBCPU::ld_r_prr(uint8_t& dst_reg, uint16_t src_addr) {
+    dst_reg = mmu.read_byte(src_addr);
+    return 8;
 }
 
-/**
- * LD (HL),r
- *
- * Put value r into address from HL
- */
-void GBCPU::ld_prr_r(const uint8_t& rh, const uint8_t& rl, const uint8_t& src) {
-    uint16_t addr = combine16(rh, rl);
-    mmu.write_byte(addr, src);
-
-    clock += Clock(2);
+tick_t GBCPU::ld_prr_r(uint16_t dst_addr, uint8_t src_reg) {
+    mmu.write_byte(dst_addr, src_reg);
+    return 8;
 }
 
-void GBCPU::ld_r_n(uint8_t& r) {
-    r = mmu.read_byte(reg.pc++);
-    clock += Clock(2);
+tick_t GBCPU::ld_r_n(uint8_t& dst_reg) {
+    dst_reg = mmu.read_byte(reg.pc++);
+    return 8;
 }
 
-void GBCPU::ld_rr_nn(uint8_t& rh, uint8_t& rl) {
-    rl = mmu.read_byte(reg.pc++);
-    rh = mmu.read_byte(reg.pc++);
-    clock += Clock(3);
+tick_t GBCPU::ld_rr_nn(uint16_t& dst_reg) {
+    dst_reg  = mmu.read_byte(reg.pc++);
+    dst_reg += mmu.read_byte(reg.pc++) << 8;
+    return 12;
 }
 
-/**
- * Push register pair onto the stack
- * Decrement stack pointer twice
-*/
-void GBCPU::push_rr(const uint8_t& rh, const uint8_t& rl) {
-    mmu.write_byte(reg.sp--, rl);
-    mmu.write_byte(reg.sp--, rh);
-    clock += Clock(4);
+tick_t GBCPU::push_rr(uint16_t src_reg) {
+    mmu.write_byte(reg.sp--, lower_byte(src_reg));
+    mmu.write_byte(reg.sp--, higher_byte(src_reg));
+    return 16;
 }
 
-/**
- * Pop two bytes from the stack into register pair
- * Increment stack pointer twice
-*/
-void GBCPU::pop_rr(uint8_t& rh, uint8_t& rl) {
-    rh = mmu.read_byte(++reg.sp);
-    rl = mmu.read_byte(++reg.sp);
-    clock += Clock(3);
+tick_t GBCPU::pop_rr(uint16_t& dst_reg) {
+    dst_reg  = mmu.read_byte(++reg.sp) << 8;
+    dst_reg += mmu.read_byte(++reg.sp);
+    return 12;
 }
 
 /**
@@ -673,12 +652,14 @@ void GBCPU::pop_rr(uint8_t& rh, uint8_t& rl) {
  * H - Set if carry from bit 3
  * C - Set if carry from bit 7
  */
-void GBCPU::add_a_r(const uint8_t& r) {
-    acc = reg.a + r;
-    reg.f = check_z(acc & 0xff) + check_h(acc) + check_c(acc);
+tick_t GBCPU::add_a_r(uint8_t r) {
+    int32_t acc = reg.a;
+    acc += r;
+
+    reg.f = check_z(acc & 0xff) | check_h(acc) | check_c(acc);
     reg.a = static_cast<uint8_t>(acc);
 
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -693,14 +674,13 @@ void GBCPU::add_a_r(const uint8_t& r) {
  * H - Set if carry from bit 11
  * C - Set if carry from bit 15
  */
-void GBCPU::add_hl_rr(const uint8_t& rh, const uint8_t& rl) {
-    acc = (reg.h << 8) + reg.l;
-    acc += (rh << 8) + rl;
+tick_t GBCPU::add_hl_rr(uint16_t r) {
+    int32_t acc = reg.hl;
+    acc += r;
 
     reg.f = (reg.f & kFlagZ) + check_h2(acc) + check_c2(acc);
-    split16(acc, reg.h, reg.l);
-
-    clock += Clock(2);
+    reg.hl = static_cast<uint16_t>(acc);
+    return 8;
 }
 
 /**
@@ -715,14 +695,15 @@ void GBCPU::add_hl_rr(const uint8_t& rh, const uint8_t& rl) {
  * H - Set if carry from bit 3
  * C - Set if carry from bit 7
  */
-void GBCPU::adc_a_r(const uint8_t& r) {
-    acc = reg.a + r;
-    acc += reg.f & kFlagC ? 1 : 0;
+tick_t GBCPU::adc_a_r(uint8_t r) {
+    int32_t acc = reg.a;
+    acc += r;
+    acc += (reg.f & kFlagC) ? 1 : 0;
 
-    reg.f = check_z(acc & 0xff) + check_h(acc) + check_c(acc);
+    reg.f = check_z(acc & 0xff) | check_h(acc) | check_c(acc);
     reg.a = static_cast<uint8_t>(acc);
 
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -737,15 +718,16 @@ void GBCPU::adc_a_r(const uint8_t& r) {
  * H - Set if borrow from bit 4
  * C - Set if no borrow
  */
-void GBCPU::sub(const uint8_t& r) {
-    acc = reg.a - r;
+tick_t GBCPU::sub(uint8_t r) {
+    int32_t acc = reg.a;
+    acc -= r;
 
     reg.f = check_z(acc & 0xff) | kFlagN;
     reg.f |= (reg.a < r) ? kFlagC : 0;
     reg.f |= ((reg.a > 0xff && r > 0xff) || reg.a < r) ? kFlagH : 0;
     reg.a = static_cast<uint8_t>(acc);
 
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -760,16 +742,17 @@ void GBCPU::sub(const uint8_t& r) {
  * H - Set if borrow from bit 4
  * C - Set if no borrow
  */
-void GBCPU::sbc_a_r(const uint8_t& r) {
-    acc = reg.a - r;
-    acc -= reg.f & kFlagC ? 1 : 0;
+tick_t GBCPU::sbc_a_r(uint8_t r) {
+    int32_t acc = reg.a;
+    acc -= r;
+    acc -= (reg.f & kFlagC) ? 1 : 0;
 
     reg.f = check_z(acc & 0xff) | kFlagN;
     reg.f |= (reg.a < r) ? kFlagC : 0;
     reg.f |= ((reg.a > 0xff && r > 0xff) || reg.a < r) ? kFlagH : 0;
     reg.a = static_cast<uint8_t>(acc);
 
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -784,12 +767,10 @@ void GBCPU::sbc_a_r(const uint8_t& r) {
  * H - Set
  * C - Reset
  */
-void GBCPU::and_r(const uint8_t& r) {
+tick_t GBCPU::and_r(uint8_t r) {
     reg.a &= r;
-
     reg.f = check_z(reg.a) | kFlagH;
-
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -804,12 +785,10 @@ void GBCPU::and_r(const uint8_t& r) {
  * H - Reset
  * C - Reset
  */
-void GBCPU::or_r(const uint8_t& r) {
+tick_t GBCPU::or_r(uint8_t r) {
     reg.a |= r;
-
     reg.f = check_z(reg.a);
-
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -824,11 +803,10 @@ void GBCPU::or_r(const uint8_t& r) {
  * H - Reset
  * C - Reset
  */
-void GBCPU::xor_r(const uint8_t& r) {
-    reg.a = static_cast<uint8_t>((!r & reg.a) | (r & !reg.a));
+tick_t GBCPU::xor_r(uint8_t r) {
+    reg.a = (!r & reg.a) | (r & !reg.a);
     reg.f = check_z(reg.a);
-
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -843,14 +821,15 @@ void GBCPU::xor_r(const uint8_t& r) {
  * H - Set if no borrow from bit 4
  * C - Set for no borrow (Set if A < n)
  */
-void GBCPU::cp_r(const uint8_t& r) {
-    acc = reg.a - r;
+tick_t GBCPU::cp_r(uint8_t r) {
+    int32_t acc = reg.a;
+    acc -= r;
 
     reg.f = check_z(acc & 0xff) | kFlagN;
     reg.f |= (reg.a < r) ? kFlagC : 0;
     reg.f |= ((reg.a > 0xff && r > 0xff) || reg.a < r) ? kFlagH : 0;
 
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -865,14 +844,14 @@ void GBCPU::cp_r(const uint8_t& r) {
  * H - Set if carry from bit 3
  * C - Not affected
  */
-void GBCPU::inc_r(uint8_t& r) {
+tick_t GBCPU::inc_r(uint8_t& r) {
     bool half_carry = (r & 0x0f) == 0x0f;
     r += 1;
 
     reg.f = check_z(r) | (reg.f & kFlagC);
     reg.f |= half_carry ? kFlagH : 0;
 
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -887,14 +866,14 @@ void GBCPU::inc_r(uint8_t& r) {
  * H - Set if no borrow from bit 4
  * C - Not affected
  */
-void GBCPU::dec_r(uint8_t& r) {
+tick_t GBCPU::dec_r(uint8_t& r) {
     bool half_carry = (r & 0x18) == 0x10;
     r -= 1;
 
     reg.f = check_z(r) | (reg.f & kFlagC) | kFlagN;
     reg.f |= half_carry ? kFlagH : 0;
 
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -909,21 +888,20 @@ void GBCPU::dec_r(uint8_t& r) {
  * H - Reset
  * C - Reset
  */
-void GBCPU::swap_r(uint8_t& r) {
-    r = static_cast<uint8_t>(((r << 4) & 0xf0) | ((r >> 4) & 0x0f));
+tick_t GBCPU::swap_r(uint8_t& r) {
+    r = ((r << 4) & 0xf0) | ((r >> 4) & 0x0f);
     reg.f = check_z(r);
-    clock += Clock(2);
+    return 8;
 }
 
 /**
  * SWAP (HL)
  */
-void GBCPU::swap_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(2);
+tick_t GBCPU::swap_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     swap_r(value);
-    mmu.write_byte(addr, value);
+    mmu.write_byte(reg.hl, value);
+    return 16;
 }
 
 /**
@@ -932,12 +910,9 @@ void GBCPU::swap_phl() {
  * Increment rr register by one
  * rr: BC, DE, HL or SP
  */
-void GBCPU::inc_rr(uint8_t& rh, uint8_t& rl) {
-    uint16_t w = (rh << 8) | rl;
-    w += 1;
-    split16(w, rh, rl);
-
-    clock += Clock(2);
+tick_t GBCPU::inc_rr(uint16_t& r) {
+    r += 1;
+    return 8;
 }
 
 /**
@@ -946,12 +921,9 @@ void GBCPU::inc_rr(uint8_t& rh, uint8_t& rl) {
  * Decrement rr register by one
  * rr: BC, DE, HL or SP
  */
-void GBCPU::dec_rr(uint8_t& rh, uint8_t& rl) {
-    uint16_t w = (rh << 8) | rl;
-    w -= 1;
-    split16(w, rh, rl);
-
-    clock += Clock(2);
+tick_t GBCPU::dec_rr(uint16_t& r) {
+    r -= 1;
+    return 8;
 }
 
 /**
@@ -959,179 +931,160 @@ void GBCPU::dec_rr(uint8_t& rh, uint8_t& rl) {
   *
   * Push present address onto stack and jump to address 0x0000 + n
   */
-void GBCPU::rst(const uint16_t addr) {
+tick_t GBCPU::rst(const uint16_t addr) {
     mmu.write_word(reg.sp, reg.pc);
     reg.sp -= 2;
     reg.pc = addr;
-    clock += Clock(8);
+    return 32;
 }
 
 /**
  * No operation
  */
-void GBCPU::nop() {
-    clock += Clock(1);
+tick_t GBCPU::nop() {
+    return 4;
 }
 
-void GBCPU::ld_a_pnn() {
+tick_t GBCPU::ld_a_pnn() {
     uint8_t addr_lsb = mmu.read_byte(reg.pc++);
     uint8_t addr_msb = mmu.read_byte(reg.pc++);
 
     uint16_t addr = combine16(addr_msb, addr_lsb);
     reg.a = mmu.read_byte(addr);
-
-    clock += Clock(4);
+    return 16;
 }
 
-void GBCPU::ld_pnn_a() {
+tick_t GBCPU::ld_pnn_a() {
     uint8_t addr_lsb = mmu.read_byte(reg.pc++);
     uint8_t addr_msb = mmu.read_byte(reg.pc++);
 
     uint16_t addr = combine16(addr_msb, addr_lsb);
     mmu.write_byte(addr, reg.a);
 
-    clock += Clock(4);
+    return 16;
 }
 
-void GBCPU::bit_i_r(const uint8_t index, const uint8_t& r) {
-    uint8_t mask = static_cast<uint8_t>(1 << index);
+tick_t GBCPU::bit_i_r(const uint8_t index, const uint8_t& r) {
+    uint8_t mask = 1 << index;
     reg.f = (reg.f & kFlagC) | kFlagH | ((r & mask) ? kFlagZ : 0);
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::set_i_r(const uint8_t index, uint8_t& r) {
-    uint8_t mask = static_cast<uint8_t>(1 << index);
+tick_t GBCPU::set_i_r(const uint8_t index, uint8_t& r) {
+    uint8_t mask = 1 << index;
     r |= mask;
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::res_i_r(const uint8_t index, uint8_t& r) {
-    uint8_t mask = static_cast<uint8_t>(1 << index);
+tick_t GBCPU::res_i_r(const uint8_t index, uint8_t& r) {
+    uint8_t mask = 1 << index;
     r &= ~mask;
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::rlc_r(uint8_t& r) {
+tick_t GBCPU::rlc_r(uint8_t& r) {
     bool has_carry = (r & 0x80) != 0;
     r = (r << 1) | (r >> 7);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::rrc_r(uint8_t& r) {
+tick_t GBCPU::rrc_r(uint8_t& r) {
     bool has_carry = (r & 0x01) != 0;
     r = (r >> 1) | (r << 7);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::rl_r(uint8_t& r) {
+tick_t GBCPU::rl_r(uint8_t& r) {
     bool has_carry = (r & 0x80) != 0;
     r = (r << 1) | (reg.f & kFlagC ? 0x01 : 0x00);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::rr_r(uint8_t& r) {
+tick_t GBCPU::rr_r(uint8_t& r) {
     bool has_carry = (r & 0x01) != 0;
     r = (r >> 1) | (reg.f & kFlagC ? 0x80 : 0x00);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::sla_r(uint8_t& r) {
+tick_t GBCPU::sla_r(uint8_t& r) {
     bool has_carry = (r & 0x80) != 0;
     r = (r << 1);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::sra_r(uint8_t& r) {
+tick_t GBCPU::sra_r(uint8_t& r) {
     bool has_carry = (r & 0x01) != 0;
     r = (r & 0x80)| (r >> 1);
     reg.f = check_z(r) | (has_carry ? kFlagC : 0);
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::bit_i_phl(const uint8_t index) {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(2);
-
+tick_t GBCPU::bit_i_phl(const uint8_t index) {
+    uint8_t value = mmu.read_byte(reg.hl);
     bit_i_r(index, value);
-    mmu.write_byte(addr, value);
+    mmu.write_byte(reg.hl, value);
+    return 16;
 }
 
-void GBCPU::set_i_phl(const uint8_t index) {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(2);
-
+tick_t GBCPU::set_i_phl(const uint8_t index) {
+    uint8_t value = mmu.read_byte(reg.hl);
     set_i_r(index, value);
-    mmu.write_byte(addr, value);
+    mmu.write_byte(reg.hl, value);
+    return 16;
 }
 
-void GBCPU::res_i_phl(const uint8_t index) {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(2);
-
+tick_t GBCPU::res_i_phl(const uint8_t index) {
+    uint8_t value = mmu.read_byte(reg.hl);
     res_i_r(index, value);
-    mmu.write_byte(addr, value);
+    mmu.write_byte(reg.hl, value);
+    return 16;
 }
 
-void GBCPU::rlc_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(2);
-
+tick_t GBCPU::rlc_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     rlc_r(value);
-    mmu.write_byte(addr, value);
+    mmu.write_byte(reg.hl, value);
+    return 16;
 }
 
-void GBCPU::rrc_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(2);
-
+tick_t GBCPU::rrc_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     rrc_r(value);
-    mmu.write_byte(addr, value);
+    mmu.write_byte(reg.hl, value);
+    return 16;
 }
 
-void GBCPU::rl_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(2);
-
+tick_t GBCPU::rl_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     rl_r(value);
-    mmu.write_byte(addr, value);
+    mmu.write_byte(reg.hl, value);
+    return 16;
 }
 
-void GBCPU::rr_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(2);
-
+tick_t GBCPU::rr_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     rr_r(value);
-    mmu.write_byte(addr, value);
+    mmu.write_byte(reg.hl, value);
+    return 16;
 }
 
-void GBCPU::sla_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(2);
-
+tick_t GBCPU::sla_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     sla_r(value);
-    mmu.write_byte(addr, value);
+    mmu.write_byte(reg.hl, value);
+    return 16;
 }
 
-void GBCPU::sra_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(2);
-
+tick_t GBCPU::sra_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     sra_r(value);
-    mmu.write_byte(addr, value);
+    mmu.write_byte(reg.hl, value);
+    return 16;
 }
 
 /**
@@ -1139,8 +1092,8 @@ void GBCPU::sra_phl() {
  *
  * Power down CPU until an interrup occurs
  */
-void GBCPU::halt() {
-    clock += Clock(1);
+tick_t GBCPU::halt() {
+    return 4;
 }
 
 /*
@@ -1148,9 +1101,9 @@ void GBCPU::halt() {
  *
  * Halt CPU & LCD display until button pressed
  */
-void GBCPU::stop() {
+tick_t GBCPU::stop() {
     // TODO: Suspend until interruption
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -1164,14 +1117,14 @@ void GBCPU::stop() {
  * H - Reset
  * C - Contains old bit 7
  */
-void GBCPU::rlca() {
+tick_t GBCPU::rlca() {
     bool has_carry = static_cast<bool>(reg.a & 0x80);
 
     reg.a <<= 1;
     reg.a += has_carry ? 1 : 0;
     reg.f = check_z(reg.a) | (has_carry ? kFlagC : 0);
 
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -1185,14 +1138,14 @@ void GBCPU::rlca() {
  * H - Reset
  * C - Contains old bit 7
  */
-void GBCPU::rla() {
+tick_t GBCPU::rla() {
     bool has_carry = static_cast<bool>(reg.a & 0x80);
 
     reg.a <<= 1;
     reg.a += (reg.f & kFlagC) ? 1 : 0;
     reg.f = check_z(reg.a) | (has_carry ? kFlagC : 0);
 
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -1206,14 +1159,14 @@ void GBCPU::rla() {
  * H - Reset
  * C - Contains old bit 0
  */
-void GBCPU::rrca() {
+tick_t GBCPU::rrca() {
     bool has_carry = static_cast<bool>(reg.a & 0x01);
 
     reg.a >>= 1;
     reg.a += has_carry ? (1 << 7) : 0;
     reg.f = check_z(reg.a) | (has_carry ? kFlagC : 0);
 
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -1227,14 +1180,14 @@ void GBCPU::rrca() {
  * H - Reset
  * C - Contains old bit 0
  */
-void GBCPU::rra() {
+tick_t GBCPU::rra() {
     bool has_carry = static_cast<bool>(reg.a & 0x01);
 
     reg.a <<= 1;
     reg.a += (reg.f & kFlagC) ? (1 << 7) : 0;
     reg.f = check_z(reg.a) | (has_carry ? kFlagC : 0);
 
-    clock += Clock(1);
+    return 4;
 }
 
 /*
@@ -1248,21 +1201,10 @@ void GBCPU::rra() {
  * H - Set
  * C - Not affected
  */
-void GBCPU::cpl() {
+tick_t GBCPU::cpl() {
     reg.a = ~reg.a;
     reg.f |= kFlagN | kFlagH;
-
-    clock += Clock(2);
-}
-
-void GBCPU::add_hl_sp() {
-    uint8_t s = 0;
-    uint8_t p = 0;
-    split16(reg.sp, s, p);
-
-    add_hl_rr(s, p);
-
-    reg.sp = combine16(s, p);
+    return 8;
 }
 
 /**
@@ -1275,9 +1217,9 @@ void GBCPU::add_hl_sp() {
  * H - Reset
  * C - Set
  */
-void GBCPU::scf() {
+tick_t GBCPU::scf() {
     reg.f = (reg.f & kFlagZ) | kFlagC;
-    clock += Clock(1);
+    return 4;
 }
 
 /**
@@ -1290,146 +1232,134 @@ void GBCPU::scf() {
  * H - Reset
  * C - Complemented
  */
-void GBCPU::ccf() {
+tick_t GBCPU::ccf() {
     reg.f = (reg.f & kFlagZ) | (reg.f & kFlagC ? 0 : kFlagC);
-    clock += Clock(1);
+    return 4;
 }
 
-void GBCPU::add_a_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(1);
+tick_t GBCPU::add_a_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     add_a_r(value);
+    return 8;
 }
 
-void GBCPU::add_a_n() {
+tick_t GBCPU::add_a_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
-    clock += Clock(1);
     add_a_r(value);
+    return 8;
 }
 
-void GBCPU::add_sp_n() {
+tick_t GBCPU::add_sp_n() {
     int8_t offset = static_cast<uint8_t>(mmu.read_byte(reg.pc++));
-    acc = reg.sp + offset;
+    int32_t acc = reg.sp + offset;
 
     reg.f = check_h(acc) + check_c(acc);
     reg.sp = static_cast<uint16_t>(acc & 0xffff);
-    clock += Clock(4);
+    return 16;
 }
 
-void GBCPU::adc_a_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(1);
+tick_t GBCPU::adc_a_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     adc_a_r(value);
+    return 8;
 }
 
-void GBCPU::adc_a_n() {
+tick_t GBCPU::adc_a_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
-    clock += Clock(1);
     adc_a_r(value);
+    return 8;
 }
 
-void GBCPU::ld_sp_hl() {
-    uint16_t hl = combine16(reg.h, reg.l);
-    mmu.write_word(reg.sp, hl);
-    clock += Clock(2);
+tick_t GBCPU::ld_sp_hl() {
+    mmu.write_word(reg.sp, reg.hl);
+    return 8;
 }
 
-void GBCPU::ld_hl_spn() {
+tick_t GBCPU::ld_hl_spn() {
     int8_t offset = static_cast<int8_t>(mmu.read_byte(reg.pc++));
-    acc = reg.sp + offset;
+    int32_t acc = reg.sp + offset;
 
     reg.f = check_h(acc) | check_c(acc);
-    clock += Clock(3);
+    reg.hl = static_cast<uint16_t>(acc);
+    return 12;
 }
 
-void GBCPU::ld_phl_n() {
-    uint16_t addr = combine16(reg.h, reg.l);
+tick_t GBCPU::ld_phl_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
-    mmu.write_byte(addr, value);
-    clock += Clock(3);
+    mmu.write_byte(reg.hl, value);
+    return 12;
 }
 
 /**
  * Put value at address FF00 + register C into A
  */
-void GBCPU::ld_a_offc() {
+tick_t GBCPU::ld_a_offc() {
     uint16_t addr = static_cast<uint16_t>(0xff00 + reg.c);
     reg.a = mmu.read_byte(addr);
-
-    clock += Clock(2);
+    return 8;
 }
 
 /**
  * Put A into FF00 + register C
  */
-void GBCPU::ld_offc_a() {
+tick_t GBCPU::ld_offc_a() {
     uint16_t addr = static_cast<uint16_t>(0xff00 + reg.c);
     mmu.write_byte(addr, reg.a);
-
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::ld_sp_nn() {
+tick_t GBCPU::ld_sp_nn() {
     uint8_t p = mmu.read_byte(reg.pc++);
     uint8_t s = mmu.read_byte(reg.pc++);
     reg.sp = combine16(s, p);
 
-    clock += Clock(3);
+    return 12;
 }
 
-void GBCPU::ld_pnn_sp() {
+tick_t GBCPU::ld_pnn_sp() {
     uint8_t addr_lsb = mmu.read_byte(reg.pc++);
     uint8_t addr_msb = mmu.read_byte(reg.pc++);
 
     uint16_t addr = combine16(addr_msb, addr_lsb);
     mmu.write_word(addr, reg.sp);
 
-    clock += Clock(5);
+    return 40;
 }
 
-void GBCPU::ldh_offn_a() {
+tick_t GBCPU::ldh_offn_a() {
     uint16_t addr = static_cast<uint16_t>(0xff00 + mmu.read_byte(reg.pc++));
     mmu.write_byte(addr, reg.a);
-
-    clock += Clock(3);
+    return 12;
 }
 
-void GBCPU::ldh_a_offn() {
+tick_t GBCPU::ldh_a_offn() {
     uint16_t addr = static_cast<uint16_t>(0xff00 + mmu.read_byte(reg.pc++));
     reg.a = mmu.read_byte(addr);
-
-    clock += Clock(3);
+    return 12;
 }
 
-void GBCPU::ldi_phl_a() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    mmu.write_byte(addr, reg.a);
-    inc_rr(reg.h, reg.l);
+tick_t GBCPU::ldi_phl_a() {
+    mmu.write_byte(reg.hl, reg.a);
+    return inc_rr(reg.hl);
 }
 
-void GBCPU::ldi_a_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    reg.a = mmu.read_byte(addr);
-    inc_rr(reg.h, reg.l);
+tick_t GBCPU::ldi_a_phl() {
+    reg.a = mmu.read_byte(reg.hl);
+    return inc_rr(reg.hl);
 }
 
-void GBCPU::ldd_phl_a() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    mmu.write_byte(addr, reg.a);
-    dec_rr(reg.h, reg.l);
+tick_t GBCPU::ldd_phl_a() {
+    mmu.write_byte(reg.hl, reg.a);
+    return dec_rr(reg.hl);
 }
 
-void GBCPU::ldd_a_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    reg.a = mmu.read_byte(addr);
-    dec_rr(reg.h, reg.l);
+tick_t GBCPU::ldd_a_phl() {
+    reg.a = mmu.read_byte(reg.hl);
+    return dec_rr(reg.hl);
 }
 
-void GBCPU::inc_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
+tick_t GBCPU::inc_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
 
     bool half_carry = (value & 0x0f) == 0x0f;
     value += 1;
@@ -1437,13 +1367,12 @@ void GBCPU::inc_phl() {
     reg.f = check_z(value) | (reg.f & kFlagC);
     reg.f |= half_carry ? kFlagH : 0;
 
-    mmu.write_byte(addr, value);
-    clock += Clock(3);
+    mmu.write_byte(reg.hl, value);
+    return 12;
 }
 
-void GBCPU::dec_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
+tick_t GBCPU::dec_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
 
     bool half_carry = (value & 0x18) == 0x10;
     value -= 1;
@@ -1451,100 +1380,93 @@ void GBCPU::dec_phl() {
     reg.f = check_z(value) | (reg.f & kFlagC) | kFlagN;
     reg.f |= half_carry ? kFlagH : 0;
 
-    mmu.write_byte(addr, value);
-    clock += Clock(3);
+    mmu.write_byte(reg.hl, value);
+    return 12;
 }
 
-void GBCPU::sub_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(1);
+tick_t GBCPU::sub_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     sub(value);
+    return 8;
 }
 
-void GBCPU::sub_n() {
+tick_t GBCPU::sub_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
-    clock += Clock(1);
     sub(value);
+    return 8;
 }
 
-void GBCPU::sbc_a_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(1);
+tick_t GBCPU::sbc_a_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     sbc_a_r(value);
+    return 8;
 }
 
-void GBCPU::sbc_a_n() {
+tick_t GBCPU::sbc_a_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
-    clock += Clock(1);
     sbc_a_r(value);
+    return 8;
 }
 
-void GBCPU::and_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(1);
+tick_t GBCPU::and_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     and_r(value);
+    return 8;
 }
 
-void GBCPU::and_n() {
+tick_t GBCPU::and_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
-    clock += Clock(1);
     and_r(value);
+    return 8;
 }
 
-void GBCPU::or_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(1);
+tick_t GBCPU::or_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     or_r(value);
+    return 8;
 }
 
-void GBCPU::or_n() {
+tick_t GBCPU::or_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
-    clock += Clock(1);
     or_r(value);
+    return 8;
 }
 
-void GBCPU::xor_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(1);
+tick_t GBCPU::xor_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     xor_r(value);
+    return 8;
 }
 
-void GBCPU::xor_n() {
+tick_t GBCPU::xor_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
-    clock += Clock(1);
     xor_r(value);
+    return 8;
 }
 
-void GBCPU::cp_phl() {
-    uint16_t addr = combine16(reg.h, reg.l);
-    uint8_t value = mmu.read_byte(addr);
-    clock += Clock(1);
+tick_t GBCPU::cp_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
     cp_r(value);
+    return 8;
 }
 
-void GBCPU::cp_n() {
+tick_t GBCPU::cp_n() {
     uint8_t value = mmu.read_byte(reg.pc++);
-    clock += Clock(1);
-
     cp_r(value);
+    return 8;
 }
 
-void GBCPU::di() {
+tick_t GBCPU::di() {
     ime = false;
-    clock += Clock(1);
+    return 4;
 }
 
-void GBCPU::ei() {
+tick_t GBCPU::ei() {
     ime = true;
-    clock += Clock(1);
+    return 4;
 }
 
-void GBCPU::call() {
+tick_t GBCPU::call() {
     uint8_t addr_lsb = mmu.read_byte(reg.pc++);
     uint8_t addr_msb = mmu.read_byte(reg.pc++);
 
@@ -1556,178 +1478,174 @@ void GBCPU::call() {
     mmu.write_byte(reg.sp--, pc_msb);
 
     reg.pc = combine16(addr_msb, addr_lsb);
-    clock += Clock(3);
+    return 12;
 }
 
-void GBCPU::call_z() {
+tick_t GBCPU::call_z() {
     if ((reg.f & kFlagZ) != 0) {
         call();
     } else {
         reg.pc += 2;
-        clock += Clock(3);
     }
+    return 12;
 }
 
-void GBCPU::call_nz() {
+tick_t GBCPU::call_nz() {
     if ((reg.f & kFlagZ) == 0) {
         call();
     } else {
         reg.pc += 2;
-        clock += Clock(3);
     }
+    return 12;
 }
 
-void GBCPU::call_c() {
+tick_t GBCPU::call_c() {
     if ((reg.f & kFlagC) != 0) {
         call();
     } else {
         reg.pc += 2;
-        clock += Clock(3);
     }
+    return 12;
 }
 
-void GBCPU::call_nc() {
+tick_t GBCPU::call_nc() {
     if ((reg.f & kFlagC) == 0) {
         call();
     } else {
         reg.pc += 2;
-        clock += Clock(3);
     }
+    return 12;
 }
 
-void GBCPU::ret() {
+tick_t GBCPU::ret() {
     uint8_t pc_msb = mmu.read_byte(++reg.sp);
     uint8_t pc_lsb = mmu.read_byte(++reg.sp);
     reg.pc = combine16(pc_msb, pc_lsb);
-
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::reti() {
+tick_t GBCPU::reti() {
     ret();
     ime = true;
+    return 8;
 }
 
-void GBCPU::ret_z() {
+tick_t GBCPU::ret_z() {
     if ((reg.f & kFlagZ) != 0) {
         ret();
-    } else {
-        clock += Clock(2);
     }
+    return 8;
 }
 
-void GBCPU::ret_nz() {
+tick_t GBCPU::ret_nz() {
     if ((reg.f & kFlagZ) == 0) {
         ret();
-    } else {
-        clock += Clock(2);
     }
+    return 8;
 }
 
-void GBCPU::ret_c() {
+tick_t GBCPU::ret_c() {
     if ((reg.f & kFlagC) != 0) {
         ret();
-    } else {
-        clock += Clock(2);
     }
+    return 8;
 }
 
-void GBCPU::ret_nc() {
+tick_t GBCPU::ret_nc() {
     if ((reg.f & kFlagC) == 0) {
         ret();
-    } else {
-        clock += Clock(2);
     }
+    return 8;
 }
 
-void GBCPU::jp() {
+tick_t GBCPU::jp() {
     uint8_t l = mmu.read_byte(reg.pc++);
     uint8_t h = mmu.read_byte(reg.pc++);
     reg.pc = combine16(h, l);
 
-    clock += Clock(3);
+    return 12;
 }
 
-void GBCPU::jp_z() {
+tick_t GBCPU::jp_z() {
     if ((reg.f & kFlagZ) != 0) {
         jp();
     } else {
         reg.pc += 2;
-        clock += Clock(3);
     }
+    return 12;
 }
 
-void GBCPU::jp_nz() {
+tick_t GBCPU::jp_nz() {
     if ((reg.f & kFlagZ) == 0) {
         jp();
     } else {
         reg.pc += 2;
-        clock += Clock(3);
     }
+    return 12;
 }
 
-void GBCPU::jp_c() {
+tick_t GBCPU::jp_c() {
     if ((reg.f & kFlagC) != 0) {
         jp();
     } else {
         reg.pc += 2;
-        clock += Clock(3);
     }
+    return 12;
 }
 
-void GBCPU::jp_nc() {
+tick_t GBCPU::jp_nc() {
     if ((reg.f & kFlagC) == 0) {
         jp();
     } else {
         reg.pc += 2;
-        clock += Clock(3);
     }
+    return 12;
 }
 
-void GBCPU::jp_hl() {
-    reg.pc = combine16(reg.h, reg.l);
-    clock += Clock(1);
+tick_t GBCPU::jp_hl() {
+    reg.pc = reg.hl;
+    return 4;
 }
 
-void GBCPU::jr() {
+tick_t GBCPU::jr() {
     int8_t offset = static_cast<int8_t>(mmu.read_byte(reg.pc++));
     acc = static_cast<int32_t>(reg.pc) + offset;
     reg.pc = static_cast<uint8_t>(acc);
-    clock += Clock(2);
+    return 8;
 }
 
-void GBCPU::jr_z() {
+tick_t GBCPU::jr_z() {
     if ((reg.f & kFlagZ) != 0) {
         jr();
     } else {
         reg.pc++;
-        clock += Clock(2);
     }
+    return 8;
 }
 
-void GBCPU::jr_nz() {
+tick_t GBCPU::jr_nz() {
     if ((reg.f & kFlagZ) == 0) {
         jr();
     } else {
         reg.pc++;
-        clock += Clock(2);
     }
+    return 8;
 }
 
-void GBCPU::jr_c() {
+tick_t GBCPU::jr_c() {
     if ((reg.f & kFlagC) != 0) {
         jr();
     } else {
         reg.pc++;
-        clock += Clock(2);
     }
+    return 8;
 }
 
-void GBCPU::jr_nc() {
+tick_t GBCPU::jr_nc() {
     if ((reg.f & kFlagC) == 0) {
         jr();
     } else {
         reg.pc++;
-        clock += Clock(2);
     }
+    return 8;
 }

@@ -10,22 +10,50 @@
 
 class Registers {
 public:
-    uint8_t a; // accumulator
-    uint8_t f; // flag
+    struct {
+        union {
+            struct {
+                uint8_t f; // flag
+                uint8_t a; // accumulator
+            };
+            uint16_t af;
+        };
+    };
 
-    uint8_t b;
-    uint8_t c;
+    struct {
+        union {
+            struct {
+                uint8_t c;
+                uint8_t b;
+            };
+            uint16_t bc;
+        };
+    };
 
-    uint8_t d;
-    uint8_t e;
+    struct {
+        union {
+            struct {
+                uint8_t e;
+                uint8_t d;
+            };
+            uint16_t de;
+        };
+    };
 
-    uint8_t h;
-    uint8_t l;
+    struct {
+        union {
+            struct {
+                uint8_t l;
+                uint8_t h;
+            };
+            uint16_t hl;
+        };
+    };
 
     uint16_t pc;  // program counter
     uint16_t sp;  // stack pointer
 
-    Registers() : a(0), f(0), b(0), c(0), d(0), e(0), h(0), l (0), pc(0), sp(0) {}
+    Registers() : af(0), bc(0), de(0), hl(0), pc(0), sp(0) {}
 };
 
 class GBCPU {
@@ -35,15 +63,14 @@ private:
     void fill_instrunction_map();
     void fill_cb_instrunction_map();
 public:
-    Clock clock;
     Registers reg;
 
     GBMMU& mmu;
 
     bool ime; // interrupt master enable flag
 
-    std::vector<void (GBCPU::*)()> instruction_map;
-    std::vector<void (GBCPU::*)()> cb_instruction_map;
+    std::vector<tick_t (GBCPU::*)()> instruction_map;
+    std::vector<tick_t (GBCPU::*)()> cb_instruction_map;
 
     GBCPU(GBMMU& mmu);
     GBCPU(const GBCPU&) = delete;
@@ -51,624 +78,629 @@ public:
     void reset();
 
     // Common Instruction Behavior
-    void ld_r_r(uint8_t&, const uint8_t&);
-    void ld_r_prr(uint8_t&, const uint8_t&, const uint8_t&);
-    void ld_prr_r(const uint8_t&, const uint8_t&, const uint8_t&);
-    void ld_r_n(uint8_t&);
-    void ld_rr_nn(uint8_t&, uint8_t&);
-    void push_rr(const uint8_t&, const uint8_t&);
-    void pop_rr(uint8_t&, uint8_t&);
-    void add_a_r(const uint8_t&);
-    void adc_a_r(const uint8_t&);
-    void add_hl_rr(const uint8_t&, const uint8_t&);
-    void adc_hl_rr(const uint8_t&, const uint8_t&);
-    void sub(const uint8_t&);
-    void sbc_a_r(const uint8_t&);
-    void and_r(const uint8_t&);
-    void or_r(const uint8_t&);
-    void xor_r(const uint8_t&);
-    void cp_r(const uint8_t&);
-    void inc_r(uint8_t&);
-    void dec_r(uint8_t&);
-    void swap_r(uint8_t&);
-    void inc_rr(uint8_t&, uint8_t&);
-    void dec_rr(uint8_t&, uint8_t&);
-    void rst(const uint16_t addr);
+    tick_t ld_r_r   (uint8_t&  dst_reg,  uint8_t  src_reg);
+    tick_t ld_r_prr (uint8_t&  dst_reg,  uint16_t src_addr);
+    tick_t ld_prr_r (uint16_t  dst_addr, uint8_t  src_reg);
+    tick_t ld_r_n   (uint8_t&  dst_reg);
+    tick_t ld_rr_nn (uint16_t& dst_reg);
 
-    void bit_i_r(const uint8_t index, const uint8_t& r);
-    void set_i_r(const uint8_t index, uint8_t& r);
-    void res_i_r(const uint8_t index, uint8_t& r);
-    void rlc_r(uint8_t& r);
-    void rrc_r(uint8_t& r);
-    void rl_r(uint8_t& r);
-    void rr_r(uint8_t& r);
-    void sla_r(uint8_t& r);
-    void sra_r(uint8_t& r);
+    tick_t push_rr  (uint16_t  src_reg);
+    tick_t pop_rr   (uint16_t& dst_reg);
 
-    void bit_i_phl(const uint8_t index);
-    void set_i_phl(const uint8_t index);
-    void res_i_phl(const uint8_t index);
-    void rlc_phl();
-    void rrc_phl();
-    void rl_phl();
-    void rr_phl();
-    void sla_phl();
-    void sra_phl();
+    tick_t add_a_r  (uint8_t  r);
+    tick_t adc_a_r  (uint8_t  r);
+    tick_t add_hl_rr(uint16_t r);
+    tick_t adc_hl_rr(uint16_t r);
+    tick_t sub      (uint8_t  r);
+    tick_t sbc_a_r  (uint8_t  r);
+    tick_t and_r    (uint8_t  r);
+    tick_t or_r     (uint8_t  r);
+    tick_t xor_r    (uint8_t  r);
+    tick_t cp_r     (uint8_t  r);
+    tick_t inc_r    (uint8_t& r);
+    tick_t dec_r    (uint8_t& r);
+    tick_t swap_r   (uint8_t& r);
+    tick_t inc_rr   (uint16_t& r);
+    tick_t dec_rr   (uint16_t& r);
+    tick_t rst      (uint16_t addr);
 
-    void not_implemented_error() {
+    tick_t bit_i_r(const uint8_t index, const uint8_t& r);
+    tick_t set_i_r(const uint8_t index, uint8_t& r);
+    tick_t res_i_r(const uint8_t index, uint8_t& r);
+
+    tick_t rlc_r(uint8_t& r);
+    tick_t rrc_r(uint8_t& r);
+    tick_t rl_r (uint8_t& r);
+    tick_t rr_r (uint8_t& r);
+    tick_t sla_r(uint8_t& r);
+    tick_t sra_r(uint8_t& r);
+
+    tick_t bit_i_phl(const uint8_t index);
+    tick_t set_i_phl(const uint8_t index);
+    tick_t res_i_phl(const uint8_t index);
+
+    tick_t rlc_phl();
+    tick_t rrc_phl();
+    tick_t rl_phl();
+    tick_t rr_phl();
+    tick_t sla_phl();
+    tick_t sra_phl();
+
+    tick_t not_implemented_error() {
         throw std::runtime_error("Instruction Not Yet Implemented");
+        return 0;
     }
 
-    void not_supported_error() {
+    tick_t not_supported_error() {
         throw std::runtime_error("Instruction Not Supported");
+        return 0;
     }
 
-    void cb_branch() {
+    tick_t cb_branch() {
         uint8_t op = mmu.read_byte(reg.pc++);
-        (*this.*cb_instruction_map.at(op))();
+        return (*this.*cb_instruction_map.at(op))();
     }
 
     // Instruction Set
-    void nop();
-    void halt();
-    void stop();
-    void rlca();
-    void rla();
-    void rrca();
-    void rra();
-    void cpl();
-    void scf();
-    void ccf();
-    void di();
-    void ei();
+    tick_t nop();
+    tick_t halt();
+    tick_t stop();
+    tick_t rlca();
+    tick_t rla();
+    tick_t rrca();
+    tick_t rra();
+    tick_t cpl();
+    tick_t scf();
+    tick_t ccf();
+    tick_t di();
+    tick_t ei();
 
-    void ld_a_a() { ld_r_r(reg.a, reg.a); }
-    void ld_a_b() { ld_r_r(reg.a, reg.b); }
-    void ld_a_c() { ld_r_r(reg.a, reg.c); }
-    void ld_a_d() { ld_r_r(reg.a, reg.d); }
-    void ld_a_e() { ld_r_r(reg.a, reg.e); }
-    void ld_a_h() { ld_r_r(reg.a, reg.h); }
-    void ld_a_l() { ld_r_r(reg.a, reg.l); }
-    void ld_a_phl() { ld_r_prr(reg.a, reg.h, reg.l); }
+    tick_t ld_a_a() { return ld_r_r(reg.a, reg.a); }
+    tick_t ld_a_b() { return ld_r_r(reg.a, reg.b); }
+    tick_t ld_a_c() { return ld_r_r(reg.a, reg.c); }
+    tick_t ld_a_d() { return ld_r_r(reg.a, reg.d); }
+    tick_t ld_a_e() { return ld_r_r(reg.a, reg.e); }
+    tick_t ld_a_h() { return ld_r_r(reg.a, reg.h); }
+    tick_t ld_a_l() { return ld_r_r(reg.a, reg.l); }
+    tick_t ld_a_phl() { return ld_r_prr(reg.a, reg.hl); }
 
-    void ld_b_a() { ld_r_r(reg.b, reg.a); }
-    void ld_b_b() { ld_r_r(reg.b, reg.b); }
-    void ld_b_c() { ld_r_r(reg.b, reg.c); }
-    void ld_b_d() { ld_r_r(reg.b, reg.d); }
-    void ld_b_e() { ld_r_r(reg.b, reg.e); }
-    void ld_b_h() { ld_r_r(reg.b, reg.h); }
-    void ld_b_l() { ld_r_r(reg.b, reg.l); }
-    void ld_b_phl() { ld_r_prr(reg.b, reg.h, reg.l); }
+    tick_t ld_b_a() { return ld_r_r(reg.b, reg.a); }
+    tick_t ld_b_b() { return ld_r_r(reg.b, reg.b); }
+    tick_t ld_b_c() { return ld_r_r(reg.b, reg.c); }
+    tick_t ld_b_d() { return ld_r_r(reg.b, reg.d); }
+    tick_t ld_b_e() { return ld_r_r(reg.b, reg.e); }
+    tick_t ld_b_h() { return ld_r_r(reg.b, reg.h); }
+    tick_t ld_b_l() { return ld_r_r(reg.b, reg.l); }
+    tick_t ld_b_phl() { return ld_r_prr(reg.b, reg.hl); }
 
-    void ld_c_a() { ld_r_r(reg.c, reg.a); }
-    void ld_c_b() { ld_r_r(reg.c, reg.b); }
-    void ld_c_c() { ld_r_r(reg.c, reg.c); }
-    void ld_c_d() { ld_r_r(reg.c, reg.d); }
-    void ld_c_e() { ld_r_r(reg.c, reg.e); }
-    void ld_c_h() { ld_r_r(reg.c, reg.h); }
-    void ld_c_l() { ld_r_r(reg.c, reg.l); }
-    void ld_c_phl() { ld_r_prr(reg.c, reg.h, reg.l); }
+    tick_t ld_c_a() { return ld_r_r(reg.c, reg.a); }
+    tick_t ld_c_b() { return ld_r_r(reg.c, reg.b); }
+    tick_t ld_c_c() { return ld_r_r(reg.c, reg.c); }
+    tick_t ld_c_d() { return ld_r_r(reg.c, reg.d); }
+    tick_t ld_c_e() { return ld_r_r(reg.c, reg.e); }
+    tick_t ld_c_h() { return ld_r_r(reg.c, reg.h); }
+    tick_t ld_c_l() { return ld_r_r(reg.c, reg.l); }
+    tick_t ld_c_phl() { return ld_r_prr(reg.c, reg.hl); }
 
-    void ld_d_a() { ld_r_r(reg.d, reg.a); }
-    void ld_d_b() { ld_r_r(reg.d, reg.b); }
-    void ld_d_c() { ld_r_r(reg.d, reg.c); }
-    void ld_d_d() { ld_r_r(reg.d, reg.d); }
-    void ld_d_e() { ld_r_r(reg.d, reg.e); }
-    void ld_d_h() { ld_r_r(reg.d, reg.h); }
-    void ld_d_l() { ld_r_r(reg.d, reg.l); }
-    void ld_d_phl() { ld_r_prr(reg.d, reg.h, reg.l); }
+    tick_t ld_d_a() { return ld_r_r(reg.d, reg.a); }
+    tick_t ld_d_b() { return ld_r_r(reg.d, reg.b); }
+    tick_t ld_d_c() { return ld_r_r(reg.d, reg.c); }
+    tick_t ld_d_d() { return ld_r_r(reg.d, reg.d); }
+    tick_t ld_d_e() { return ld_r_r(reg.d, reg.e); }
+    tick_t ld_d_h() { return ld_r_r(reg.d, reg.h); }
+    tick_t ld_d_l() { return ld_r_r(reg.d, reg.l); }
+    tick_t ld_d_phl() { return ld_r_prr(reg.d, reg.hl); }
 
-    void ld_e_a() { ld_r_r(reg.e, reg.a); }
-    void ld_e_b() { ld_r_r(reg.e, reg.b); }
-    void ld_e_c() { ld_r_r(reg.e, reg.c); }
-    void ld_e_d() { ld_r_r(reg.e, reg.d); }
-    void ld_e_e() { ld_r_r(reg.e, reg.e); }
-    void ld_e_h() { ld_r_r(reg.e, reg.h); }
-    void ld_e_l() { ld_r_r(reg.e, reg.l); }
-    void ld_e_phl() { ld_r_prr(reg.e, reg.h, reg.l); }
+    tick_t ld_e_a() { return ld_r_r(reg.e, reg.a); }
+    tick_t ld_e_b() { return ld_r_r(reg.e, reg.b); }
+    tick_t ld_e_c() { return ld_r_r(reg.e, reg.c); }
+    tick_t ld_e_d() { return ld_r_r(reg.e, reg.d); }
+    tick_t ld_e_e() { return ld_r_r(reg.e, reg.e); }
+    tick_t ld_e_h() { return ld_r_r(reg.e, reg.h); }
+    tick_t ld_e_l() { return ld_r_r(reg.e, reg.l); }
+    tick_t ld_e_phl() { return ld_r_prr(reg.e, reg.hl); }
 
-    void ld_h_a() { ld_r_r(reg.h, reg.a); }
-    void ld_h_b() { ld_r_r(reg.h, reg.b); }
-    void ld_h_c() { ld_r_r(reg.h, reg.c); }
-    void ld_h_d() { ld_r_r(reg.h, reg.d); }
-    void ld_h_e() { ld_r_r(reg.h, reg.e); }
-    void ld_h_h() { ld_r_r(reg.h, reg.h); }
-    void ld_h_l() { ld_r_r(reg.h, reg.l); }
-    void ld_h_phl() { ld_r_prr(reg.h, reg.h, reg.l); }
+    tick_t ld_h_a() { return ld_r_r(reg.h, reg.a); }
+    tick_t ld_h_b() { return ld_r_r(reg.h, reg.b); }
+    tick_t ld_h_c() { return ld_r_r(reg.h, reg.c); }
+    tick_t ld_h_d() { return ld_r_r(reg.h, reg.d); }
+    tick_t ld_h_e() { return ld_r_r(reg.h, reg.e); }
+    tick_t ld_h_h() { return ld_r_r(reg.h, reg.h); }
+    tick_t ld_h_l() { return ld_r_r(reg.h, reg.l); }
+    tick_t ld_h_phl() { return ld_r_prr(reg.h, reg.hl); }
 
-    void ld_l_a() { ld_r_r(reg.l, reg.a); }
-    void ld_l_b() { ld_r_r(reg.l, reg.b); }
-    void ld_l_c() { ld_r_r(reg.l, reg.c); }
-    void ld_l_d() { ld_r_r(reg.l, reg.d); }
-    void ld_l_e() { ld_r_r(reg.l, reg.e); }
-    void ld_l_h() { ld_r_r(reg.l, reg.h); }
-    void ld_l_l() { ld_r_r(reg.l, reg.l); }
-    void ld_l_phl() { ld_r_prr(reg.l, reg.h, reg.l); }
+    tick_t ld_l_a() { return ld_r_r(reg.l, reg.a); }
+    tick_t ld_l_b() { return ld_r_r(reg.l, reg.b); }
+    tick_t ld_l_c() { return ld_r_r(reg.l, reg.c); }
+    tick_t ld_l_d() { return ld_r_r(reg.l, reg.d); }
+    tick_t ld_l_e() { return ld_r_r(reg.l, reg.e); }
+    tick_t ld_l_h() { return ld_r_r(reg.l, reg.h); }
+    tick_t ld_l_l() { return ld_r_r(reg.l, reg.l); }
+    tick_t ld_l_phl() { return ld_r_prr(reg.l, reg.hl); }
 
-    void ld_sp_hl();
+    tick_t ld_sp_hl();
+    tick_t ld_hl_spn();
 
-    void ld_hl_spn();
+    tick_t ld_phl_a() { return ld_prr_r(reg.hl, reg.a); }
+    tick_t ld_phl_b() { return ld_prr_r(reg.hl, reg.b); }
+    tick_t ld_phl_c() { return ld_prr_r(reg.hl, reg.c); }
+    tick_t ld_phl_d() { return ld_prr_r(reg.hl, reg.d); }
+    tick_t ld_phl_e() { return ld_prr_r(reg.hl, reg.e); }
+    tick_t ld_phl_h() { return ld_prr_r(reg.hl, reg.h); }
+    tick_t ld_phl_l() { return ld_prr_r(reg.hl, reg.l); }
+    tick_t ld_phl_n();
 
-    void ld_phl_a() { ld_prr_r(reg.h, reg.l, reg.a); }
-    void ld_phl_b() { ld_prr_r(reg.h, reg.l, reg.b); }
-    void ld_phl_c() { ld_prr_r(reg.h, reg.l, reg.c); }
-    void ld_phl_d() { ld_prr_r(reg.h, reg.l, reg.d); }
-    void ld_phl_e() { ld_prr_r(reg.h, reg.l, reg.e); }
-    void ld_phl_h() { ld_prr_r(reg.h, reg.l, reg.h); }
-    void ld_phl_l() { ld_prr_r(reg.h, reg.l, reg.l); }
-    void ld_phl_n();
+    tick_t ld_pbc_a() { return ld_prr_r(reg.bc, reg.a); }
+    tick_t ld_pde_a() { return ld_prr_r(reg.de, reg.a); }
 
-    void ld_pbc_a() { ld_prr_r(reg.b, reg.c, reg.a); }
-    void ld_pde_a() { ld_prr_r(reg.d, reg.e, reg.a); }
+    tick_t ld_a_pbc() { return ld_r_prr(reg.a, reg.bc); }
+    tick_t ld_a_pde() { return ld_r_prr(reg.a, reg.de); }
+    tick_t ld_a_pnn();
 
-    void ld_a_pbc() { ld_r_prr(reg.a, reg.b, reg.c); }
-    void ld_a_pde() { ld_r_prr(reg.a, reg.d, reg.e); }
-    void ld_a_pnn();
+    tick_t ld_pnn_a();
 
-    void ld_pnn_a();
+    tick_t ld_a_n() { return ld_r_n(reg.a); }
+    tick_t ld_b_n() { return ld_r_n(reg.b); }
+    tick_t ld_c_n() { return ld_r_n(reg.c); }
+    tick_t ld_d_n() { return ld_r_n(reg.d); }
+    tick_t ld_e_n() { return ld_r_n(reg.e); }
+    tick_t ld_h_n() { return ld_r_n(reg.h); }
+    tick_t ld_l_n() { return ld_r_n(reg.l); }
 
-    void ld_a_n() { ld_r_n(reg.a); }
-    void ld_b_n() { ld_r_n(reg.b); }
-    void ld_c_n() { ld_r_n(reg.c); }
-    void ld_d_n() { ld_r_n(reg.d); }
-    void ld_e_n() { ld_r_n(reg.e); }
-    void ld_h_n() { ld_r_n(reg.h); }
-    void ld_l_n() { ld_r_n(reg.l); }
+    tick_t ld_bc_nn() { return ld_rr_nn(reg.bc); }
+    tick_t ld_de_nn() { return ld_rr_nn(reg.de); }
+    tick_t ld_hl_nn() { return ld_rr_nn(reg.hl); }
+    tick_t ld_sp_nn();
 
-    void ld_bc_nn() { ld_rr_nn(reg.b, reg.c); }
-    void ld_de_nn() { ld_rr_nn(reg.d, reg.e); }
-    void ld_hl_nn() { ld_rr_nn(reg.h, reg.l); }
-    void ld_sp_nn();
+    tick_t ld_pnn_sp();
 
-    void ld_pnn_sp();
+    tick_t ld_a_offc();
+    tick_t ld_offc_a();
 
-    void ld_a_offc();
-    void ld_offc_a();
+    tick_t ldh_offn_a();
+    tick_t ldh_a_offn();
 
-    void ldh_offn_a();
-    void ldh_a_offn();
+    tick_t ldi_a_phl();
+    tick_t ldi_phl_a();
 
-    void ldi_a_phl();
-    void ldi_phl_a();
+    tick_t ldd_a_phl();
+    tick_t ldd_phl_a();
 
-    void ldd_a_phl();
-    void ldd_phl_a();
+    tick_t add_a_a() { return add_a_r(reg.a); }
+    tick_t add_a_b() { return add_a_r(reg.b); }
+    tick_t add_a_c() { return add_a_r(reg.c); }
+    tick_t add_a_d() { return add_a_r(reg.d); }
+    tick_t add_a_e() { return add_a_r(reg.e); }
+    tick_t add_a_h() { return add_a_r(reg.h); }
+    tick_t add_a_l() { return add_a_r(reg.l); }
+    tick_t add_a_n();
+    tick_t add_a_phl();
 
-    void add_a_a() { add_a_r(reg.a); }
-    void add_a_b() { add_a_r(reg.b); }
-    void add_a_c() { add_a_r(reg.c); }
-    void add_a_d() { add_a_r(reg.d); }
-    void add_a_e() { add_a_r(reg.e); }
-    void add_a_h() { add_a_r(reg.h); }
-    void add_a_l() { add_a_r(reg.l); }
-    void add_a_n();
-    void add_a_phl();
+    tick_t add_sp_n();
 
-    void add_sp_n();
+    tick_t adc_a_a() { return adc_a_r(reg.a); }
+    tick_t adc_a_b() { return adc_a_r(reg.b); }
+    tick_t adc_a_c() { return adc_a_r(reg.c); }
+    tick_t adc_a_d() { return adc_a_r(reg.d); }
+    tick_t adc_a_e() { return adc_a_r(reg.e); }
+    tick_t adc_a_h() { return adc_a_r(reg.h); }
+    tick_t adc_a_l() { return adc_a_r(reg.l); }
+    tick_t adc_a_n();
+    tick_t adc_a_phl();
 
-    void adc_a_a() { adc_a_r(reg.a); }
-    void adc_a_b() { adc_a_r(reg.b); }
-    void adc_a_c() { adc_a_r(reg.c); }
-    void adc_a_d() { adc_a_r(reg.d); }
-    void adc_a_e() { adc_a_r(reg.e); }
-    void adc_a_h() { adc_a_r(reg.h); }
-    void adc_a_l() { adc_a_r(reg.l); }
-    void adc_a_n();
-    void adc_a_phl();
+    tick_t add_hl_bc() { return add_hl_rr(reg.bc); }
+    tick_t add_hl_de() { return add_hl_rr(reg.de); }
+    tick_t add_hl_hl() { return add_hl_rr(reg.hl); }
+    tick_t add_hl_sp() { return add_hl_rr(reg.sp); }
 
-    void add_hl_bc() { add_hl_rr(reg.b, reg.c); }
-    void add_hl_de() { add_hl_rr(reg.d, reg.e); }
-    void add_hl_hl() { add_hl_rr(reg.h, reg.l); }
-    void add_hl_sp();
+    tick_t sub_a() { return sub(reg.a); }
+    tick_t sub_b() { return sub(reg.b); }
+    tick_t sub_c() { return sub(reg.c); }
+    tick_t sub_d() { return sub(reg.d); }
+    tick_t sub_e() { return sub(reg.e); }
+    tick_t sub_h() { return sub(reg.h); }
+    tick_t sub_l() { return sub(reg.l); }
+    tick_t sub_n();
+    tick_t sub_phl();
 
-    void sub_a() { sub(reg.a); }
-    void sub_b() { sub(reg.b); }
-    void sub_c() { sub(reg.c); }
-    void sub_d() { sub(reg.d); }
-    void sub_e() { sub(reg.e); }
-    void sub_h() { sub(reg.h); }
-    void sub_l() { sub(reg.l); }
-    void sub_n();
-    void sub_phl();
+    tick_t sbc_a_a() { return sbc_a_r(reg.a); }
+    tick_t sbc_a_b() { return sbc_a_r(reg.b); }
+    tick_t sbc_a_c() { return sbc_a_r(reg.c); }
+    tick_t sbc_a_d() { return sbc_a_r(reg.d); }
+    tick_t sbc_a_e() { return sbc_a_r(reg.e); }
+    tick_t sbc_a_h() { return sbc_a_r(reg.h); }
+    tick_t sbc_a_l() { return sbc_a_r(reg.l); }
+    tick_t sbc_a_n();
+    tick_t sbc_a_phl();
 
-    void sbc_a_a() { sbc_a_r(reg.a); }
-    void sbc_a_b() { sbc_a_r(reg.b); }
-    void sbc_a_c() { sbc_a_r(reg.c); }
-    void sbc_a_d() { sbc_a_r(reg.d); }
-    void sbc_a_e() { sbc_a_r(reg.e); }
-    void sbc_a_h() { sbc_a_r(reg.h); }
-    void sbc_a_l() { sbc_a_r(reg.l); }
-    void sbc_a_n();
-    void sbc_a_phl();
+    tick_t and_a() { return and_r(reg.a); }
+    tick_t and_b() { return and_r(reg.b); }
+    tick_t and_c() { return and_r(reg.c); }
+    tick_t and_d() { return and_r(reg.d); }
+    tick_t and_e() { return and_r(reg.e); }
+    tick_t and_h() { return and_r(reg.h); }
+    tick_t and_l() { return and_r(reg.l); }
+    tick_t and_n();
+    tick_t and_phl();
 
-    void and_a() { and_r(reg.a); }
-    void and_b() { and_r(reg.b); }
-    void and_c() { and_r(reg.c); }
-    void and_d() { and_r(reg.d); }
-    void and_e() { and_r(reg.e); }
-    void and_h() { and_r(reg.h); }
-    void and_l() { and_r(reg.l); }
-    void and_n();
-    void and_phl();
+    tick_t or_a() { return or_r(reg.a); }
+    tick_t or_b() { return or_r(reg.b); }
+    tick_t or_c() { return or_r(reg.c); }
+    tick_t or_d() { return or_r(reg.d); }
+    tick_t or_e() { return or_r(reg.e); }
+    tick_t or_h() { return or_r(reg.h); }
+    tick_t or_l() { return or_r(reg.l); }
+    tick_t or_n();
+    tick_t or_phl();
 
-    void or_a() { or_r(reg.a); }
-    void or_b() { or_r(reg.b); }
-    void or_c() { or_r(reg.c); }
-    void or_d() { or_r(reg.d); }
-    void or_e() { or_r(reg.e); }
-    void or_h() { or_r(reg.h); }
-    void or_l() { or_r(reg.l); }
-    void or_n();
-    void or_phl();
+    tick_t xor_a() { return xor_r(reg.a); }
+    tick_t xor_b() { return xor_r(reg.b); }
+    tick_t xor_c() { return xor_r(reg.c); }
+    tick_t xor_d() { return xor_r(reg.d); }
+    tick_t xor_e() { return xor_r(reg.e); }
+    tick_t xor_h() { return xor_r(reg.h); }
+    tick_t xor_l() { return xor_r(reg.l); }
+    tick_t xor_n();
+    tick_t xor_phl();
 
-    void xor_a() { xor_r(reg.a); }
-    void xor_b() { xor_r(reg.b); }
-    void xor_c() { xor_r(reg.c); }
-    void xor_d() { xor_r(reg.d); }
-    void xor_e() { xor_r(reg.e); }
-    void xor_h() { xor_r(reg.h); }
-    void xor_l() { xor_r(reg.l); }
-    void xor_n();
-    void xor_phl();
+    tick_t cp_a() { return cp_r(reg.a); }
+    tick_t cp_b() { return cp_r(reg.b); }
+    tick_t cp_c() { return cp_r(reg.c); }
+    tick_t cp_d() { return cp_r(reg.d); }
+    tick_t cp_e() { return cp_r(reg.e); }
+    tick_t cp_h() { return cp_r(reg.h); }
+    tick_t cp_l() { return cp_r(reg.l); }
+    tick_t cp_n();
+    tick_t cp_phl();
 
-    void cp_a() { cp_r(reg.a); }
-    void cp_b() { cp_r(reg.b); }
-    void cp_c() { cp_r(reg.c); }
-    void cp_d() { cp_r(reg.d); }
-    void cp_e() { cp_r(reg.e); }
-    void cp_h() { cp_r(reg.h); }
-    void cp_l() { cp_r(reg.l); }
-    void cp_n();
-    void cp_phl();
+    tick_t inc_a() { return inc_r(reg.a); };
+    tick_t inc_b() { return inc_r(reg.b); };
+    tick_t inc_c() { return inc_r(reg.c); };
+    tick_t inc_d() { return inc_r(reg.d); };
+    tick_t inc_e() { return inc_r(reg.e); };
+    tick_t inc_h() { return inc_r(reg.h); };
+    tick_t inc_l() { return inc_r(reg.l); };
 
-    void inc_a() { inc_r(reg.a); };
-    void inc_b() { inc_r(reg.b); };
-    void inc_c() { inc_r(reg.c); };
-    void inc_d() { inc_r(reg.d); };
-    void inc_e() { inc_r(reg.e); };
-    void inc_h() { inc_r(reg.h); };
-    void inc_l() { inc_r(reg.l); };
+    tick_t dec_a() { return dec_r(reg.a); }
+    tick_t dec_b() { return dec_r(reg.b); }
+    tick_t dec_c() { return dec_r(reg.c); }
+    tick_t dec_d() { return dec_r(reg.d); }
+    tick_t dec_e() { return dec_r(reg.e); }
+    tick_t dec_h() { return dec_r(reg.h); }
+    tick_t dec_l() { return dec_r(reg.l); }
 
-    void dec_a() { dec_r(reg.a); }
-    void dec_b() { dec_r(reg.b); }
-    void dec_c() { dec_r(reg.c); }
-    void dec_d() { dec_r(reg.d); }
-    void dec_e() { dec_r(reg.e); }
-    void dec_h() { dec_r(reg.h); }
-    void dec_l() { dec_r(reg.l); }
+    tick_t swap_a() { return swap_r(reg.a); }
+    tick_t swap_b() { return swap_r(reg.b); }
+    tick_t swap_c() { return swap_r(reg.c); }
+    tick_t swap_d() { return swap_r(reg.d); }
+    tick_t swap_e() { return swap_r(reg.e); }
+    tick_t swap_h() { return swap_r(reg.h); }
+    tick_t swap_l() { return swap_r(reg.l); }
+    tick_t swap_phl();
 
-    void swap_a() { swap_r(reg.a); }
-    void swap_b() { swap_r(reg.b); }
-    void swap_c() { swap_r(reg.c); }
-    void swap_d() { swap_r(reg.d); }
-    void swap_e() { swap_r(reg.e); }
-    void swap_h() { swap_r(reg.h); }
-    void swap_l() { swap_r(reg.l); }
-    void swap_phl();
+    tick_t inc_bc() { return inc_rr(reg.bc); }
+    tick_t inc_de() { return inc_rr(reg.de); }
+    tick_t inc_hl() { return inc_rr(reg.hl); }
+    tick_t inc_sp() { return inc_rr(reg.sp); }
+    tick_t inc_phl();
 
-    void inc_bc() { inc_rr(reg.b, reg.c); }
-    void inc_de() { inc_rr(reg.d, reg.e); }
-    void inc_hl() { inc_rr(reg.h, reg.l); }
-    void inc_sp() { reg.sp += 1; clock += Clock(2); }
-    void inc_phl();
+    tick_t dec_bc() { return dec_rr(reg.bc); }
+    tick_t dec_de() { return dec_rr(reg.de); }
+    tick_t dec_hl() { return dec_rr(reg.hl); }
+    tick_t dec_sp() { return dec_rr(reg.sp); }
+    tick_t dec_phl();
 
-    void dec_bc() { dec_rr(reg.b, reg.c); }
-    void dec_de() { dec_rr(reg.d, reg.e); }
-    void dec_hl() { dec_rr(reg.h, reg.l); }
-    void dec_sp() { reg.sp -= 1; clock += Clock(2); }
-    void dec_phl();
+    tick_t push_af() { return push_rr(reg.af); }
+    tick_t push_bc() { return push_rr(reg.bc); }
+    tick_t push_de() { return push_rr(reg.de); }
+    tick_t push_hl() { return push_rr(reg.hl); }
 
-    void push_af() { push_rr(reg.a, reg.f); }
-    void push_bc() { push_rr(reg.b, reg.c); }
-    void push_de() { push_rr(reg.d, reg.e); }
-    void push_hl() { push_rr(reg.h, reg.l); }
+    tick_t pop_af() { return pop_rr(reg.af); }
+    tick_t pop_bc() { return pop_rr(reg.bc); }
+    tick_t pop_de() { return pop_rr(reg.de); }
+    tick_t pop_hl() { return pop_rr(reg.hl); }
 
-    void pop_af() { pop_rr(reg.a, reg.f); }
-    void pop_bc() { pop_rr(reg.b, reg.c); }
-    void pop_de() { pop_rr(reg.d, reg.e); }
-    void pop_hl() { pop_rr(reg.h, reg.l); }
+    tick_t rst_00() { return rst(0x00); };
+    tick_t rst_08() { return rst(0x08); };
+    tick_t rst_10() { return rst(0x10); };
+    tick_t rst_18() { return rst(0x18); };
+    tick_t rst_20() { return rst(0x20); };
+    tick_t rst_28() { return rst(0x28); };
+    tick_t rst_30() { return rst(0x30); };
+    tick_t rst_38() { return rst(0x38); };
 
-    void rst_00() { rst(0x00); };
-    void rst_08() { rst(0x08); };
-    void rst_10() { rst(0x10); };
-    void rst_18() { rst(0x18); };
-    void rst_20() { rst(0x20); };
-    void rst_28() { rst(0x28); };
-    void rst_30() { rst(0x30); };
-    void rst_38() { rst(0x38); };
+    tick_t call();
+    tick_t call_z();
+    tick_t call_nz();
+    tick_t call_c();
+    tick_t call_nc();
 
-    void call();
-    void call_z();
-    void call_nz();
-    void call_c();
-    void call_nc();
+    tick_t ret();
+    tick_t reti();
+    tick_t ret_z();
+    tick_t ret_nz();
+    tick_t ret_c();
+    tick_t ret_nc();
 
-    void ret();
-    void reti();
-    void ret_z();
-    void ret_nz();
-    void ret_c();
-    void ret_nc();
+    tick_t jp();
+    tick_t jp_z();
+    tick_t jp_nz();
+    tick_t jp_c();
+    tick_t jp_nc();
+    tick_t jp_hl();
 
-    void jp();
-    void jp_z();
-    void jp_nz();
-    void jp_c();
-    void jp_nc();
-    void jp_hl();
-
-    void jr();
-    void jr_z();
-    void jr_nz();
-    void jr_c();
-    void jr_nc();
+    tick_t jr();
+    tick_t jr_z();
+    tick_t jr_nz();
+    tick_t jr_c();
+    tick_t jr_nc();
 
     // CB Instruction Set
 
-    void rlc_a() { rlc_r(reg.a); }
-    void rlc_b() { rlc_r(reg.b); }
-    void rlc_c() { rlc_r(reg.c); }
-    void rlc_d() { rlc_r(reg.d); }
-    void rlc_e() { rlc_r(reg.e); }
-    void rlc_h() { rlc_r(reg.h); }
-    void rlc_l() { rlc_r(reg.l); }
+    tick_t rlc_a() { return rlc_r(reg.a); }
+    tick_t rlc_b() { return rlc_r(reg.b); }
+    tick_t rlc_c() { return rlc_r(reg.c); }
+    tick_t rlc_d() { return rlc_r(reg.d); }
+    tick_t rlc_e() { return rlc_r(reg.e); }
+    tick_t rlc_h() { return rlc_r(reg.h); }
+    tick_t rlc_l() { return rlc_r(reg.l); }
 
-    void rrc_a() { rrc_r(reg.a); }
-    void rrc_b() { rrc_r(reg.b); }
-    void rrc_c() { rrc_r(reg.c); }
-    void rrc_d() { rrc_r(reg.d); }
-    void rrc_e() { rrc_r(reg.e); }
-    void rrc_h() { rrc_r(reg.h); }
-    void rrc_l() { rrc_r(reg.l); }
+    tick_t rrc_a() { return rrc_r(reg.a); }
+    tick_t rrc_b() { return rrc_r(reg.b); }
+    tick_t rrc_c() { return rrc_r(reg.c); }
+    tick_t rrc_d() { return rrc_r(reg.d); }
+    tick_t rrc_e() { return rrc_r(reg.e); }
+    tick_t rrc_h() { return rrc_r(reg.h); }
+    tick_t rrc_l() { return rrc_r(reg.l); }
 
-    void rl_a() { rl_r(reg.a); }
-    void rl_b() { rl_r(reg.b); }
-    void rl_c() { rl_r(reg.c); }
-    void rl_d() { rl_r(reg.d); }
-    void rl_e() { rl_r(reg.e); }
-    void rl_h() { rl_r(reg.h); }
-    void rl_l() { rl_r(reg.l); }
+    tick_t rl_a() { return rl_r(reg.a); }
+    tick_t rl_b() { return rl_r(reg.b); }
+    tick_t rl_c() { return rl_r(reg.c); }
+    tick_t rl_d() { return rl_r(reg.d); }
+    tick_t rl_e() { return rl_r(reg.e); }
+    tick_t rl_h() { return rl_r(reg.h); }
+    tick_t rl_l() { return rl_r(reg.l); }
 
-    void rr_a() { rr_r(reg.a); }
-    void rr_b() { rr_r(reg.b); }
-    void rr_c() { rr_r(reg.c); }
-    void rr_d() { rr_r(reg.d); }
-    void rr_e() { rr_r(reg.e); }
-    void rr_h() { rr_r(reg.h); }
-    void rr_l() { rr_r(reg.l); }
+    tick_t rr_a() { return rr_r(reg.a); }
+    tick_t rr_b() { return rr_r(reg.b); }
+    tick_t rr_c() { return rr_r(reg.c); }
+    tick_t rr_d() { return rr_r(reg.d); }
+    tick_t rr_e() { return rr_r(reg.e); }
+    tick_t rr_h() { return rr_r(reg.h); }
+    tick_t rr_l() { return rr_r(reg.l); }
 
-    void sla_a() { sla_r(reg.a); }
-    void sla_b() { sla_r(reg.b); }
-    void sla_c() { sla_r(reg.c); }
-    void sla_d() { sla_r(reg.d); }
-    void sla_e() { sla_r(reg.e); }
-    void sla_h() { sla_r(reg.h); }
-    void sla_l() { sla_r(reg.l); }
+    tick_t sla_a() { return sla_r(reg.a); }
+    tick_t sla_b() { return sla_r(reg.b); }
+    tick_t sla_c() { return sla_r(reg.c); }
+    tick_t sla_d() { return sla_r(reg.d); }
+    tick_t sla_e() { return sla_r(reg.e); }
+    tick_t sla_h() { return sla_r(reg.h); }
+    tick_t sla_l() { return sla_r(reg.l); }
 
-    void sra_a() { sra_r(reg.a); }
-    void sra_b() { sra_r(reg.b); }
-    void sra_c() { sra_r(reg.c); }
-    void sra_d() { sra_r(reg.d); }
-    void sra_e() { sra_r(reg.e); }
-    void sra_h() { sra_r(reg.h); }
-    void sra_l() { sra_r(reg.l); }
+    tick_t sra_a() { return sra_r(reg.a); }
+    tick_t sra_b() { return sra_r(reg.b); }
+    tick_t sra_c() { return sra_r(reg.c); }
+    tick_t sra_d() { return sra_r(reg.d); }
+    tick_t sra_e() { return sra_r(reg.e); }
+    tick_t sra_h() { return sra_r(reg.h); }
+    tick_t sra_l() { return sra_r(reg.l); }
 
-    void bit_0_a() { bit_i_r(0, reg.a); }
-    void bit_1_a() { bit_i_r(1, reg.a); }
-    void bit_2_a() { bit_i_r(2, reg.a); }
-    void bit_3_a() { bit_i_r(3, reg.a); }
-    void bit_4_a() { bit_i_r(4, reg.a); }
-    void bit_5_a() { bit_i_r(5, reg.a); }
-    void bit_6_a() { bit_i_r(6, reg.a); }
-    void bit_7_a() { bit_i_r(7, reg.a); }
+    tick_t bit_0_a() { return bit_i_r(0, reg.a); }
+    tick_t bit_1_a() { return bit_i_r(1, reg.a); }
+    tick_t bit_2_a() { return bit_i_r(2, reg.a); }
+    tick_t bit_3_a() { return bit_i_r(3, reg.a); }
+    tick_t bit_4_a() { return bit_i_r(4, reg.a); }
+    tick_t bit_5_a() { return bit_i_r(5, reg.a); }
+    tick_t bit_6_a() { return bit_i_r(6, reg.a); }
+    tick_t bit_7_a() { return bit_i_r(7, reg.a); }
 
-    void bit_0_b() { bit_i_r(0, reg.b); }
-    void bit_1_b() { bit_i_r(1, reg.b); }
-    void bit_2_b() { bit_i_r(2, reg.b); }
-    void bit_3_b() { bit_i_r(3, reg.b); }
-    void bit_4_b() { bit_i_r(4, reg.b); }
-    void bit_5_b() { bit_i_r(5, reg.b); }
-    void bit_6_b() { bit_i_r(6, reg.b); }
-    void bit_7_b() { bit_i_r(7, reg.b); }
+    tick_t bit_0_b() { return bit_i_r(0, reg.b); }
+    tick_t bit_1_b() { return bit_i_r(1, reg.b); }
+    tick_t bit_2_b() { return bit_i_r(2, reg.b); }
+    tick_t bit_3_b() { return bit_i_r(3, reg.b); }
+    tick_t bit_4_b() { return bit_i_r(4, reg.b); }
+    tick_t bit_5_b() { return bit_i_r(5, reg.b); }
+    tick_t bit_6_b() { return bit_i_r(6, reg.b); }
+    tick_t bit_7_b() { return bit_i_r(7, reg.b); }
 
-    void bit_0_c() { bit_i_r(0, reg.c); }
-    void bit_1_c() { bit_i_r(1, reg.c); }
-    void bit_2_c() { bit_i_r(2, reg.c); }
-    void bit_3_c() { bit_i_r(3, reg.c); }
-    void bit_4_c() { bit_i_r(4, reg.c); }
-    void bit_5_c() { bit_i_r(5, reg.c); }
-    void bit_6_c() { bit_i_r(6, reg.c); }
-    void bit_7_c() { bit_i_r(7, reg.c); }
+    tick_t bit_0_c() { return bit_i_r(0, reg.c); }
+    tick_t bit_1_c() { return bit_i_r(1, reg.c); }
+    tick_t bit_2_c() { return bit_i_r(2, reg.c); }
+    tick_t bit_3_c() { return bit_i_r(3, reg.c); }
+    tick_t bit_4_c() { return bit_i_r(4, reg.c); }
+    tick_t bit_5_c() { return bit_i_r(5, reg.c); }
+    tick_t bit_6_c() { return bit_i_r(6, reg.c); }
+    tick_t bit_7_c() { return bit_i_r(7, reg.c); }
 
-    void bit_0_d() { bit_i_r(0, reg.d); }
-    void bit_1_d() { bit_i_r(1, reg.d); }
-    void bit_2_d() { bit_i_r(2, reg.d); }
-    void bit_3_d() { bit_i_r(3, reg.d); }
-    void bit_4_d() { bit_i_r(4, reg.d); }
-    void bit_5_d() { bit_i_r(5, reg.d); }
-    void bit_6_d() { bit_i_r(6, reg.d); }
-    void bit_7_d() { bit_i_r(7, reg.d); }
+    tick_t bit_0_d() { return bit_i_r(0, reg.d); }
+    tick_t bit_1_d() { return bit_i_r(1, reg.d); }
+    tick_t bit_2_d() { return bit_i_r(2, reg.d); }
+    tick_t bit_3_d() { return bit_i_r(3, reg.d); }
+    tick_t bit_4_d() { return bit_i_r(4, reg.d); }
+    tick_t bit_5_d() { return bit_i_r(5, reg.d); }
+    tick_t bit_6_d() { return bit_i_r(6, reg.d); }
+    tick_t bit_7_d() { return bit_i_r(7, reg.d); }
 
-    void bit_0_e() { bit_i_r(0, reg.e); }
-    void bit_1_e() { bit_i_r(1, reg.e); }
-    void bit_2_e() { bit_i_r(2, reg.e); }
-    void bit_3_e() { bit_i_r(3, reg.e); }
-    void bit_4_e() { bit_i_r(4, reg.e); }
-    void bit_5_e() { bit_i_r(5, reg.e); }
-    void bit_6_e() { bit_i_r(6, reg.e); }
-    void bit_7_e() { bit_i_r(7, reg.e); }
+    tick_t bit_0_e() { return bit_i_r(0, reg.e); }
+    tick_t bit_1_e() { return bit_i_r(1, reg.e); }
+    tick_t bit_2_e() { return bit_i_r(2, reg.e); }
+    tick_t bit_3_e() { return bit_i_r(3, reg.e); }
+    tick_t bit_4_e() { return bit_i_r(4, reg.e); }
+    tick_t bit_5_e() { return bit_i_r(5, reg.e); }
+    tick_t bit_6_e() { return bit_i_r(6, reg.e); }
+    tick_t bit_7_e() { return bit_i_r(7, reg.e); }
 
-    void bit_0_h() { bit_i_r(0, reg.h); }
-    void bit_1_h() { bit_i_r(1, reg.h); }
-    void bit_2_h() { bit_i_r(2, reg.h); }
-    void bit_3_h() { bit_i_r(3, reg.h); }
-    void bit_4_h() { bit_i_r(4, reg.h); }
-    void bit_5_h() { bit_i_r(5, reg.h); }
-    void bit_6_h() { bit_i_r(6, reg.h); }
-    void bit_7_h() { bit_i_r(7, reg.h); }
+    tick_t bit_0_h() { return bit_i_r(0, reg.h); }
+    tick_t bit_1_h() { return bit_i_r(1, reg.h); }
+    tick_t bit_2_h() { return bit_i_r(2, reg.h); }
+    tick_t bit_3_h() { return bit_i_r(3, reg.h); }
+    tick_t bit_4_h() { return bit_i_r(4, reg.h); }
+    tick_t bit_5_h() { return bit_i_r(5, reg.h); }
+    tick_t bit_6_h() { return bit_i_r(6, reg.h); }
+    tick_t bit_7_h() { return bit_i_r(7, reg.h); }
 
-    void bit_0_l() { bit_i_r(0, reg.l); }
-    void bit_1_l() { bit_i_r(1, reg.l); }
-    void bit_2_l() { bit_i_r(2, reg.l); }
-    void bit_3_l() { bit_i_r(3, reg.l); }
-    void bit_4_l() { bit_i_r(4, reg.l); }
-    void bit_5_l() { bit_i_r(5, reg.l); }
-    void bit_6_l() { bit_i_r(6, reg.l); }
-    void bit_7_l() { bit_i_r(7, reg.l); }
+    tick_t bit_0_l() { return bit_i_r(0, reg.l); }
+    tick_t bit_1_l() { return bit_i_r(1, reg.l); }
+    tick_t bit_2_l() { return bit_i_r(2, reg.l); }
+    tick_t bit_3_l() { return bit_i_r(3, reg.l); }
+    tick_t bit_4_l() { return bit_i_r(4, reg.l); }
+    tick_t bit_5_l() { return bit_i_r(5, reg.l); }
+    tick_t bit_6_l() { return bit_i_r(6, reg.l); }
+    tick_t bit_7_l() { return bit_i_r(7, reg.l); }
 
-    void bit_0_phl() { bit_i_phl(0); }
-    void bit_1_phl() { bit_i_phl(1); }
-    void bit_2_phl() { bit_i_phl(2); }
-    void bit_3_phl() { bit_i_phl(3); }
-    void bit_4_phl() { bit_i_phl(4); }
-    void bit_5_phl() { bit_i_phl(5); }
-    void bit_6_phl() { bit_i_phl(6); }
-    void bit_7_phl() { bit_i_phl(7); }
+    tick_t bit_0_phl() { return bit_i_phl(0); }
+    tick_t bit_1_phl() { return bit_i_phl(1); }
+    tick_t bit_2_phl() { return bit_i_phl(2); }
+    tick_t bit_3_phl() { return bit_i_phl(3); }
+    tick_t bit_4_phl() { return bit_i_phl(4); }
+    tick_t bit_5_phl() { return bit_i_phl(5); }
+    tick_t bit_6_phl() { return bit_i_phl(6); }
+    tick_t bit_7_phl() { return bit_i_phl(7); }
 
 
-    void set_0_a() { set_i_r(0, reg.a); }
-    void set_1_a() { set_i_r(1, reg.a); }
-    void set_2_a() { set_i_r(2, reg.a); }
-    void set_3_a() { set_i_r(3, reg.a); }
-    void set_4_a() { set_i_r(4, reg.a); }
-    void set_5_a() { set_i_r(5, reg.a); }
-    void set_6_a() { set_i_r(6, reg.a); }
-    void set_7_a() { set_i_r(7, reg.a); }
+    tick_t set_0_a() { return set_i_r(0, reg.a); }
+    tick_t set_1_a() { return set_i_r(1, reg.a); }
+    tick_t set_2_a() { return set_i_r(2, reg.a); }
+    tick_t set_3_a() { return set_i_r(3, reg.a); }
+    tick_t set_4_a() { return set_i_r(4, reg.a); }
+    tick_t set_5_a() { return set_i_r(5, reg.a); }
+    tick_t set_6_a() { return set_i_r(6, reg.a); }
+    tick_t set_7_a() { return set_i_r(7, reg.a); }
 
-    void set_0_b() { set_i_r(0, reg.b); }
-    void set_1_b() { set_i_r(1, reg.b); }
-    void set_2_b() { set_i_r(2, reg.b); }
-    void set_3_b() { set_i_r(3, reg.b); }
-    void set_4_b() { set_i_r(4, reg.b); }
-    void set_5_b() { set_i_r(5, reg.b); }
-    void set_6_b() { set_i_r(6, reg.b); }
-    void set_7_b() { set_i_r(7, reg.b); }
+    tick_t set_0_b() { return set_i_r(0, reg.b); }
+    tick_t set_1_b() { return set_i_r(1, reg.b); }
+    tick_t set_2_b() { return set_i_r(2, reg.b); }
+    tick_t set_3_b() { return set_i_r(3, reg.b); }
+    tick_t set_4_b() { return set_i_r(4, reg.b); }
+    tick_t set_5_b() { return set_i_r(5, reg.b); }
+    tick_t set_6_b() { return set_i_r(6, reg.b); }
+    tick_t set_7_b() { return set_i_r(7, reg.b); }
 
-    void set_0_c() { set_i_r(0, reg.c); }
-    void set_1_c() { set_i_r(1, reg.c); }
-    void set_2_c() { set_i_r(2, reg.c); }
-    void set_3_c() { set_i_r(3, reg.c); }
-    void set_4_c() { set_i_r(4, reg.c); }
-    void set_5_c() { set_i_r(5, reg.c); }
-    void set_6_c() { set_i_r(6, reg.c); }
-    void set_7_c() { set_i_r(7, reg.c); }
+    tick_t set_0_c() { return set_i_r(0, reg.c); }
+    tick_t set_1_c() { return set_i_r(1, reg.c); }
+    tick_t set_2_c() { return set_i_r(2, reg.c); }
+    tick_t set_3_c() { return set_i_r(3, reg.c); }
+    tick_t set_4_c() { return set_i_r(4, reg.c); }
+    tick_t set_5_c() { return set_i_r(5, reg.c); }
+    tick_t set_6_c() { return set_i_r(6, reg.c); }
+    tick_t set_7_c() { return set_i_r(7, reg.c); }
 
-    void set_0_d() { set_i_r(0, reg.d); }
-    void set_1_d() { set_i_r(1, reg.d); }
-    void set_2_d() { set_i_r(2, reg.d); }
-    void set_3_d() { set_i_r(3, reg.d); }
-    void set_4_d() { set_i_r(4, reg.d); }
-    void set_5_d() { set_i_r(5, reg.d); }
-    void set_6_d() { set_i_r(6, reg.d); }
-    void set_7_d() { set_i_r(7, reg.d); }
+    tick_t set_0_d() { return set_i_r(0, reg.d); }
+    tick_t set_1_d() { return set_i_r(1, reg.d); }
+    tick_t set_2_d() { return set_i_r(2, reg.d); }
+    tick_t set_3_d() { return set_i_r(3, reg.d); }
+    tick_t set_4_d() { return set_i_r(4, reg.d); }
+    tick_t set_5_d() { return set_i_r(5, reg.d); }
+    tick_t set_6_d() { return set_i_r(6, reg.d); }
+    tick_t set_7_d() { return set_i_r(7, reg.d); }
 
-    void set_0_e() { set_i_r(0, reg.e); }
-    void set_1_e() { set_i_r(1, reg.e); }
-    void set_2_e() { set_i_r(2, reg.e); }
-    void set_3_e() { set_i_r(3, reg.e); }
-    void set_4_e() { set_i_r(4, reg.e); }
-    void set_5_e() { set_i_r(5, reg.e); }
-    void set_6_e() { set_i_r(6, reg.e); }
-    void set_7_e() { set_i_r(7, reg.e); }
+    tick_t set_0_e() { return set_i_r(0, reg.e); }
+    tick_t set_1_e() { return set_i_r(1, reg.e); }
+    tick_t set_2_e() { return set_i_r(2, reg.e); }
+    tick_t set_3_e() { return set_i_r(3, reg.e); }
+    tick_t set_4_e() { return set_i_r(4, reg.e); }
+    tick_t set_5_e() { return set_i_r(5, reg.e); }
+    tick_t set_6_e() { return set_i_r(6, reg.e); }
+    tick_t set_7_e() { return set_i_r(7, reg.e); }
 
-    void set_0_h() { set_i_r(0, reg.h); }
-    void set_1_h() { set_i_r(1, reg.h); }
-    void set_2_h() { set_i_r(2, reg.h); }
-    void set_3_h() { set_i_r(3, reg.h); }
-    void set_4_h() { set_i_r(4, reg.h); }
-    void set_5_h() { set_i_r(5, reg.h); }
-    void set_6_h() { set_i_r(6, reg.h); }
-    void set_7_h() { set_i_r(7, reg.h); }
+    tick_t set_0_h() { return set_i_r(0, reg.h); }
+    tick_t set_1_h() { return set_i_r(1, reg.h); }
+    tick_t set_2_h() { return set_i_r(2, reg.h); }
+    tick_t set_3_h() { return set_i_r(3, reg.h); }
+    tick_t set_4_h() { return set_i_r(4, reg.h); }
+    tick_t set_5_h() { return set_i_r(5, reg.h); }
+    tick_t set_6_h() { return set_i_r(6, reg.h); }
+    tick_t set_7_h() { return set_i_r(7, reg.h); }
 
-    void set_0_l() { set_i_r(0, reg.l); }
-    void set_1_l() { set_i_r(1, reg.l); }
-    void set_2_l() { set_i_r(2, reg.l); }
-    void set_3_l() { set_i_r(3, reg.l); }
-    void set_4_l() { set_i_r(4, reg.l); }
-    void set_5_l() { set_i_r(5, reg.l); }
-    void set_6_l() { set_i_r(6, reg.l); }
-    void set_7_l() { set_i_r(7, reg.l); }
+    tick_t set_0_l() { return set_i_r(0, reg.l); }
+    tick_t set_1_l() { return set_i_r(1, reg.l); }
+    tick_t set_2_l() { return set_i_r(2, reg.l); }
+    tick_t set_3_l() { return set_i_r(3, reg.l); }
+    tick_t set_4_l() { return set_i_r(4, reg.l); }
+    tick_t set_5_l() { return set_i_r(5, reg.l); }
+    tick_t set_6_l() { return set_i_r(6, reg.l); }
+    tick_t set_7_l() { return set_i_r(7, reg.l); }
 
-    void set_0_phl() { set_i_phl(0); }
-    void set_1_phl() { set_i_phl(1); }
-    void set_2_phl() { set_i_phl(2); }
-    void set_3_phl() { set_i_phl(3); }
-    void set_4_phl() { set_i_phl(4); }
-    void set_5_phl() { set_i_phl(5); }
-    void set_6_phl() { set_i_phl(6); }
-    void set_7_phl() { set_i_phl(7); }
+    tick_t set_0_phl() { return set_i_phl(0); }
+    tick_t set_1_phl() { return set_i_phl(1); }
+    tick_t set_2_phl() { return set_i_phl(2); }
+    tick_t set_3_phl() { return set_i_phl(3); }
+    tick_t set_4_phl() { return set_i_phl(4); }
+    tick_t set_5_phl() { return set_i_phl(5); }
+    tick_t set_6_phl() { return set_i_phl(6); }
+    tick_t set_7_phl() { return set_i_phl(7); }
 
-    void res_0_a() { res_i_r(0, reg.a); }
-    void res_1_a() { res_i_r(1, reg.a); }
-    void res_2_a() { res_i_r(2, reg.a); }
-    void res_3_a() { res_i_r(3, reg.a); }
-    void res_4_a() { res_i_r(4, reg.a); }
-    void res_5_a() { res_i_r(5, reg.a); }
-    void res_6_a() { res_i_r(6, reg.a); }
-    void res_7_a() { res_i_r(7, reg.a); }
+    tick_t res_0_a() { return res_i_r(0, reg.a); }
+    tick_t res_1_a() { return res_i_r(1, reg.a); }
+    tick_t res_2_a() { return res_i_r(2, reg.a); }
+    tick_t res_3_a() { return res_i_r(3, reg.a); }
+    tick_t res_4_a() { return res_i_r(4, reg.a); }
+    tick_t res_5_a() { return res_i_r(5, reg.a); }
+    tick_t res_6_a() { return res_i_r(6, reg.a); }
+    tick_t res_7_a() { return res_i_r(7, reg.a); }
 
-    void res_0_b() { res_i_r(0, reg.b); }
-    void res_1_b() { res_i_r(1, reg.b); }
-    void res_2_b() { res_i_r(2, reg.b); }
-    void res_3_b() { res_i_r(3, reg.b); }
-    void res_4_b() { res_i_r(4, reg.b); }
-    void res_5_b() { res_i_r(5, reg.b); }
-    void res_6_b() { res_i_r(6, reg.b); }
-    void res_7_b() { res_i_r(7, reg.b); }
+    tick_t res_0_b() { return res_i_r(0, reg.b); }
+    tick_t res_1_b() { return res_i_r(1, reg.b); }
+    tick_t res_2_b() { return res_i_r(2, reg.b); }
+    tick_t res_3_b() { return res_i_r(3, reg.b); }
+    tick_t res_4_b() { return res_i_r(4, reg.b); }
+    tick_t res_5_b() { return res_i_r(5, reg.b); }
+    tick_t res_6_b() { return res_i_r(6, reg.b); }
+    tick_t res_7_b() { return res_i_r(7, reg.b); }
 
-    void res_0_c() { res_i_r(0, reg.c); }
-    void res_1_c() { res_i_r(1, reg.c); }
-    void res_2_c() { res_i_r(2, reg.c); }
-    void res_3_c() { res_i_r(3, reg.c); }
-    void res_4_c() { res_i_r(4, reg.c); }
-    void res_5_c() { res_i_r(5, reg.c); }
-    void res_6_c() { res_i_r(6, reg.c); }
-    void res_7_c() { res_i_r(7, reg.c); }
+    tick_t res_0_c() { return res_i_r(0, reg.c); }
+    tick_t res_1_c() { return res_i_r(1, reg.c); }
+    tick_t res_2_c() { return res_i_r(2, reg.c); }
+    tick_t res_3_c() { return res_i_r(3, reg.c); }
+    tick_t res_4_c() { return res_i_r(4, reg.c); }
+    tick_t res_5_c() { return res_i_r(5, reg.c); }
+    tick_t res_6_c() { return res_i_r(6, reg.c); }
+    tick_t res_7_c() { return res_i_r(7, reg.c); }
 
-    void res_0_d() { res_i_r(0, reg.d); }
-    void res_1_d() { res_i_r(1, reg.d); }
-    void res_2_d() { res_i_r(2, reg.d); }
-    void res_3_d() { res_i_r(3, reg.d); }
-    void res_4_d() { res_i_r(4, reg.d); }
-    void res_5_d() { res_i_r(5, reg.d); }
-    void res_6_d() { res_i_r(6, reg.d); }
-    void res_7_d() { res_i_r(7, reg.d); }
+    tick_t res_0_d() { return res_i_r(0, reg.d); }
+    tick_t res_1_d() { return res_i_r(1, reg.d); }
+    tick_t res_2_d() { return res_i_r(2, reg.d); }
+    tick_t res_3_d() { return res_i_r(3, reg.d); }
+    tick_t res_4_d() { return res_i_r(4, reg.d); }
+    tick_t res_5_d() { return res_i_r(5, reg.d); }
+    tick_t res_6_d() { return res_i_r(6, reg.d); }
+    tick_t res_7_d() { return res_i_r(7, reg.d); }
 
-    void res_0_e() { res_i_r(0, reg.e); }
-    void res_1_e() { res_i_r(1, reg.e); }
-    void res_2_e() { res_i_r(2, reg.e); }
-    void res_3_e() { res_i_r(3, reg.e); }
-    void res_4_e() { res_i_r(4, reg.e); }
-    void res_5_e() { res_i_r(5, reg.e); }
-    void res_6_e() { res_i_r(6, reg.e); }
-    void res_7_e() { res_i_r(7, reg.e); }
+    tick_t res_0_e() { return res_i_r(0, reg.e); }
+    tick_t res_1_e() { return res_i_r(1, reg.e); }
+    tick_t res_2_e() { return res_i_r(2, reg.e); }
+    tick_t res_3_e() { return res_i_r(3, reg.e); }
+    tick_t res_4_e() { return res_i_r(4, reg.e); }
+    tick_t res_5_e() { return res_i_r(5, reg.e); }
+    tick_t res_6_e() { return res_i_r(6, reg.e); }
+    tick_t res_7_e() { return res_i_r(7, reg.e); }
 
-    void res_0_h() { res_i_r(0, reg.h); }
-    void res_1_h() { res_i_r(1, reg.h); }
-    void res_2_h() { res_i_r(2, reg.h); }
-    void res_3_h() { res_i_r(3, reg.h); }
-    void res_4_h() { res_i_r(4, reg.h); }
-    void res_5_h() { res_i_r(5, reg.h); }
-    void res_6_h() { res_i_r(6, reg.h); }
-    void res_7_h() { res_i_r(7, reg.h); }
+    tick_t res_0_h() { return res_i_r(0, reg.h); }
+    tick_t res_1_h() { return res_i_r(1, reg.h); }
+    tick_t res_2_h() { return res_i_r(2, reg.h); }
+    tick_t res_3_h() { return res_i_r(3, reg.h); }
+    tick_t res_4_h() { return res_i_r(4, reg.h); }
+    tick_t res_5_h() { return res_i_r(5, reg.h); }
+    tick_t res_6_h() { return res_i_r(6, reg.h); }
+    tick_t res_7_h() { return res_i_r(7, reg.h); }
 
-    void res_0_l() { res_i_r(0, reg.l); }
-    void res_1_l() { res_i_r(1, reg.l); }
-    void res_2_l() { res_i_r(2, reg.l); }
-    void res_3_l() { res_i_r(3, reg.l); }
-    void res_4_l() { res_i_r(4, reg.l); }
-    void res_5_l() { res_i_r(5, reg.l); }
-    void res_6_l() { res_i_r(6, reg.l); }
-    void res_7_l() { res_i_r(7, reg.l); }
+    tick_t res_0_l() { return res_i_r(0, reg.l); }
+    tick_t res_1_l() { return res_i_r(1, reg.l); }
+    tick_t res_2_l() { return res_i_r(2, reg.l); }
+    tick_t res_3_l() { return res_i_r(3, reg.l); }
+    tick_t res_4_l() { return res_i_r(4, reg.l); }
+    tick_t res_5_l() { return res_i_r(5, reg.l); }
+    tick_t res_6_l() { return res_i_r(6, reg.l); }
+    tick_t res_7_l() { return res_i_r(7, reg.l); }
 
-    void res_0_phl() { res_i_phl(0); }
-    void res_1_phl() { res_i_phl(1); }
-    void res_2_phl() { res_i_phl(2); }
-    void res_3_phl() { res_i_phl(3); }
-    void res_4_phl() { res_i_phl(4); }
-    void res_5_phl() { res_i_phl(5); }
-    void res_6_phl() { res_i_phl(6); }
-    void res_7_phl() { res_i_phl(7); }
+    tick_t res_0_phl() { return res_i_phl(0); }
+    tick_t res_1_phl() { return res_i_phl(1); }
+    tick_t res_2_phl() { return res_i_phl(2); }
+    tick_t res_3_phl() { return res_i_phl(3); }
+    tick_t res_4_phl() { return res_i_phl(4); }
+    tick_t res_5_phl() { return res_i_phl(5); }
+    tick_t res_6_phl() { return res_i_phl(6); }
+    tick_t res_7_phl() { return res_i_phl(7); }
 
 };
 

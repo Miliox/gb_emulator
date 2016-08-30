@@ -24,8 +24,6 @@ TEST_CASE("GBCPU Constructor", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 0);
-    REQUIRE(cpu.clock.t == 0);
 }
 
 
@@ -59,8 +57,6 @@ TEST_CASE("Reset GBCPU", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 0);
-    REQUIRE(cpu.clock.t == 0);
 }
 
 TEST_CASE("GBCPU NOP", "[GBCPU]") {
@@ -78,8 +74,6 @@ TEST_CASE("GBCPU NOP", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 1);
-    REQUIRE(cpu.clock.t == 4);
 }
 
 TEST_CASE("GBCPU ADD A,E", "[GBCPU]") {
@@ -100,8 +94,6 @@ TEST_CASE("GBCPU ADD A,E", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 1);
-    REQUIRE(cpu.clock.t == 4);
 
     // Zero Flag
     cpu.reg.a = 0;
@@ -118,8 +110,6 @@ TEST_CASE("GBCPU ADD A,E", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 2);
-    REQUIRE(cpu.clock.t == 8);
 
     // Carry Flag
     cpu.reg.a = 128;
@@ -136,8 +126,6 @@ TEST_CASE("GBCPU ADD A,E", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 3);
-    REQUIRE(cpu.clock.t == 12);
 
     // Zero + Carry Flag
     cpu.reg.a = 128;
@@ -154,8 +142,6 @@ TEST_CASE("GBCPU ADD A,E", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 4);
-    REQUIRE(cpu.clock.t == 16);
 }
 
 TEST_CASE("Increment Registers from GBCPU", "[GBCPU]") {
@@ -173,8 +159,6 @@ TEST_CASE("Increment Registers from GBCPU", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 1);
-    REQUIRE(cpu.clock.t == 4);
 
     cpu.inc_a();
     REQUIRE(cpu.reg.a == 2);
@@ -187,8 +171,6 @@ TEST_CASE("Increment Registers from GBCPU", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 2);
-    REQUIRE(cpu.clock.t == 8);
 
     cpu.inc_e();
     REQUIRE(cpu.reg.a == 2);
@@ -201,8 +183,6 @@ TEST_CASE("Increment Registers from GBCPU", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 3);
-    REQUIRE(cpu.clock.t == 12);
 
     cpu.inc_l();
     REQUIRE(cpu.reg.a == 2);
@@ -215,8 +195,6 @@ TEST_CASE("Increment Registers from GBCPU", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 1);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 4);
-    REQUIRE(cpu.clock.t == 16);
 }
 
 TEST_CASE("Decrement Registers from GBCPU", "[GBCPU]") {
@@ -234,8 +212,6 @@ TEST_CASE("Decrement Registers from GBCPU", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 1);
-    REQUIRE(cpu.clock.t == 4);
 
     cpu.dec_a();
     REQUIRE(cpu.reg.a == 0);
@@ -248,8 +224,6 @@ TEST_CASE("Decrement Registers from GBCPU", "[GBCPU]") {
     REQUIRE(cpu.reg.l == 0);
     REQUIRE(cpu.reg.sp == 0);
     REQUIRE(cpu.reg.pc == 0);
-    REQUIRE(cpu.clock.m == 2);
-    REQUIRE(cpu.clock.t == 8);
 }
 
 TEST_CASE("PUSH/POP GBCPU", "[GBCPU]") {
