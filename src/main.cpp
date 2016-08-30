@@ -10,13 +10,6 @@ void emulator() {
     GBCPU cpu(mmu);
     GBGPU gpu(mmu);
 
-    const Uint32 frames_per_second = 60;
-
-    const tick_t ticks_per_second = 4194304;
-    const tick_t ticks_per_frame  = ticks_per_second / frames_per_second;
-
-    const Uint32 milliseconds_per_frame = 1000 / frames_per_second;
-
     bool running = true;
 
     gpu.show();
@@ -39,19 +32,19 @@ void emulator() {
             mmu.step(t);
             clock += t;
 
-            // check for quit interruption
-            SDL_Event event;
-            if (SDL_PollEvent(&event))
-            {
-                if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
-                    running = false;
-                }
-            }
-
             // sync
-            if (clock >= ticks_per_frame) {
-                clock = 0;
-                SDL_Delay(milliseconds_per_frame);
+            if (clock >= kTicksPerFrame) {
+                // check for quit interruption
+                SDL_Event event;
+                if (SDL_PollEvent(&event))
+                {
+                    if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
+                        running = false;
+                    }
+                }
+
+                clock -= kTicksPerFrame;
+                SDL_Delay(kMillisPerFrame);
             }
         }
     } catch (std::exception& e) {
