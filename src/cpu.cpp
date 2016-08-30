@@ -629,14 +629,31 @@ tick_t GBCPU::ld_rr_nn(uint16_t& dst_reg) {
 }
 
 tick_t GBCPU::push_rr(uint16_t src_reg) {
+    if (reg.sp < (0xff80 + 2)) {
+        throw std::runtime_error("stack overflow");
+    }
+
+    if (reg.sp > 0xfffe) {
+        throw std::runtime_error("stack underflow");
+    }
+
     mmu.write_byte(reg.sp--, lower_byte(src_reg));
     mmu.write_byte(reg.sp--, higher_byte(src_reg));
     return 16;
 }
 
 tick_t GBCPU::pop_rr(uint16_t& dst_reg) {
+    if (reg.sp < 0xff80) {
+        throw std::runtime_error("stack overflow");
+    }
+
+    if (reg.sp > (0xfffe - 2)) {
+        throw std::runtime_error("stack underflow");
+    }
+
     dst_reg  = mmu.read_byte(++reg.sp) << 8;
     dst_reg += mmu.read_byte(++reg.sp);
+
     return 12;
 }
 
@@ -932,8 +949,7 @@ tick_t GBCPU::dec_rr(uint16_t& r) {
   * Push present address onto stack and jump to address 0x0000 + n
   */
 tick_t GBCPU::rst(const uint16_t addr) {
-    mmu.write_word(reg.sp, reg.pc);
-    reg.sp -= 2;
+    push_rr(reg.pc);
     reg.pc = addr;
     return 32;
 }
@@ -1469,13 +1485,7 @@ tick_t GBCPU::ei() {
 tick_t GBCPU::call() {
     uint8_t addr_lsb = mmu.read_byte(reg.pc++);
     uint8_t addr_msb = mmu.read_byte(reg.pc++);
-
-    uint8_t pc_msb = 0;
-    uint8_t pc_lsb = 0;
-    split16(reg.pc, pc_msb, pc_lsb);
-
-    mmu.write_byte(reg.sp--, pc_lsb);
-    mmu.write_byte(reg.sp--, pc_msb);
+    push_rr(reg.pc);
 
     reg.pc = combine16(addr_msb, addr_lsb);
     return 12;
@@ -1518,9 +1528,7 @@ tick_t GBCPU::call_nc() {
 }
 
 tick_t GBCPU::ret() {
-    uint8_t pc_msb = mmu.read_byte(++reg.sp);
-    uint8_t pc_lsb = mmu.read_byte(++reg.sp);
-    reg.pc = combine16(pc_msb, pc_lsb);
+    pop_rr(reg.pc);
     return 8;
 }
 
