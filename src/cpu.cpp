@@ -1616,9 +1616,13 @@ tick_t GBCPU::jp_hl() {
 }
 
 tick_t GBCPU::jr() {
-    int8_t offset = static_cast<int8_t>(mmu.read_byte(reg.pc++));
-    acc = static_cast<int32_t>(reg.pc) + offset;
-    reg.pc = static_cast<uint8_t>(acc);
+    uint8_t offset = mmu.read_byte(reg.pc);
+    if (offset < 0x80) {
+        reg.pc += offset;
+    } else {
+        offset = (0xff - offset) + 1;
+        reg.pc -= offset - 1;
+    }
     return 8;
 }
 
