@@ -208,6 +208,7 @@ void GBGPU::step(uint8_t elapsed_ticks) {
                 if (mmu.hwio_ly > 153) {
                     mode = READOAM;
                     mmu.hwio_ly = 0;
+                    refresh();
                 }
             }
             break;
@@ -221,7 +222,6 @@ void GBGPU::step(uint8_t elapsed_ticks) {
             if (clock >= 172) {
                 clock -= 172;
                 mode = HBLANK;
-                refresh();
             }
             break;
     }
