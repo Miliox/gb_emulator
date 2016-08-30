@@ -4,6 +4,7 @@
 
 void dump_inst(uint8_t, const GBCPU&);
 void dump_cpu(const GBCPU&);
+void unload_bios(GBCPU& cpu, GBMMU& mmu);
 
 void emulator() {
     GBMMU mmu;
@@ -11,6 +12,8 @@ void emulator() {
     GBGPU gpu(mmu);
 
     bool running = true;
+    bool bios_loaded = true;
+    bool enable_dump = false;
 
     gpu.show();
     try {
@@ -19,18 +22,26 @@ void emulator() {
             // fetch
             uint8_t op = cpu.mmu.read_byte(cpu.reg.pc++);
             //dump_inst(op, cpu);
+            if (enable_dump) { dump_inst(op, cpu); }
 
             // decode
             auto& instruction = cpu.instruction_map.at(op);
 
             // execute
             tick_t t = (cpu.*instruction)();
-            //dump_cpu(cpu);
-            //std::cout << "\n";
+            if (enable_dump) { dump_cpu(cpu); std::cout << "\n"; }
 
             gpu.step(t);
             mmu.step(t);
             clock += t;
+
+            // cartridge load
+            if (bios_loaded && !mmu.bios_loaded) {
+                unload_bios(cpu, mmu);
+                bios_loaded = false;
+                enable_dump = true;
+                std::cout << "setup cartridge loaded\n";
+            }
 
             // sync
             if (clock >= kTicksPerFrame) {
@@ -48,7 +59,7 @@ void emulator() {
             }
         }
     } catch (std::exception& e) {
-        std::cout << "error: " << e.what() << "\n";
+        std::cerr << "error: " << e.what() << "\n";
     }
     gpu.hide();
 }
@@ -94,4 +105,51 @@ void dump_cpu(const GBCPU& cpu) {
     std::cout << "sp: " << cpu.reg.sp << ", ";
     std::cout << "pc: " << cpu.reg.pc;
     std::cout << std::dec;
+}
+
+void unload_bios(GBCPU& cpu, GBMMU& mmu) {
+    cpu.reg.af = 0x00b0;
+    cpu.reg.bc = 0x0013;
+    cpu.reg.de = 0x00d8;
+    cpu.reg.hl = 0x014d;
+    cpu.reg.sp = 0xfffe;
+    cpu.reg.pc = 0x0100;
+
+    mmu.hwio_tima = 0x00;
+    mmu.hwio_tma  = 0x00;
+    mmu.hwio_tac  = 0x00;
+
+    mmu.hwio_nr10 = 0x80;
+    mmu.hwio_nr11 = 0xbf;
+    mmu.hwio_nr12 = 0xf3;
+    mmu.hwio_nr14 = 0xbf;
+
+    mmu.hwio_nr21 = 0x3f;
+    mmu.hwio_nr22 = 0x00;
+    mmu.hwio_nr24 = 0xbf;
+
+    mmu.hwio_nr30 = 0x7f;
+    mmu.hwio_nr31 = 0xff;
+    mmu.hwio_nr32 = 0x9f;
+    mmu.hwio_nr33 = 0xbf;
+
+    mmu.hwio_nr41 = 0xff;
+    mmu.hwio_nr42 = 0x00;
+    mmu.hwio_nr43 = 0x00;
+    mmu.hwio_nr44 = 0xbf;
+
+    mmu.hwio_nr50 = 0x77;
+    mmu.hwio_nr51 = 0xf3;
+    mmu.hwio_nr52 = 0xf1;
+
+    mmu.hwio_lcdc = 0x91;
+    mmu.hwio_scy  = 0x00;
+    mmu.hwio_scx  = 0x00;
+    mmu.hwio_lyc  = 0x00;
+    mmu.hwio_bgp  = 0xfc;
+    mmu.hwio_obp0 = 0xff;
+    mmu.hwio_obp1 = 0xff;
+    mmu.hwio_wx   = 0x00;
+    mmu.hwio_wy   = 0x00;
+    mmu.hwio_ie   = 0x00;
 }

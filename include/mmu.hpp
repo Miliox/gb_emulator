@@ -8,8 +8,6 @@
 
 class GBMMU {
 private:
-    bool bios_loaded;
-
     std::vector<uint8_t> cartridge_rom;
     std::vector<uint8_t> character_memory;
     std::vector<uint8_t> object_attribute_memory;
@@ -33,6 +31,8 @@ public:
     void write_word(uint16_t addr, uint16_t value);
 
     void step(uint8_t elapsed_ticks);
+
+    bool bios_loaded;
 
     uint8_t hwio_p1;
     uint8_t hwio_sb;

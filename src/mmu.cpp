@@ -81,13 +81,13 @@ void dump_mmu_oper(const char * op, uint16_t offset, uint16_t value);
 void print_bytes(const std::vector<uint8_t>& data);
 
 GBMMU::GBMMU() :
-    bios_loaded(true),
     cartridge_rom(0x8000, 0),
     character_memory(kSizeCharacterRAM, 0),
     object_attribute_memory(kSizeObjectAttMemory, 0),
     zeropage_memory(kSizeZeroPageMemory, 0),
     internal_ram_memory(kSizeInternalRAMBank * 2, 0),
-    bgdata_memory(kSizeBGMapData, 0) {
+    bgdata_memory(kSizeBGMapData, 0),
+    bios_loaded(true) {
     hwio_p1 = 0;
     hwio_sb = 0;
     hwio_sc = 0;
@@ -180,6 +180,11 @@ uint8_t GBMMU::read_byte(uint16_t addr) const {
         return value;
     }
 
+    if (addr == kAddrInterruptFlag) {
+        //dump_mmu_oper("ie r", addr, value);
+        return hwio_ie;
+    }
+
     if (addr >= kAddrZeroPageMemory && addr < kAddrInterruptFlag) {
         uint8_t value = read(addr, kAddrZeroPageMemory, zeropage_memory);
         //dump_mmu_oper("zp r", addr, value);
@@ -232,6 +237,12 @@ inline void write(uint8_t value, uint16_t addr, uint16_t base,
 }
 
 void GBMMU::write_byte(uint16_t addr, uint8_t value) {
+    if (addr == kAddrInterruptFlag) {
+        //dump_mmu_oper("ie w", addr, value);
+        hwio_ie = value;
+        return;
+    }
+
     if (addr >= kAddrZeroPageMemory && addr < kAddrInterruptFlag) {
         //dump_mmu_oper("zp w", addr, value);
         write(value, addr, kAddrZeroPageMemory, zeropage_memory);
@@ -539,7 +550,7 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             break;
         case kAddrUnloadBIOS:
             bios_loaded = (value) ? 0 : 1;
-            std::cout << ((bios_loaded) ? "loaded " : "unloaded ") << "bios\n";
+            std::cout << ((bios_loaded) ? "loaded " : "unloaded ") << " mmu bios\n";
             break;
         default:
             std::cerr << "ign w @" << addr << " " << (uint16_t) value << "\n";
