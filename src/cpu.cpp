@@ -629,28 +629,12 @@ tick_t GBCPU::ld_rr_nn(uint16_t& dst_reg) {
 }
 
 tick_t GBCPU::push_rr(uint16_t src_reg) {
-    if (reg.sp < (0xff80 + 2)) {
-        throw std::runtime_error("stack overflow");
-    }
-
-    if (reg.sp > 0xfffe) {
-        throw std::runtime_error("stack underflow");
-    }
-
     mmu.write_byte(reg.sp--, lower_byte(src_reg));
     mmu.write_byte(reg.sp--, higher_byte(src_reg));
     return 16;
 }
 
 tick_t GBCPU::pop_rr(uint16_t& dst_reg) {
-    if (reg.sp < 0xff80) {
-        throw std::runtime_error("stack overflow");
-    }
-
-    if (reg.sp > (0xfffe - 2)) {
-        throw std::runtime_error("stack underflow");
-    }
-
     dst_reg  = mmu.read_byte(++reg.sp) << 8;
     dst_reg += mmu.read_byte(++reg.sp);
 
