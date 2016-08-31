@@ -5,6 +5,7 @@
 void dump_inst(uint8_t, const GBCPU&);
 void dump_cpu(const GBCPU&);
 void unload_bios(GBCPU& cpu, GBMMU& mmu);
+void process_events(bool& running);
 
 void emulator() {
     GBMMU mmu;
@@ -12,8 +13,9 @@ void emulator() {
     GBGPU gpu(mmu);
 
     bool running = true;
-    bool bios_loaded = true;
-    bool enable_dump = false;
+
+    // skip bios checking
+    unload_bios(cpu, mmu);
 
     gpu.show();
     try {
@@ -22,39 +24,23 @@ void emulator() {
             // fetch
             uint8_t op = cpu.mmu.read_byte(cpu.reg.pc++);
             //dump_inst(op, cpu);
-            if (enable_dump) { dump_inst(op, cpu); }
 
             // decode
             auto& instruction = cpu.instruction_map.at(op);
 
             // execute
             tick_t t = (cpu.*instruction)();
-            if (enable_dump) { dump_cpu(cpu); std::cout << "\n"; }
+            //dump_cpu(cpu);
 
             gpu.step(t);
             mmu.step(t);
             clock += t;
 
-            // cartridge load
-            if (bios_loaded && !mmu.bios_loaded) {
-                unload_bios(cpu, mmu);
-                bios_loaded = false;
-                enable_dump = true;
-                std::cout << "setup cartridge loaded\n";
-            }
-
             // sync
             if (clock >= kTicksPerFrame) {
-                // check for quit interruption
-                SDL_Event event;
-                if (SDL_PollEvent(&event))
-                {
-                    if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
-                        running = false;
-                    }
-                }
-
                 clock -= kTicksPerFrame;
+
+                process_events(running);
                 SDL_Delay(kMillisPerFrame);
             }
         }
@@ -88,7 +74,7 @@ void dump_inst(uint8_t opcode, const GBCPU& cpu) {
         std::cout << "op:" << static_cast<uint16_t>(opcode);
         std::cout << " " << static_cast<uint16_t>(cpu.mmu.read_byte(cpu.reg.pc));
     }
-    std::cout << std::dec << std::endl;
+    std::cout << std::dec << "\n";
 }
 
 void dump_cpu(const GBCPU& cpu) {
@@ -104,7 +90,7 @@ void dump_cpu(const GBCPU& cpu) {
 
     std::cout << "sp: " << cpu.reg.sp << ", ";
     std::cout << "pc: " << cpu.reg.pc;
-    std::cout << std::dec;
+    std::cout << std::dec << "\n\n";
 }
 
 void unload_bios(GBCPU& cpu, GBMMU& mmu) {
@@ -114,6 +100,8 @@ void unload_bios(GBCPU& cpu, GBMMU& mmu) {
     cpu.reg.hl = 0x014d;
     cpu.reg.sp = 0xfffe;
     cpu.reg.pc = 0x0100;
+
+    mmu.bios_loaded = false;
 
     mmu.hwio_tima = 0x00;
     mmu.hwio_tma  = 0x00;
@@ -152,4 +140,14 @@ void unload_bios(GBCPU& cpu, GBMMU& mmu) {
     mmu.hwio_wx   = 0x00;
     mmu.hwio_wy   = 0x00;
     mmu.hwio_ie   = 0x00;
+}
+
+void process_events(bool& running) {
+    SDL_Event event;
+    while (SDL_PollEvent(&event))
+    {
+        if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
+            running = false;
+        }
+    }
 }

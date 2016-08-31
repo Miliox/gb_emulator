@@ -2,10 +2,25 @@
 
 #include <cstring>
 
-const uint16_t kFlagZ = 1 << 7;
-const uint16_t kFlagN = 1 << 6;
-const uint16_t kFlagH = 1 << 5;
-const uint16_t kFlagC = 1 << 4;
+const uint8_t kFlagZ = 1 << 7;
+const uint8_t kFlagN = 1 << 6;
+const uint8_t kFlagH = 1 << 5;
+const uint8_t kFlagC = 1 << 4;
+
+inline uint8_t add_signed(uint16_t& dst, uint8_t signed_value) {
+    uint8_t aux = dst;
+    if (signed_value < 0x80) {
+        dst += signed_value;
+    } else {
+        signed_value = 0xff - signed_value + 1;
+        dst -= signed_value;
+    }
+
+    uint8_t flags = (dst < aux) ? kFlagC : 0;
+    flags |= ((dst & 0xff) < (aux & 0xff)) ? kFlagH : 0;
+
+    return flags;
+}
 
 inline uint16_t check_z(int32_t value) {
     return (value == 0) ? kFlagZ : 0;
@@ -1250,11 +1265,8 @@ tick_t GBCPU::add_a_n() {
 }
 
 tick_t GBCPU::add_sp_n() {
-    int8_t offset = static_cast<uint8_t>(mmu.read_byte(reg.pc++));
-    int32_t acc = reg.sp + offset;
-
-    reg.f = check_h(acc) + check_c(acc);
-    reg.sp = static_cast<uint16_t>(acc & 0xffff);
+    uint8_t offset = mmu.read_byte(reg.pc++);
+    reg.f = add_signed(reg.sp, offset);
     return 16;
 }
 
@@ -1276,11 +1288,8 @@ tick_t GBCPU::ld_sp_hl() {
 }
 
 tick_t GBCPU::ld_hl_spn() {
-    int8_t offset = static_cast<int8_t>(mmu.read_byte(reg.pc++));
-    int32_t acc = reg.sp + offset;
-
-    reg.f = check_h(acc) | check_c(acc);
-    reg.hl = static_cast<uint16_t>(acc);
+    uint8_t offset = mmu.read_byte(reg.pc++);
+    reg.f = add_signed(reg.hl, offset);
     return 12;
 }
 
@@ -1327,13 +1336,13 @@ tick_t GBCPU::ld_pnn_sp() {
 }
 
 tick_t GBCPU::ldh_offn_a() {
-    uint16_t addr = static_cast<uint16_t>(0xff00 + mmu.read_byte(reg.pc++));
+    uint16_t addr = 0xff00 + mmu.read_byte(reg.pc++);
     mmu.write_byte(addr, reg.a);
     return 12;
 }
 
 tick_t GBCPU::ldh_a_offn() {
-    uint16_t addr = static_cast<uint16_t>(0xff00 + mmu.read_byte(reg.pc++));
+    uint16_t addr = 0xff00 + mmu.read_byte(reg.pc++);
     reg.a = mmu.read_byte(addr);
     return 12;
 }
@@ -1600,13 +1609,8 @@ tick_t GBCPU::jp_hl() {
 }
 
 tick_t GBCPU::jr() {
-    uint8_t offset = mmu.read_byte(reg.pc);
-    if (offset < 0x80) {
-        reg.pc += offset;
-    } else {
-        offset = (0xff - offset) + 1;
-        reg.pc -= offset - 1;
-    }
+    uint8_t offset = mmu.read_byte(reg.pc++);
+    add_signed(reg.pc, offset);
     return 8;
 }
 

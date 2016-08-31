@@ -140,27 +140,7 @@ GBMMU::GBMMU() :
 }
 
 GBMMU::~GBMMU() {
-    /*
-    std::cout << "CHARACTER MEMORY: \n";
-    print_bytes(character_memory);
-    std::cout << "\n\n";
 
-    std::cout << "OAM: \n";
-    print_bytes(object_attribute_memory);
-    std::cout << "\n\n";
-
-    std::cout << "ZEROPAGE RAM: \n";
-    print_bytes(zeropage_memory);
-    std::cout << "\n\n";
-
-    std::cout << "INTERNAL RAM: \n";
-    print_bytes(internal_ram_memory);
-    std::cout << "\n\n";
-
-    std::cout << "BGDATA: \n";
-    print_bytes(bgdata_memory);
-    std::cout << "\n\n";
-    */
 }
 
 inline uint8_t read(uint16_t addr, uint16_t base,
@@ -279,7 +259,7 @@ void GBMMU::write_byte(uint16_t addr, uint8_t value) {
         return;
     }
 
-    std::cout << "ign @" << addr << ": " << value << "\n";
+    //std::cout << "ign @" << addr << ": " << value << "\n";
 }
 
 void GBMMU::write_word(uint16_t addr, uint16_t value) {
@@ -396,7 +376,7 @@ uint8_t GBMMU::read_hwio(uint16_t addr) const {
         case kAddrWX:
             return hwio_wx;
         default:
-            std::cerr << "ign r @" << addr << "\n";
+            //std::cout << "ign r @" << addr << "\n";
             return 0;
     }
 }
@@ -550,10 +530,9 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             break;
         case kAddrUnloadBIOS:
             bios_loaded = (value) ? 0 : 1;
-            std::cout << ((bios_loaded) ? "loaded " : "unloaded ") << " mmu bios\n";
             break;
         default:
-            std::cerr << "ign w @" << addr << " " << (uint16_t) value << "\n";
+            //std::cout << "ign w @" << addr << " " << (uint16_t) value << "\n";
             break;
     }
 }
@@ -572,5 +551,5 @@ void print_bytes(const std::vector<uint8_t>& data) {
         std::cout << std::hex << std::setw(2) << (int)data[i];
         std::cout << (((i + 1) % 64 == 0) ? "\n" : " ");
     }
-    std::cout << "\n";
+    std::cout << "\n\n";
 }
