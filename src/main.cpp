@@ -36,6 +36,33 @@ void emulator() {
             mmu.step(t);
             clock += t;
 
+            // interrupt handler
+            if (cpu.ime && (mmu.hwio_ie & mmu.hwio_if)) {
+                cpu.ime = false;
+
+                if (mmu.hwio_if & kInterruptionVBlank) {
+                    mmu.hwio_if &= ~kInterruptionVBlank;
+                    cpu.rst(0x40);
+                    //std::cout << "catch vblank interruption\n";
+                } else if (mmu.hwio_if & kInterruptionLcdStat) {
+                    mmu.hwio_if &= ~kInterruptionLcdStat;
+                    cpu.rst(0x48);
+                    //std::cout << "catch lcdc stat interruption\n";
+                } else if (mmu.hwio_if & kInterruptionTimer) {
+                    mmu.hwio_if &= ~kInterruptionTimer;
+                    cpu.rst(0x50);
+                    //std::cout << "catch serial interruption\n";
+                } else if (mmu.hwio_if & kInterruptionSerial) {
+                    mmu.hwio_if &= ~kInterruptionSerial;
+                    cpu.rst(0x58);
+                    //std::cout << "catch serial interruption\n";
+                } else if (mmu.hwio_if & kInterruptionJoypad) {
+                    mmu.hwio_if &= ~kInterruptionJoypad;
+                    cpu.rst(0x60);
+                    //std::cout << "catch joypad interruption\n";
+                }
+            }
+
             // sync
             if (clock >= kTicksPerFrame) {
                 clock -= kTicksPerFrame;

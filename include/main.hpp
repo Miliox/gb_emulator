@@ -8,9 +8,9 @@
 #include "mmu.hpp"
 
 const Uint32 kFramesPerSecond = 60;
-const tick_t kTicksPerSecond = 4194304;
+const Uint32 kMillisPerFrame  = 1000 / kFramesPerSecond;
+
 const tick_t kTicksPerFrame  = kTicksPerSecond / kFramesPerSecond;
-const Uint32 kMillisPerFrame = 1000 / kFramesPerSecond;
 
 uint8_t kInstrunctionLength[256] = {
     1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1,    // 0x00 ~ 0x0F

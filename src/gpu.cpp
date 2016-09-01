@@ -195,8 +195,19 @@ void GBGPU::step(uint8_t elapsed_ticks) {
                 mmu.hwio_ly += 1;
                 if (mmu.hwio_ly >= 143) {
                     mode = VBLANK;
+
+                    mmu.hwio_if |= kInterruptionVBlank;
+                    if (mmu.hwio_stat & kLcdInterruptVBlank) {
+                        mmu.hwio_if |= kInterruptionLcdStat;
+                    }
+
                 } else {
                     mode = READOAM;
+
+                    if (mmu.hwio_stat & kLcdInterruptOAM) {
+                        mmu.hwio_if |= kInterruptionLcdStat;
+                    }
+
                     renderscan();
                 }
             }
@@ -207,6 +218,11 @@ void GBGPU::step(uint8_t elapsed_ticks) {
                 mmu.hwio_ly += 1;
                 if (mmu.hwio_ly > 153) {
                     mode = READOAM;
+
+                    if (mmu.hwio_stat & kLcdInterruptOAM) {
+                        mmu.hwio_if |= kInterruptionLcdStat;
+                    }
+
                     mmu.hwio_ly = 0;
                     refresh();
                 }
@@ -222,12 +238,21 @@ void GBGPU::step(uint8_t elapsed_ticks) {
             if (clock >= 172) {
                 clock -= 172;
                 mode = HBLANK;
+
+                if (mmu.hwio_stat & kLcdInterruptHBlank) {
+                    mmu.hwio_if |= kInterruptionLcdStat;
+                }
+
             }
             break;
     }
 
     if (mmu.hwio_ly == mmu.hwio_lyc) {
         mmu.hwio_stat |= 0x40;
+
+        if (mmu.hwio_stat & kLcdInterruptLineEq) {
+            mmu.hwio_if |= kInterruptionLcdStat;
+        }
     }
     mmu.hwio_stat = (mmu.hwio_stat & 0xfc) | (mode & 0x03);
 }
@@ -240,7 +265,7 @@ void GBGPU::check_enable_changed() {
         clock = 0;
         is_on = true;
     } else if (!enable && is_on) {
-        black();
+
         clock = 0;
         is_on = false;
     }

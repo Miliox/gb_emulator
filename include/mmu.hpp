@@ -1,10 +1,23 @@
 #ifndef MMU_HPP
 #define MMU_HPP
 
+#include "clock.hpp"
+
 #include <cstdint>
 #include <fstream>
 #include <vector>
 #include <memory>
+
+const uint8_t kInterruptionVBlank  = (1 << 0);
+const uint8_t kInterruptionLcdStat = (1 << 1);
+const uint8_t kInterruptionTimer   = (1 << 2);
+const uint8_t kInterruptionSerial  = (1 << 3);
+const uint8_t kInterruptionJoypad  = (1 << 4);
+
+const uint8_t kLcdInterruptHBlank = (1 << 3);
+const uint8_t kLcdInterruptVBlank = (1 << 4);
+const uint8_t kLcdInterruptOAM    = (1 << 5);
+const uint8_t kLcdInterruptLineEq = (1 << 6); // Coincidence Flag
 
 class GBMMU {
 private:
@@ -14,6 +27,8 @@ private:
     std::vector<uint8_t> zeropage_memory;
     std::vector<uint8_t> internal_ram_memory;
     std::vector<uint8_t> bgdata_memory;
+
+    tick_t tick_counter;
 
     uint8_t read_hwio(uint16_t addr) const;
 
@@ -30,7 +45,7 @@ public:
     void write_byte(uint16_t addr, uint8_t value);
     void write_word(uint16_t addr, uint16_t value);
 
-    void step(uint8_t elapsed_ticks);
+    void step(tick_t elapsed_ticks);
 
     bool bios_loaded;
 

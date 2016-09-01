@@ -5,4 +5,6 @@
 
 typedef uint32_t tick_t;
 
+const tick_t kTicksPerSecond = 4194304;
+
 #endif

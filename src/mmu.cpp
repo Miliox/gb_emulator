@@ -87,6 +87,7 @@ GBMMU::GBMMU() :
     zeropage_memory(kSizeZeroPageMemory, 0),
     internal_ram_memory(kSizeInternalRAMBank * 2, 0),
     bgdata_memory(kSizeBGMapData, 0),
+    tick_counter(0),
     bios_loaded(true) {
     hwio_p1 = 0;
     hwio_sb = 0;
@@ -270,8 +271,30 @@ void GBMMU::write_word(uint16_t addr, uint16_t value) {
     write_byte(addr + 1, msb);
 }
 
-void GBMMU::step(uint8_t elapsed_ticks) {
-    //TODO: To be implememted!
+const tick_t kCounterFrequencies[4] = {4096, 262144, 65536, 16384};
+const tick_t kCounterPeriod[4] = {
+    kTicksPerSecond / kCounterFrequencies[0],
+    kTicksPerSecond / kCounterFrequencies[1],
+    kTicksPerSecond / kCounterFrequencies[2],
+    kTicksPerSecond / kCounterFrequencies[3]};
+
+void GBMMU::step(tick_t elapsed_ticks) {
+
+    if (hwio_tac & 0x04) {
+        uint8_t clock_selected = hwio_tac & 0x03;
+
+        tick_counter += elapsed_ticks;
+        if (tick_counter >= kCounterPeriod[clock_selected]) {
+            tick_counter -= kCounterPeriod[clock_selected];
+            hwio_tima += 1;
+
+            if (hwio_tima == 0) {
+                hwio_if |= kInterruptionTimer;
+            }
+        }
+    } else {
+        tick_counter = 0;
+    }
 }
 
 uint8_t GBMMU::read_hwio(uint16_t addr) const {
