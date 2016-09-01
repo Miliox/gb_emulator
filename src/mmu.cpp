@@ -79,6 +79,7 @@ const uint16_t kSizeBGMapData        = kAddrCartridgeRAM      - kAddrBGMapData1;
 
 void dump_mmu_oper(const char * op, uint16_t offset, uint16_t value);
 void print_bytes(const std::vector<uint8_t>& data);
+void print_bytes(std::vector<uint8_t>::iterator b, std::vector<uint8_t>::iterator e);
 
 GBMMU::GBMMU() :
     cartridge_rom(0x8000, 0),
@@ -532,10 +533,34 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
                 hwio_stat |= 0x40;
             }
             break;
-        case kAddrDMA:
+        case kAddrDMA: {
             //TODO: Implement DMA
-            throw std::runtime_error("DMA not implemented");
+            //throw std::runtime_error("DMA not implemented");
+            uint16_t src_addr = value << 8;
+            if (src_addr < (0x8000  - 0xa0)) {
+                //std::cout << "dma copy from rom " << std::hex << (uint16_t) src_addr << "\n";
+                std::copy(
+                    cartridge_rom.begin() + src_addr,
+                    cartridge_rom.begin() + src_addr + 0xa0,
+                    object_attribute_memory.begin());
+            } else if (src_addr >= 0xc000 && src_addr <= (0xcfff  - 0xa0)) {
+                //std::cout << "dma copy ram " << std::hex << (uint16_t) src_addr << "\n";
+                std::copy(
+                    internal_ram_memory.begin() + src_addr,
+                    internal_ram_memory.begin() + src_addr + 0xa0,
+                    object_attribute_memory.begin());
+            } else if (src_addr >= 0xff80 && src_addr <= (0xfffe - 0xa0)) {
+                //std::cout << "dma copy from hram " << std::hex << (uint16_t) src_addr << "\n";
+                std::copy(
+                    internal_ram_memory.begin() + src_addr,
+                    internal_ram_memory.begin() + src_addr + 0xa0,
+                    object_attribute_memory.begin());
+            } else {
+                std::cout << "dma error " << std::hex << (uint16_t) src_addr << "\n";
+            }
+            //print_bytes(object_attribute_memory.begin(), object_attribute_memory.begin() + 0xa0c);
             break;
+        }
         case kAddrBGP:
             hwio_bgp = value;
             break;
@@ -573,6 +598,19 @@ void print_bytes(const std::vector<uint8_t>& data) {
     for(size_t i = 0; i < data.size(); ++i) {
         std::cout << std::hex << std::setw(2) << (int)data[i];
         std::cout << (((i + 1) % 64 == 0) ? "\n" : " ");
+    }
+    std::cout << "\n\n";
+}
+
+void print_bytes(std::vector<uint8_t>::iterator b, std::vector<uint8_t>::iterator e) {
+    std::cout << "\n";
+    std::cout << std::setfill('0');
+    int count = 0;
+    while(b != e) {
+        std::cout << std::hex << std::setw(2) << (int)*b;
+        std::cout << (((count + 1) % 16 == 0) ? "\n" : " ");
+        ++b;
+        ++count;
     }
     std::cout << "\n\n";
 }
