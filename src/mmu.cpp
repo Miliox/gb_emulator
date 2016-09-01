@@ -8,6 +8,7 @@
 
 // Base Addresses
 const uint16_t kAddrInterruptFlag     = 0xffff;
+/*
 const uint16_t kAddrZeroPageMemory    = 0xff80;
 const uint16_t kAddrHardwareIOReg     = 0xff00;
 const uint16_t kAddrUnusableMemory    = 0xfea0;
@@ -23,6 +24,7 @@ const uint16_t kAddrCartridgeROMBankN = 0x4000;
 const uint16_t kAddrCartridgeROMBank0 = 0x0150;
 const uint16_t kAddrCartridgeHeader   = 0x0100;
 const uint16_t kAddrRstInterrVector   = 0x0000;
+*/
 
 // Hardware IO Addresses
 const uint16_t kAddrP1   = 0xff00;
@@ -70,25 +72,31 @@ const uint16_t kAddrWX   = 0xff4b;
 
 const uint16_t kAddrUnloadBIOS = 0xff50;
 
-const uint16_t kSizeZeroPageMemory   = kAddrInterruptFlag     - kAddrZeroPageMemory;
-const uint16_t kSizeObjectAttMemory  = kAddrUnusableMemory    - kAddrObjectAttMemory;
-const uint16_t kSizeInternalRAMBank  = kAddrInternalRAMN      - kAddrInternalRAM0;
-const uint16_t kSizeCharacterRAM     = kAddrBGMapData1        - kAddrCharacterRAM;
-const uint16_t kSizeCartridgeROMBank = kAddrCartridgeROMBankN - kAddrCartridgeROMBank0;
-const uint16_t kSizeBGMapData        = kAddrCartridgeRAM      - kAddrBGMapData1;
+const uint16_t kAddrHRAM = 0xff80;
+const uint16_t kAddrHWIO = 0xff00;
+const uint16_t kAddrORAM = 0xfe00;
+const uint16_t kAddrIRAM = 0xc000;
+const uint16_t kAddrVRAM = 0x8000;
+const uint16_t kAddrCROM = 0x0000;
+
+const uint16_t kSizeHRAM = (0xfffe - kAddrHRAM) + 1;
+const uint16_t kSizeHWIO = (0xff80 - kAddrHWIO) + 1;
+const uint16_t kSizeORAM = (0xfe9f - kAddrORAM) + 1;
+const uint16_t kSizeIRAM = (0xdfff - kAddrIRAM) + 1;
+const uint16_t kSizeVRAM = (0x9fff - kAddrVRAM) + 1;
+const uint16_t kSizeCROM = (0x7fff - kAddrCROM) + 1;
 
 void dump_mmu_oper(const char * op, uint16_t offset, uint16_t value);
 void print_bytes(const std::vector<uint8_t>& data);
 void print_bytes(std::vector<uint8_t>::iterator b, std::vector<uint8_t>::iterator e);
 
 GBMMU::GBMMU() :
-    cartridge_rom(0x8000, 0),
-    character_memory(kSizeCharacterRAM, 0),
-    object_attribute_memory(kSizeObjectAttMemory, 0),
-    zeropage_memory(kSizeZeroPageMemory, 0),
-    internal_ram_memory(kSizeInternalRAMBank * 2, 0),
-    bgdata_memory(kSizeBGMapData, 0),
     tick_counter(0),
+    crom(kSizeCROM, 0),
+    vram(kSizeVRAM, 0),
+    oram(kSizeORAM, 0),
+    hram(kSizeHRAM, 0),
+    iram(kSizeIRAM, 0),
     bios_loaded(true) {
     hwio_p1 = 0;
     hwio_sb = 0;
@@ -137,7 +145,7 @@ GBMMU::GBMMU() :
     hwio_ie = 0;
 
     std::fstream cartridge("tetris.gb", std::fstream::in);
-    cartridge.read(reinterpret_cast<char*>(&cartridge_rom[0]), 0x8000);
+    cartridge.read(reinterpret_cast<char*>(&crom[0]), 0x8000);
     cartridge.close();
 }
 
@@ -145,8 +153,7 @@ GBMMU::~GBMMU() {
 
 }
 
-inline uint8_t read(uint16_t addr, uint16_t base,
-    const std::vector<uint8_t>& memory) {
+inline uint8_t read(uint16_t addr, uint16_t base, const std::vector<uint8_t>& memory) {
     assert(addr >= base);
     return memory.at(addr - base);
 }
@@ -156,54 +163,30 @@ uint8_t GBMMU::read_byte(uint16_t addr) const {
         return kGameBoyBios[addr];
     }
 
-    if (addr < kAddrCharacterRAM) {
-        uint8_t value = cartridge_rom.at(addr);
-        //dump_mmu_oper("car r", addr, value);
-        return value;
+    const int len = 5;
+    //const char* mem_name[len] = {"r crom", "r vram", "r iram", "r oram", "r hram"};
+    const uint16_t mem_addr[len] = {kAddrCROM, kAddrVRAM, kAddrIRAM, kAddrORAM, kAddrHRAM};
+    const uint16_t mem_size[len] = {kSizeCROM, kSizeVRAM, kSizeIRAM, kSizeORAM, kSizeHRAM};
+    const std::vector<uint8_t>* mem[len] = {&crom, &vram, &iram, &oram, &hram};
+
+    for (int i = 0; i < len; i++) {
+        if (addr >= mem_addr[i] && addr < (mem_addr[i] + mem_size[i])) {
+            uint8_t value = read(addr, mem_addr[i], *mem[i]);
+            //dump_mmu_oper(mem_name[i], addr, value);
+            return value;
+        }
     }
 
     if (addr == kAddrInterruptFlag) {
-        //dump_mmu_oper("ie r", addr, value);
+        //dump_mmu_oper("r ie", addr, value);
         return hwio_ie;
-    }
-
-    if (addr >= kAddrZeroPageMemory && addr < kAddrInterruptFlag) {
-        uint8_t value = read(addr, kAddrZeroPageMemory, zeropage_memory);
-        //dump_mmu_oper("zp r", addr, value);
-        return value;
-    }
-
-    if (addr >= kAddrHardwareIOReg && addr < kAddrZeroPageMemory) {
+    } else if (addr >= kAddrHWIO && addr < (kAddrHWIO + kSizeHWIO)) {
         uint8_t value = read_hwio(addr);
-        //dump_mmu_oper("hw r", addr, value);
+        //dump_mmu_oper("r hw", addr, value);
         return value;
+    } else {
+        return 0;
     }
-
-    if (addr >= kAddrCharacterRAM && addr < kAddrBGMapData1) {
-        uint8_t value = read(addr, kAddrCharacterRAM, character_memory);
-        //dump_mmu_oper("ch r", addr, value);
-        return value;
-    }
-
-    if (addr >= kAddrInternalRAM0 && addr < kAddrEchoRAM) {
-        uint8_t value = read(addr, kAddrInternalRAM0, internal_ram_memory);
-        //dump_mmu_oper("ram r", addr, value);
-        return value;
-    }
-
-    if (addr >= kAddrObjectAttMemory && addr < kAddrUnusableMemory) {
-        uint8_t value = read(addr, kAddrObjectAttMemory, object_attribute_memory);
-        //dump_mmu_oper("oam r", addr, value);
-        return value;
-    }
-
-    if (addr >= kAddrBGMapData1 && addr < kAddrCartridgeRAM) {
-        uint8_t value = read(addr, kAddrBGMapData1, bgdata_memory);
-        //dump_mmu_oper("bgd r", addr, value);
-        return value;
-    }
-
-    return 0;
 }
 
 uint16_t GBMMU::read_word(uint16_t addr) const {
@@ -219,49 +202,29 @@ inline void write(uint8_t value, uint16_t addr, uint16_t base,
 }
 
 void GBMMU::write_byte(uint16_t addr, uint8_t value) {
+    const int len = 4;
+    //const char* mem_name[len] = {"w vram", "w iram", "w oram", "w hram"};
+    const uint16_t mem_addr[len] = {kAddrVRAM, kAddrIRAM, kAddrORAM, kAddrHRAM};
+    const uint16_t mem_size[len] = {kSizeVRAM, kSizeIRAM, kSizeORAM, kSizeHRAM};
+    std::vector<uint8_t>* mem[len] = {&vram, &iram, &oram, &hram};
+
+    for (int i = 0; i < len; i++) {
+        if (addr >= mem_addr[i] && addr < (mem_addr[i] + mem_size[i])) {
+            write(value, addr, mem_addr[i], *mem[i]);
+            //dump_mmu_oper(mem_name[i], addr, value);
+            return;
+        }
+    }
+
     if (addr == kAddrInterruptFlag) {
-        //dump_mmu_oper("ie w", addr, value);
+        //dump_mmu_oper("w ie", addr, value);
         hwio_ie = value;
-        return;
-    }
-
-    if (addr >= kAddrZeroPageMemory && addr < kAddrInterruptFlag) {
-        //dump_mmu_oper("zp w", addr, value);
-        write(value, addr, kAddrZeroPageMemory, zeropage_memory);
-        return;
-    }
-
-    if (addr >= kAddrHardwareIOReg && addr < kAddrZeroPageMemory) {
-        //dump_mmu_oper("hw w", addr, value);
+    } else if (addr >= kAddrHWIO && addr < (kAddrHWIO + kSizeHWIO)) {
         write_hwio(addr, value);
-        return;
+        //dump_mmu_oper("w hw", addr, value);
+    } else {
+        //std::cout << "w ign @" << addr << ": " << value << "\n";
     }
-
-    if (addr >= kAddrCharacterRAM && addr < kAddrBGMapData1) {
-        //dump_mmu_oper("ch w", addr, value);
-        write(value, addr, kAddrCharacterRAM, character_memory);
-        return;
-    }
-
-    if (addr >= kAddrInternalRAM0 && addr < kAddrEchoRAM) {
-        //dump_mmu_oper("ram w", addr, value);
-        write(value, addr, kAddrInternalRAM0, internal_ram_memory);
-        return;
-    }
-
-    if (addr >= kAddrObjectAttMemory && addr < kAddrUnusableMemory) {
-        //dump_mmu_oper("oam w", addr, value);
-        write(value, addr, kAddrObjectAttMemory, object_attribute_memory);
-        return;
-    }
-
-    if (addr >= kAddrBGMapData1 && addr < kAddrCartridgeRAM) {
-        //dump_mmu_oper("bgd w", addr, value);
-        write(value, addr, kAddrBGMapData1, bgdata_memory);
-        return;
-    }
-
-    //std::cout << "ign @" << addr << ": " << value << "\n";
 }
 
 void GBMMU::write_word(uint16_t addr, uint16_t value) {
@@ -540,25 +503,25 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             if (src_addr < (0x8000  - 0xa0)) {
                 //std::cout << "dma copy from rom " << std::hex << (uint16_t) src_addr << "\n";
                 std::copy(
-                    cartridge_rom.begin() + src_addr,
-                    cartridge_rom.begin() + src_addr + 0xa0,
-                    object_attribute_memory.begin());
+                    crom.begin() + src_addr,
+                    crom.begin() + src_addr + 0xa0,
+                    oram.begin());
             } else if (src_addr >= 0xc000 && src_addr <= (0xcfff  - 0xa0)) {
                 //std::cout << "dma copy ram " << std::hex << (uint16_t) src_addr << "\n";
                 std::copy(
-                    internal_ram_memory.begin() + src_addr,
-                    internal_ram_memory.begin() + src_addr + 0xa0,
-                    object_attribute_memory.begin());
+                    iram.begin() + src_addr,
+                    iram.begin() + src_addr + 0xa0,
+                    oram.begin());
             } else if (src_addr >= 0xff80 && src_addr <= (0xfffe - 0xa0)) {
                 //std::cout << "dma copy from hram " << std::hex << (uint16_t) src_addr << "\n";
                 std::copy(
-                    internal_ram_memory.begin() + src_addr,
-                    internal_ram_memory.begin() + src_addr + 0xa0,
-                    object_attribute_memory.begin());
+                    iram.begin() + src_addr,
+                    iram.begin() + src_addr + 0xa0,
+                    oram.begin());
             } else {
                 std::cout << "dma error " << std::hex << (uint16_t) src_addr << "\n";
             }
-            //print_bytes(object_attribute_memory.begin(), object_attribute_memory.begin() + 0xa0c);
+            //print_bytes(oram.begin(), oram.begin() + 0xa0c);
             break;
         }
         case kAddrBGP:

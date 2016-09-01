@@ -21,14 +21,12 @@ const uint8_t kLcdInterruptLineEq = (1 << 6); // Coincidence Flag
 
 class GBMMU {
 private:
-    std::vector<uint8_t> cartridge_rom;
-    std::vector<uint8_t> character_memory;
-    std::vector<uint8_t> object_attribute_memory;
-    std::vector<uint8_t> zeropage_memory;
-    std::vector<uint8_t> internal_ram_memory;
-    std::vector<uint8_t> bgdata_memory;
-
     tick_t tick_counter;
+    std::vector<uint8_t> crom; // cartridge rom
+    std::vector<uint8_t> vram; // video ram
+    std::vector<uint8_t> oram; // object attribute (sprite) ram
+    std::vector<uint8_t> hram; // high (zero page) ram
+    std::vector<uint8_t> iram; // internal ram
 
     uint8_t read_hwio(uint16_t addr) const;
 
