@@ -40,27 +40,30 @@ void emulator() {
             if (cpu.ime && (mmu.hwio_ie & mmu.hwio_if)) {
                 cpu.ime = false;
 
+                t = 0;
                 if (mmu.hwio_if & kInterruptionVBlank) {
                     mmu.hwio_if &= ~kInterruptionVBlank;
-                    cpu.rst(0x40);
+                    t += cpu.rst_40();
                     //std::cout << "catch vblank interruption\n";
                 } else if (mmu.hwio_if & kInterruptionLcdStat) {
                     mmu.hwio_if &= ~kInterruptionLcdStat;
-                    cpu.rst(0x48);
+                    t += cpu.rst_48();
                     //std::cout << "catch lcdc stat interruption\n";
                 } else if (mmu.hwio_if & kInterruptionTimer) {
                     mmu.hwio_if &= ~kInterruptionTimer;
-                    cpu.rst(0x50);
+                    t += cpu.rst_50();
                     //std::cout << "catch serial interruption\n";
                 } else if (mmu.hwio_if & kInterruptionSerial) {
                     mmu.hwio_if &= ~kInterruptionSerial;
-                    cpu.rst(0x58);
+                    t += cpu.rst_58();
                     //std::cout << "catch serial interruption\n";
                 } else if (mmu.hwio_if & kInterruptionJoypad) {
                     mmu.hwio_if &= ~kInterruptionJoypad;
-                    cpu.rst(0x60);
+                    t += cpu.rst_60();
                     //std::cout << "catch joypad interruption\n";
                 }
+                gpu.step(t);
+                mmu.step(t);
             }
 
             // sync

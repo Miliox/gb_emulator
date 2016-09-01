@@ -409,6 +409,13 @@ public:
     tick_t rst_30() { return rst(0x30); };
     tick_t rst_38() { return rst(0x38); };
 
+    // interruption handlers
+    tick_t rst_40() { return rst(0x40); };
+    tick_t rst_48() { return rst(0x48); };
+    tick_t rst_50() { return rst(0x50); };
+    tick_t rst_58() { return rst(0x58); };
+    tick_t rst_60() { return rst(0x60); };
+
     tick_t call();
     tick_t call_z();
     tick_t call_nz();
