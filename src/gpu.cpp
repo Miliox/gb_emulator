@@ -8,12 +8,11 @@
 #define SCREEN_HEIGHT 144
 #define SCREEN_SIZE (SCREEN_WIDTH * SCREEN_HEIGHT)
 
-#define TILE_SIZE 16
-
-#define TILE_ROW  32
-#define TILE_COL  32
-
-#define TILE_HEIGHT 8
+const uint16_t kTileSize = 16;
+const uint16_t kTileWidth = 8;
+const uint16_t kTileHeight = 8;
+const uint16_t kTilesPerRow = 32;
+const uint16_t kTilesPerColumn = 32;
 
 // WHITE
 #define SHADE_0 0xFF9BBC0F
@@ -133,30 +132,40 @@ void GBGPU::renderscan() {
 const Uint32 kShadePalette[4] = {SHADE_0, SHADE_1, SHADE_2, SHADE_3};
 
 void GBGPU::render_background_scanline(const int scanline) {
-    int tile_line = (scanline + static_cast<int>(mmu.hwio_scy)) & 0xff;
+    int offset_line = mmu.hwio_scy;
 
-    for (int i = 0; i < SCREEN_WIDTH; i+= 8) {
-        uint16_t addr = decode_background_address(static_cast<uint8_t>(tile_line), i);
+    int line = (scanline + offset_line) % 256;
 
-        uint8_t lsb = mmu.read_byte(addr);
-        uint8_t msb = mmu.read_byte(addr + 1);
+    uint16_t bg_addr = (mmu.hwio_lcdc & 0x08) ? 0x9c00 : 0x9800;
 
-        for (int j = 0; j < 8; j++) {
-            int bit_index = 7 - j;
+    for (int column = 0; column < SCREEN_WIDTH; column++) {
+        uint16_t bg_index = (line / kTileHeight) * kTilesPerRow;
+        bg_index += (column / kTileWidth);
 
-            int background_palette_index = 0;
-            background_palette_index += ((lsb >> bit_index) & 0x01) ? 2 : 0;
-            background_palette_index += ((msb >> bit_index) & 0x01) ? 1 : 0;
+        uint16_t tile_number = mmu.read_byte(bg_addr + bg_index);
 
-            int pallete_index = (mmu.hwio_bgp >> (background_palette_index * 2)) & 0x3;
-
-            if (pallete_index == 0) {
-                continue;
-            }
-
-            int pos = (i + j) + (scanline * SCREEN_WIDTH);
-            framebuffer[pos] = kShadePalette[pallete_index];
+        uint16_t tile_addr = (mmu.hwio_lcdc & 0x10) ? 0x9000 : 0x8000;
+        if (tile_addr == 0x9000 && tile_number >= 128) {
+            tile_number = (0xff - tile_number) + 1;
+            tile_addr -= (tile_number * 16);
+        } else {
+            tile_addr += (tile_number * 16);
         }
+        tile_addr += (line % kTileHeight) * 2;
+
+        uint8_t lsb = mmu.read_byte(tile_addr + 0);
+        uint8_t msb = mmu.read_byte(tile_addr + 1);
+
+        int bit_index = 7 - (column % 8);
+
+        int pallete_index = 0;
+        pallete_index += ((lsb >> bit_index) & 0x01) ? 2 : 0;
+        pallete_index += ((msb >> bit_index) & 0x01) ? 1 : 0;
+
+        pallete_index = (mmu.hwio_bgp >> (pallete_index * 2)) & 0x3;
+
+        int pos = column + (scanline * SCREEN_WIDTH);
+        framebuffer[pos] = kShadePalette[pallete_index];
     }
 }
 
@@ -222,16 +231,16 @@ void GBGPU::render_sprite_scanline(const int scanline) {
 
 uint16_t GBGPU::decode_background_address(const uint8_t line, const uint8_t column) {
     uint16_t tile_addr = (mmu.hwio_lcdc & (1 << 3)) ? 0x9c00 : 0x9800;
-    tile_addr += ((line / TILE_HEIGHT) * TILE_ROW);
+    tile_addr += ((line / kTileHeight) * kTilesPerRow);
     tile_addr += column / 8;
 
     uint8_t tile = mmu.read_byte(tile_addr);
 
     int addr = (mmu.hwio_lcdc & (1 << 4)) ? 0x8000 : 0x8800;
     if (addr == 0x8000 || tile < 128) {
-        addr += tile * TILE_SIZE;
+        addr += tile * kTileSize;
     } else {
-        addr += static_cast<int8_t>(tile) * TILE_SIZE;
+        addr += static_cast<int8_t>(tile) * kTileSize;
     }
     addr += 2 * (line % 8);
 
