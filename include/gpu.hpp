@@ -2,6 +2,7 @@
 #define GPU_HPP
 
 #include <SDL.h>
+#include <vector>
 
 #include "mmu.hpp"
 #include "sprite.hpp"
@@ -19,7 +20,7 @@ private:
     SDL_Renderer* renderer;
     SDL_Texture*  texture;
 
-    Uint32* framebuffer;
+    std::vector<Uint32> framebuffer;
 
     GPUMode   mode;
     uint16_t clock;

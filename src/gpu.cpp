@@ -28,15 +28,13 @@ const uint16_t kTilesPerColumn = 32;
 #define B(color) static_cast<Uint8>(color >> 0)
 
 GBGPU::GBGPU(GBMMU& mmu) :
-    window(nullptr), renderer(nullptr), texture(nullptr), framebuffer(nullptr),
+    window(nullptr), renderer(nullptr), texture(nullptr),
     mode(HBLANK), clock(0),  is_on(false), mmu(mmu) {
 
 }
 
 GBGPU::~GBGPU() {
-    if (framebuffer) {
-        delete[] framebuffer;
-    }
+    framebuffer.clear();
 
     if (texture) {
         SDL_DestroyTexture(texture);
@@ -66,10 +64,7 @@ void GBGPU::show() {
                 SDL_PIXELFORMAT_ARGB8888,
                 SDL_TEXTUREACCESS_STREAMING,
                 SCREEN_WIDTH, SCREEN_HEIGHT);
-            framebuffer = new Uint32[SCREEN_SIZE];
-            for (int i = 0; i < SCREEN_SIZE; i++) {
-                framebuffer[i] = SHADE_0;
-            }
+            framebuffer = std::vector<Uint32>(SCREEN_SIZE, SHADE_0);
             black();
         } else {
             std::cerr << "SDL_CreateWindow failed: " << SDL_GetError() << "\n";
@@ -78,11 +73,6 @@ void GBGPU::show() {
 }
 
 void GBGPU::hide() {
-    if (framebuffer) {
-        delete[] framebuffer;
-        framebuffer = nullptr;
-    }
-
     if (texture) {
         SDL_DestroyTexture(texture);
         texture = nullptr;
@@ -165,7 +155,7 @@ void GBGPU::render_background_scanline(const int scanline) {
         pallete_index = (mmu.hwio_bgp >> (pallete_index * 2)) & 0x3;
 
         int pos = column + (scanline * SCREEN_WIDTH);
-        framebuffer[pos] = kShadePalette[pallete_index];
+        framebuffer.at(pos) = kShadePalette[pallete_index];
     }
 }
 
@@ -224,7 +214,7 @@ void GBGPU::render_sprite_scanline(const int scanline) {
             int pallete_index = (sprite_pallete >> (sprite_palette_index * 2)) & 0x3;
 
             int pos = (sprite.x + i) + (scanline * SCREEN_WIDTH);
-            framebuffer[pos] = kShadePalette[pallete_index];
+            framebuffer.at(pos) = kShadePalette[pallete_index];
         }
     }
 }
@@ -253,7 +243,7 @@ void GBGPU::refresh() {
     SDL_LockTexture(texture, nullptr,
         reinterpret_cast<void **>(&pixels), &pitch);
 
-    memcpy(pixels, framebuffer, SCREEN_SIZE * sizeof(Uint32));
+    std::copy(framebuffer.begin(), framebuffer.end(), pixels);
 
     SDL_UnlockTexture(texture);
 
