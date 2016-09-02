@@ -4,6 +4,7 @@
 #include <SDL.h>
 
 #include "mmu.hpp"
+#include "sprite.hpp"
 
 enum GPUMode : uint8_t {
     HBLANK  = 0,
@@ -28,6 +29,9 @@ private:
     void check_enable_changed();
 
     uint16_t decode_background_address(const uint8_t line, const uint8_t column);
+
+    void render_background_scanline(const int scanline);
+    void render_sprite_scanline(const int scanline);
 public:
     GBMMU& mmu;
 

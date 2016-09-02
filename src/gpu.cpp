@@ -121,10 +121,19 @@ void GBGPU::black() {
 }
 
 void GBGPU::renderscan() {
-    const Uint32 palette[4] = {SHADE_0, SHADE_1, SHADE_2, SHADE_3};
-
     int scanline  = static_cast<int>(mmu.hwio_ly) - 1;
-    int tile_line = (scanline + static_cast<int>(mmu.hwio_scy)) % 256;
+    if (mmu.hwio_lcdc & 0x01) {
+        render_background_scanline(scanline);
+    }
+
+    if (mmu.hwio_lcdc & 0x02) {
+        render_sprite_scanline(scanline);
+    }
+}
+const Uint32 kShadePalette[4] = {SHADE_0, SHADE_1, SHADE_2, SHADE_3};
+
+void GBGPU::render_background_scanline(const int scanline) {
+    int tile_line = (scanline + static_cast<int>(mmu.hwio_scy)) & 0xff;
 
     for (int i = 0; i < SCREEN_WIDTH; i+= 8) {
         uint16_t addr = decode_background_address(static_cast<uint8_t>(tile_line), i);
@@ -141,11 +150,74 @@ void GBGPU::renderscan() {
 
             int pallete_index = (mmu.hwio_bgp >> (background_palette_index * 2)) & 0x3;
 
+            if (pallete_index == 0) {
+                continue;
+            }
+
             int pos = (i + j) + (scanline * SCREEN_WIDTH);
-            framebuffer[pos] = palette[pallete_index];
+            framebuffer[pos] = kShadePalette[pallete_index];
+        }
+    }
+}
+
+const uint16_t kSizeSprite = 4;
+
+void GBGPU::render_sprite_scanline(const int scanline) {
+    uint8_t sprite_width  = 8;
+    uint8_t sprite_height = (mmu.hwio_lcdc & 0x04) ? 16 : 8;
+
+    std::vector<GBSprite> sprites;
+    for (int i = 0; i < 40; i++) {
+        uint16_t sprite_addr = 0xfe00 + i * kSizeSprite;
+
+        uint8_t y = mmu.read_byte(sprite_addr) - 16;
+        uint8_t x = mmu.read_byte(sprite_addr + 1) - 8;
+
+        if (y == 0 || y >= 160) {
+            continue;
+        }
+
+        if (x == 0 || x >= 168) {
+            continue;
+        }
+
+        if (scanline >= y &&  scanline < (y + sprite_height)) {
+            uint8_t tile = mmu.read_byte(sprite_addr + 2);
+            uint8_t flags = mmu.read_byte(sprite_addr + 3);
+            sprites.push_back(GBSprite(x, y, tile, flags));
         }
     }
 
+    uint16_t sprite_base_addr = 0x8000;
+
+    for (auto& sprite : sprites) {
+        int line = scanline - sprite.y;
+        if (sprite.y_flip) {
+            line -= sprite_height;
+            line *= -1;
+        }
+        line *= 2;
+
+        uint16_t tile_addr = sprite_base_addr + line + (sprite.tile * 16);
+
+        uint8_t lsb = mmu.read_byte(tile_addr);
+        uint8_t msb = mmu.read_byte(tile_addr + 1);
+
+        uint8_t sprite_pallete = sprite.is_pallete_1 ? mmu.hwio_obp1 : mmu.hwio_obp0;
+
+        for (int i = 0; i < sprite_width; i++) {
+            int bit_index = 7 - i;
+
+            int sprite_palette_index = 0;
+            sprite_palette_index += ((lsb >> bit_index) & 0x01) ? 2 : 0;
+            sprite_palette_index += ((msb >> bit_index) & 0x01) ? 1 : 0;
+
+            int pallete_index = (sprite_pallete >> (sprite_palette_index * 2)) & 0x3;
+
+            int pos = (sprite.x + i) + (scanline * SCREEN_WIDTH);
+            framebuffer[pos] = kShadePalette[pallete_index];
+        }
+    }
 }
 
 uint16_t GBGPU::decode_background_address(const uint8_t line, const uint8_t column) {
