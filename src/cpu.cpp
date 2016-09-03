@@ -61,6 +61,7 @@ inline uint8_t higher_byte(uint16_t b) {
 
 GBCPU::GBCPU(GBMMU& mmu) :
     mmu(mmu),
+    ime(false),
     instruction_map(256, &GBCPU::not_implemented_error),
     cb_instruction_map(256, &GBCPU::not_implemented_error) {
 
@@ -69,8 +70,6 @@ GBCPU::GBCPU(GBMMU& mmu) :
 }
 
 void GBCPU::fill_instrunction_map() {
-    instruction_map.reserve(256);
-
     instruction_map[0x00] = &GBCPU::nop;
     instruction_map[0x01] = &GBCPU::ld_bc_nn;
     instruction_map[0x02] = &GBCPU::ld_pbc_a;
@@ -345,8 +344,6 @@ void GBCPU::fill_instrunction_map() {
 }
 
 void GBCPU::fill_cb_instrunction_map() {
-    cb_instruction_map.reserve(256);
-
     cb_instruction_map[0x00] = &GBCPU::rlc_b;
     cb_instruction_map[0x01] = &GBCPU::rlc_c;
     cb_instruction_map[0x02] = &GBCPU::rlc_d;

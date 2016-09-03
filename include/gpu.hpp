@@ -22,12 +22,7 @@ private:
 
     std::vector<Uint32> framebuffer;
 
-    GPUMode   mode;
     uint16_t clock;
-
-    bool is_on;
-
-    void check_enable_changed();
 
     uint16_t decode_background_address(const uint8_t line, const uint8_t column);
 

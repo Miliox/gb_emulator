@@ -161,6 +161,7 @@ void unload_bios(GBCPU& cpu, GBMMU& mmu) {
     mmu.hwio_nr52 = 0xf1;
 
     mmu.hwio_lcdc = 0x91;
+    mmu.hwio_stat = 0x02;
     mmu.hwio_scy  = 0x00;
     mmu.hwio_scx  = 0x00;
     mmu.hwio_lyc  = 0x00;

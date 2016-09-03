@@ -28,8 +28,7 @@ const uint16_t kTilesPerColumn = 32;
 #define B(color) static_cast<Uint8>(color >> 0)
 
 GBGPU::GBGPU(GBMMU& mmu) :
-    window(nullptr), renderer(nullptr), texture(nullptr),
-    mode(HBLANK), clock(0),  is_on(false), mmu(mmu) {
+    window(nullptr), renderer(nullptr), texture(nullptr), clock(0), mmu(mmu) {
 
 }
 
@@ -238,27 +237,27 @@ uint16_t GBGPU::decode_background_address(const uint8_t line, const uint8_t colu
 }
 
 void GBGPU::refresh() {
-    int pitch = 0;
-    Uint32* pixels = nullptr;
-    SDL_LockTexture(texture, nullptr,
-        reinterpret_cast<void **>(&pixels), &pitch);
+    if (mmu.hwio_lcdc & 0x80) {
+        int pitch = 0;
+        Uint32* pixels = nullptr;
+        SDL_LockTexture(texture, nullptr,
+            reinterpret_cast<void **>(&pixels), &pitch);
 
-    std::copy(framebuffer.begin(), framebuffer.end(), pixels);
+        std::copy(framebuffer.begin(), framebuffer.end(), pixels);
 
-    SDL_UnlockTexture(texture);
+        SDL_UnlockTexture(texture);
 
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, texture, NULL, NULL);
+        SDL_RenderPresent(renderer);
+    }
 }
 
 void GBGPU::step(uint8_t elapsed_ticks) {
-    check_enable_changed();
-    if (!is_on) {
-        return;
-    }
-
     clock += elapsed_ticks;
+
+    GPUMode mode = static_cast<GPUMode>(mmu.hwio_stat & 0x3);
+
     switch (mode) {
         case HBLANK:
             if (clock >= 204) {
@@ -327,18 +326,4 @@ void GBGPU::step(uint8_t elapsed_ticks) {
         }
     }
     mmu.hwio_stat = (mmu.hwio_stat & 0xfc) | (mode & 0x03);
-}
-
-void GBGPU::check_enable_changed() {
-    bool enable = (mmu.hwio_lcdc & 0x80) != 0;
-
-    if (enable && !is_on) {
-        blank();
-        clock = 0;
-        is_on = true;
-    } else if (!enable && is_on) {
-
-        clock = 0;
-        is_on = false;
-    }
 }

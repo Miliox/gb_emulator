@@ -488,6 +488,8 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             hwio_scx = value;
             break;
         case kAddrLY:
+            hwio_ly = 0;
+            hwio_stat = (hwio_stat & 0xfc) | 0x2;
             // read only
             break;
         case kAddrLYC:
