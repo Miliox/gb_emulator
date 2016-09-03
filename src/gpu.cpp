@@ -110,7 +110,7 @@ void GBGPU::black() {
 }
 
 void GBGPU::renderscan() {
-    int scanline  = static_cast<int>(mmu.hwio_ly) - 1;
+    int scanline  = static_cast<int>(mmu.hwio_ly);
     if (mmu.hwio_lcdc & 0x01) {
         render_background_scanline(scanline);
     }
@@ -272,6 +272,7 @@ void GBGPU::step(uint8_t elapsed_ticks) {
                         mmu.hwio_if |= kInterruptionLcdStat;
                     }
 
+                    refresh();
                 } else {
                     mode = READOAM;
 
@@ -279,7 +280,6 @@ void GBGPU::step(uint8_t elapsed_ticks) {
                         mmu.hwio_if |= kInterruptionLcdStat;
                     }
 
-                    renderscan();
                 }
             }
             break;
@@ -295,7 +295,7 @@ void GBGPU::step(uint8_t elapsed_ticks) {
                     }
 
                     mmu.hwio_ly = 0;
-                    refresh();
+
                 }
             }
             break;
@@ -314,6 +314,7 @@ void GBGPU::step(uint8_t elapsed_ticks) {
                     mmu.hwio_if |= kInterruptionLcdStat;
                 }
 
+                renderscan();
             }
             break;
     }
