@@ -17,6 +17,7 @@ void emulator(const char* filename) {
     GBMMU mmu(cartridge);
     GBCPU cpu(mmu);
     GBGPU gpu(mmu);
+    gpu.set_window_title(cartridge.title);
 
     bool running = true;
 

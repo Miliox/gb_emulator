@@ -24,6 +24,8 @@ private:
 
     uint16_t clock;
 
+    std::string window_title;
+
     uint16_t decode_background_address(const uint8_t line, const uint8_t column);
 
     void render_background_scanline(const int scanline);
@@ -44,6 +46,8 @@ public:
     void refresh();
 
     void step(uint8_t elapsed_ticks);
+
+    void set_window_title(const std::string&);
 };
 
 #endif

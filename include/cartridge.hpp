@@ -65,10 +65,6 @@ private:
 
     bool ram_enabled;
 
-    std::string title;
-
-    bool is_japanese;
-
     std::vector<uint8_t> rom;
     std::vector<uint8_t> ram;
 
@@ -76,6 +72,9 @@ private:
 
 public:
     GBCartridge();
+
+    std::string title;
+    bool is_japanese;
 
     bool load(const char* filename);
     bool is_loaded() { return loaded; }

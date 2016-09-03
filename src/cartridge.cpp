@@ -29,11 +29,9 @@ GBCartridge::GBCartridge() :
     mcb_version(0),
     rom_bank_count(0), rom_bank_number(0), rom_size(0),
     ram_bank_count(0), ram_bank_number(0), ram_size(0), ram_enabled(false),
-    title(),
-    is_japanese(false),
     rom(), ram(),
-    loaded(false) {
-
+    loaded(false),
+    title(), is_japanese(false) {
 
 }
 
@@ -69,12 +67,12 @@ bool GBCartridge::load(const char* filename) {
     std::fstream file(filename, std::fstream::in);
     if (file.is_open()) {
         // load title
-        char* str = new char[16];
+        char title_str[12];
+        std::memset(title_str, 0, sizeof(title_str));
         file.seekg(kAddrCatridgeGameTitle, file.beg);
-        file.read(str, sizeof(str));
-        str[15] = '\0';
-        title = std::string(str);
-        delete[] str;
+        file.read(title_str, sizeof(title_str));
+        title_str[sizeof(title_str) - 1] = '\0';
+        title = std::string(title_str);
 
         // load location
         file.seekg(kAddrCatridgeType, file.beg);

@@ -50,7 +50,7 @@ GBGPU::~GBGPU() {
 
 void GBGPU::show() {
     if (!window) {
-        window = SDL_CreateWindow("GBEmu",
+        window = SDL_CreateWindow(!window_title.empty() ? window_title.c_str() : "GBEmu",
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
             SCREEN_WIDTH,
@@ -306,4 +306,11 @@ void GBGPU::step(uint8_t elapsed_ticks) {
         mmu.request_lcdc_interrupt(LCDC_INTERRUPT_COINCI);
     }
     mmu.hwio_stat = (mmu.hwio_stat & 0xfc) | (mode & 0x03);
+}
+
+void GBGPU::set_window_title(const std::string& title) {
+    window_title = title;
+    if (window) {
+        SDL_SetWindowTitle(window, window_title.c_str());
+    }
 }
