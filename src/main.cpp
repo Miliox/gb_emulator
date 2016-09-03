@@ -7,8 +7,14 @@ void dump_cpu(const GBCPU&);
 void unload_bios(GBCPU& cpu, GBMMU& mmu);
 void process_events(bool& running);
 
-void emulator() {
-    GBMMU mmu;
+void emulator(const char* filename) {
+    GBCartridge cartridge;
+    cartridge.load(filename);
+    if (!cartridge.is_loaded()) {
+        return;
+    }
+
+    GBMMU mmu(cartridge);
     GBCPU cpu(mmu);
     GBGPU gpu(mmu);
 
@@ -81,8 +87,14 @@ void emulator() {
 }
 
 int main(int argc, char** argv) {
+    if (argc != 2) {
+        std::cout << "usage:\n";
+        std::cout << argv[0] << " <rom_file>\n";
+        return 0;
+    }
+
     if (SDL_Init(SDL_INIT_VIDEO) >= 0) {
-        emulator();
+        emulator(argv[1]);
         SDL_Quit();
     } else {
         std::cerr << "Window could not be created! SDL_Error:" << SDL_GetError() << "\n";

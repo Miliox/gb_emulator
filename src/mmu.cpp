@@ -86,19 +86,21 @@ const uint16_t kSizeIRAM = (0xdfff - kAddrIRAM) + 1;
 const uint16_t kSizeVRAM = (0x9fff - kAddrVRAM) + 1;
 const uint16_t kSizeCROM = (0x7fff - kAddrCROM) + 1;
 
+const uint16_t kSizeCartridgeBank = 0x4000;
+
 void dump_mmu_oper(const char * op, uint16_t offset, uint16_t value);
 void print_bytes(const std::vector<uint8_t>& data);
 void print_bytes(std::vector<uint8_t>::iterator b, std::vector<uint8_t>::iterator e);
 
 GBMMU::GBMMU() :
     tick_counter(0),
-    crom(kSizeCROM, 0),
     vram(kSizeVRAM, 0),
     oram(kSizeORAM, 0),
     hram(kSizeHRAM, 0),
     iram(kSizeIRAM, 0),
     bios_loaded(true),
     interrupt_master_enabled(false) {
+
     hwio_p1 = 0;
     hwio_sb = 0;
     hwio_sc = 0;
@@ -144,10 +146,10 @@ GBMMU::GBMMU() :
     hwio_wy = 0;
     hwio_wx = 0;
     hwio_ie = 0;
+}
 
-    std::fstream cartridge("tetris.gb", std::fstream::in);
-    cartridge.read(reinterpret_cast<char*>(&crom[0]), 0x8000);
-    cartridge.close();
+GBMMU::GBMMU(const GBCartridge& cartridge) : GBMMU() {
+    this->cartridge = cartridge;
 }
 
 GBMMU::~GBMMU() {
@@ -164,11 +166,17 @@ uint8_t GBMMU::read_byte(uint16_t addr) const {
         return kGameBoyBios[addr];
     }
 
-    const int len = 5;
-    //const char* mem_name[len] = {"r crom", "r vram", "r iram", "r oram", "r hram"};
-    const uint16_t mem_addr[len] = {kAddrCROM, kAddrVRAM, kAddrIRAM, kAddrORAM, kAddrHRAM};
-    const uint16_t mem_size[len] = {kSizeCROM, kSizeVRAM, kSizeIRAM, kSizeORAM, kSizeHRAM};
-    const std::vector<uint8_t>* mem[len] = {&crom, &vram, &iram, &oram, &hram};
+    if (addr < 0x8000) {
+        uint8_t value = cartridge.read(addr);
+        //dump_mmu_oper("r cart", addr, value);
+        return value;
+    }
+
+    const int len = 4;
+    //const char* mem_name[len] = {r vram", "r iram", "r oram", "r hram"};
+    const uint16_t mem_addr[len] = {kAddrVRAM, kAddrIRAM, kAddrORAM, kAddrHRAM};
+    const uint16_t mem_size[len] = {kSizeVRAM, kSizeIRAM, kSizeORAM, kSizeHRAM};
+    const std::vector<uint8_t>* mem[len] = {&vram, &iram, &oram, &hram};
 
     for (int i = 0; i < len; i++) {
         if (addr >= mem_addr[i] && addr < (mem_addr[i] + mem_size[i])) {
@@ -203,6 +211,12 @@ inline void write(uint8_t value, uint16_t addr, uint16_t base,
 }
 
 void GBMMU::write_byte(uint16_t addr, uint8_t value) {
+    if (addr < 0x8000) {
+        cartridge.write(addr, value);
+        //dump_mmu_oper("w cart", addr, value);
+        return;
+    }
+
     const int len = 4;
     //const char* mem_name[len] = {"w vram", "w iram", "w oram", "w hram"};
     const uint16_t mem_addr[len] = {kAddrVRAM, kAddrIRAM, kAddrORAM, kAddrHRAM};
@@ -528,10 +542,7 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             uint16_t src_addr = value << 8;
             if (src_addr < (0x8000  - 0xa0)) {
                 //std::cout << "dma copy from rom " << std::hex << (uint16_t) src_addr << "\n";
-                std::copy(
-                    crom.begin() + src_addr,
-                    crom.begin() + src_addr + 0xa0,
-                    oram.begin());
+                cartridge.dma_read(src_addr, 0xa0, oram.begin());
             } else if (src_addr >= 0xc000 && src_addr <= (0xcfff  - 0xa0)) {
                 //std::cout << "dma copy ram " << std::hex << (uint16_t) src_addr << "\n";
                 std::copy(
