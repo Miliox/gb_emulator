@@ -278,12 +278,10 @@ void GBMMU::step(tick_t elapsed_ticks) {
 }
 
 void GBMMU::disable_interrupts() {
-    std::cout << "disable interruts\n";
     interrupt_master_enabled = false;
 }
 
 void GBMMU::enable_interrupts() {
-    std::cout << "enable interruts\n";
     interrupt_master_enabled = true;
 }
 
