@@ -37,8 +37,8 @@ void emulator() {
             clock += t;
 
             // interrupt handler
-            if (cpu.ime && (mmu.hwio_ie & mmu.hwio_if)) {
-                cpu.ime = false;
+            if (mmu.interrupt_master_enabled && (mmu.hwio_ie & mmu.hwio_if)) {
+                mmu.disable_interrupts();
 
                 t = 0;
                 if (mmu.hwio_if & kInterruptionVBlank) {

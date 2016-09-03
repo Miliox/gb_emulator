@@ -67,8 +67,6 @@ public:
 
     GBMMU& mmu;
 
-    bool ime; // interrupt master enable flag
-
     std::vector<tick_t (GBCPU::*)()> instruction_map;
     std::vector<tick_t (GBCPU::*)()> cb_instruction_map;
 

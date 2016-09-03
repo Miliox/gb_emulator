@@ -61,7 +61,6 @@ inline uint8_t higher_byte(uint16_t b) {
 
 GBCPU::GBCPU(GBMMU& mmu) :
     mmu(mmu),
-    ime(false),
     instruction_map(256, &GBCPU::not_implemented_error),
     cb_instruction_map(256, &GBCPU::not_implemented_error) {
 
@@ -1463,12 +1462,12 @@ tick_t GBCPU::cp_n() {
 }
 
 tick_t GBCPU::di() {
-    ime = false;
+    mmu.disable_interrupts();
     return 4;
 }
 
 tick_t GBCPU::ei() {
-    ime = true;
+    mmu.enable_interrupts();
     return 4;
 }
 
@@ -1524,7 +1523,7 @@ tick_t GBCPU::ret() {
 
 tick_t GBCPU::reti() {
     ret();
-    ime = true;
+    mmu.enable_interrupts();
     return 8;
 }
 

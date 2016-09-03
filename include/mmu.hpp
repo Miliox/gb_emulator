@@ -19,6 +19,21 @@ const uint8_t kLcdInterruptVBlank = (1 << 4);
 const uint8_t kLcdInterruptOAM    = (1 << 5);
 const uint8_t kLcdInterruptLineEq = (1 << 6); // Coincidence Flag
 
+enum Interrupt : uint8_t {
+    INTERRUPT_VBLANK = kInterruptionVBlank,
+    INTERRUPT_LCDC   = kInterruptionLcdStat,
+    INTERRUPT_TIMER  = kInterruptionTimer,
+    INTERRUPT_SERIAL = kInterruptionSerial,
+    INTERRUPT_JOYPAD = kInterruptionJoypad
+};
+
+enum LcdcInterrupt : uint8_t {
+    LCDC_INTERRUPT_HBLANK = kLcdInterruptHBlank,
+    LCDC_INTERRUPT_VBLANK = kLcdInterruptVBlank,
+    LCDC_INTERRUPT_OAM    = kLcdInterruptOAM,
+    LCDC_INTERRUPT_COINCI = kLcdInterruptLineEq
+};
+
 class GBMMU {
 private:
     tick_t tick_counter;
@@ -45,7 +60,14 @@ public:
 
     void step(tick_t elapsed_ticks);
 
+    void request_interrupt(Interrupt Interrupt);
+    void request_lcdc_interrupt(LcdcInterrupt interrupt);
+
     bool bios_loaded;
+    bool interrupt_master_enabled;
+
+    void disable_interrupts();
+    void enable_interrupts();
 
     uint8_t hwio_p1;
     uint8_t hwio_sb;

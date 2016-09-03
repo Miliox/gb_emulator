@@ -97,7 +97,8 @@ GBMMU::GBMMU() :
     oram(kSizeORAM, 0),
     hram(kSizeHRAM, 0),
     iram(kSizeIRAM, 0),
-    bios_loaded(true) {
+    bios_loaded(true),
+    interrupt_master_enabled(false) {
     hwio_p1 = 0;
     hwio_sb = 0;
     hwio_sc = 0;
@@ -219,6 +220,7 @@ void GBMMU::write_byte(uint16_t addr, uint8_t value) {
     if (addr == kAddrInterruptFlag) {
         //dump_mmu_oper("w ie", addr, value);
         hwio_ie = value;
+        hwio_if &= hwio_ie;
     } else if (addr >= kAddrHWIO && addr < (kAddrHWIO + kSizeHWIO)) {
         write_hwio(addr, value);
         //dump_mmu_oper("w hw", addr, value);
@@ -253,11 +255,33 @@ void GBMMU::step(tick_t elapsed_ticks) {
             hwio_tima += 1;
 
             if (hwio_tima == 0) {
-                hwio_if |= kInterruptionTimer;
+                request_interrupt(INTERRUPT_TIMER);
             }
         }
     } else {
         tick_counter = 0;
+    }
+}
+
+void GBMMU::disable_interrupts() {
+    std::cout << "disable interruts\n";
+    interrupt_master_enabled = false;
+}
+
+void GBMMU::enable_interrupts() {
+    std::cout << "enable interruts\n";
+    interrupt_master_enabled = true;
+}
+
+void GBMMU::request_interrupt(Interrupt interrupt) {
+    if (interrupt_master_enabled && (hwio_ie & interrupt)) {
+        hwio_if |= interrupt;
+    }
+}
+
+void GBMMU::request_lcdc_interrupt(LcdcInterrupt interrupt) {
+    if (hwio_stat & interrupt) {
+        request_interrupt(INTERRUPT_LCDC);
     }
 }
 
