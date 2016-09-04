@@ -14,6 +14,17 @@ enum GPUMode : uint8_t {
     WRIVRAM = 3
 };
 
+enum LcdcFlags : uint8_t {
+    LCDC_FLAG_DISPLAY_ENABLE                     = (1 << 7),
+    LCDC_FLAG_WINDOW_TILE_MAP_DISPLAY_SELECT     = (1 << 6),
+    LCDC_FLAG_WINDOW_DISPLAY_ENABLE              = (1 << 5),
+    LCDC_FLAG_BACKGROUND_WINDOW_TILE_DATA_SELECT = (1 << 4),
+    LCDC_FLAG_BACKGROUND_TILE_MAP_DISPLAY_SELECT = (1 << 3),
+    LCDC_FLAG_SPRITE_SIZE                        = (1 << 2),
+    LCDC_FLAG_SPRITE_DISPLAY_ENABLE              = (1 << 1),
+    LCDC_FLAG_BACKGROUND_DISPLAY_ENABLE          = (1 << 0)
+};
+
 class GBGPU {
 private:
     SDL_Window*   window;
@@ -22,7 +33,7 @@ private:
 
     std::vector<Uint32> framebuffer;
 
-    uint16_t clock;
+    tick_t clock;
 
     std::string window_title;
 

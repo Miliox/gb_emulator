@@ -73,6 +73,7 @@ void emulator(const char* filename) {
                 }
                 gpu.step(t);
                 mmu.step(t);
+                clock += t;
             }
 
             // sync

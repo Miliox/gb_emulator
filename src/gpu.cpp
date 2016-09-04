@@ -110,11 +110,11 @@ void GBGPU::black() {
 
 void GBGPU::renderscan() {
     int scanline  = static_cast<int>(mmu.hwio_ly);
-    if (mmu.hwio_lcdc & 0x01) {
+    if (mmu.hwio_lcdc & LCDC_FLAG_BACKGROUND_DISPLAY_ENABLE) {
         render_background_scanline(scanline);
     }
 
-    if (mmu.hwio_lcdc & 0x02) {
+    if (mmu.hwio_lcdc & LCDC_FLAG_SPRITE_DISPLAY_ENABLE) {
         render_sprite_scanline(scanline);
     }
 }
@@ -125,7 +125,8 @@ void GBGPU::render_background_scanline(const int scanline) {
 
     int line = (scanline + offset_line) % 256;
 
-    uint16_t bg_addr = (mmu.hwio_lcdc & 0x08) ? 0x9c00 : 0x9800;
+    uint16_t bg_addr = (mmu.hwio_lcdc & LCDC_FLAG_BACKGROUND_TILE_MAP_DISPLAY_SELECT)
+        ? 0x9c00 : 0x9800;
 
     for (int column = 0; column < SCREEN_WIDTH; column++) {
         uint16_t bg_index = (line / kTileHeight) * kTilesPerRow;
@@ -133,7 +134,9 @@ void GBGPU::render_background_scanline(const int scanline) {
 
         uint16_t tile_number = mmu.read_byte(bg_addr + bg_index);
 
-        uint16_t tile_addr = (mmu.hwio_lcdc & 0x10) ? 0x9000 : 0x8000;
+        uint16_t tile_addr = (mmu.hwio_lcdc & LCDC_FLAG_BACKGROUND_WINDOW_TILE_DATA_SELECT)
+            ? 0x8000 : 0x9000;
+
         if (tile_addr == 0x9000 && tile_number >= 128) {
             tile_number = (0xff - tile_number) + 1;
             tile_addr -= (tile_number * 16);
@@ -162,7 +165,8 @@ const uint16_t kSizeSprite = 4;
 
 void GBGPU::render_sprite_scanline(const int scanline) {
     uint8_t sprite_width  = 8;
-    uint8_t sprite_height = (mmu.hwio_lcdc & 0x04) ? 16 : 8;
+    uint8_t sprite_height = (mmu.hwio_lcdc & LCDC_FLAG_SPRITE_SIZE)
+        ? 16 : 8;
 
     std::vector<GBSprite> sprites;
     for (int i = 0; i < 40; i++) {
