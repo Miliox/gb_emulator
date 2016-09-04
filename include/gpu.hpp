@@ -30,6 +30,7 @@ private:
 
     void render_background_scanline(const int scanline);
     void render_sprite_scanline(const int scanline);
+
 public:
     GBMMU& mmu;
 

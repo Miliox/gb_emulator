@@ -287,9 +287,7 @@ void GBMMU::enable_interrupts() {
 }
 
 void GBMMU::request_interrupt(Interrupt interrupt) {
-    if (interrupt_master_enabled && (hwio_ie & interrupt)) {
-        hwio_if |= interrupt;
-    }
+    hwio_if |= interrupt;
 }
 
 void GBMMU::request_lcdc_interrupt(LcdcInterrupt interrupt) {
@@ -527,13 +525,11 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
         case kAddrLY:
             hwio_ly = 0;
             hwio_stat = (hwio_stat & 0xfc) | 0x2;
-            // read only
+            check_lcdc_line_coincidence();
             break;
         case kAddrLYC:
             hwio_lyc = value;
-            if (hwio_ly == hwio_lyc) {
-                hwio_stat |= 0x40;
-            }
+            check_lcdc_line_coincidence();
             break;
         case kAddrDMA: {
             //TODO: Implement DMA
@@ -581,6 +577,15 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
         default:
             //std::cout << "ign w @" << addr << " " << (uint16_t) value << "\n";
             break;
+    }
+}
+
+void GBMMU::check_lcdc_line_coincidence() {
+    if (hwio_ly == hwio_lyc) {
+        hwio_stat |= 0x40;
+        request_lcdc_interrupt(LCDC_INTERRUPT_COINCI);
+    } else {
+        hwio_stat &= ~0x40;
     }
 }
 

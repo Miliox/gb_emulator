@@ -65,6 +65,8 @@ public:
     void request_interrupt(Interrupt Interrupt);
     void request_lcdc_interrupt(LcdcInterrupt interrupt);
 
+    void check_lcdc_line_coincidence();
+
     bool bios_loaded;
     bool interrupt_master_enabled;
 

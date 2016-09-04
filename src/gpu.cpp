@@ -263,6 +263,8 @@ void GBGPU::step(uint8_t elapsed_ticks) {
             if (clock >= 204) {
                 clock -= 204;
                 mmu.hwio_ly += 1;
+                mmu.check_lcdc_line_coincidence();
+
                 if (mmu.hwio_ly >= 143) {
                     mode = VBLANK;
                     mmu.request_interrupt(INTERRUPT_VBLANK);
@@ -272,17 +274,21 @@ void GBGPU::step(uint8_t elapsed_ticks) {
                     mode = READOAM;
                     mmu.request_lcdc_interrupt(LCDC_INTERRUPT_OAM);
                 }
+
             }
             break;
         case VBLANK:
             if (clock >= 456) {
                 clock -= 456;
                 mmu.hwio_ly += 1;
+
                 if (mmu.hwio_ly > 153) {
                     mode = READOAM;
                     mmu.request_lcdc_interrupt(LCDC_INTERRUPT_OAM);
                     mmu.hwio_ly = 0;
                 }
+
+                mmu.check_lcdc_line_coincidence();
             }
             break;
         case READOAM:
@@ -301,10 +307,6 @@ void GBGPU::step(uint8_t elapsed_ticks) {
             break;
     }
 
-    if (mmu.hwio_ly == mmu.hwio_lyc) {
-        mmu.hwio_stat |= 0x40;
-        mmu.request_lcdc_interrupt(LCDC_INTERRUPT_COINCI);
-    }
     mmu.hwio_stat = (mmu.hwio_stat & 0xfc) | (mode & 0x03);
 }
 
