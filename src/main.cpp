@@ -8,16 +8,18 @@ void unload_bios(GBCPU& cpu, GBMMU& mmu);
 void process_events(bool& running);
 
 void emulator(const char* filename) {
-    GBCartridge cartridge;
-    cartridge.load(filename);
-    if (!cartridge.is_loaded()) {
+    std::unique_ptr<GBCartridge> cartridge(new GBCartridge());
+    cartridge->load(filename);
+    if (!cartridge->is_loaded()) {
         return;
     }
 
-    GBMMU mmu(cartridge);
+    std::string game_title = !cartridge->title.empty() ? cartridge->title : "GBEmu";
+
+    GBMMU mmu(cartridge); // ownership of cartridge transfered, don't use!
     GBCPU cpu(mmu);
     GBGPU gpu(mmu);
-    gpu.set_window_title(cartridge.title);
+    gpu.set_window_title(game_title);
 
     bool running = true;
 

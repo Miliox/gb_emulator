@@ -148,8 +148,9 @@ GBMMU::GBMMU() :
     hwio_ie = 0;
 }
 
-GBMMU::GBMMU(const GBCartridge& cartridge) : GBMMU() {
-    this->cartridge = cartridge;
+GBMMU::GBMMU(std::unique_ptr<GBCartridge>& cartridge) : GBMMU() {
+    // take ownership
+    this->cartridge.reset(cartridge.release());
 }
 
 GBMMU::~GBMMU() {
@@ -167,7 +168,7 @@ uint8_t GBMMU::read_byte(uint16_t addr) const {
     }
 
     if (addr < 0x8000) {
-        uint8_t value = cartridge.read(addr);
+        uint8_t value = cartridge->read(addr);
         //dump_mmu_oper("r cart", addr, value);
         return value;
     }
@@ -212,7 +213,7 @@ inline void write(uint8_t value, uint16_t addr, uint16_t base,
 
 void GBMMU::write_byte(uint16_t addr, uint8_t value) {
     if (addr < 0x8000) {
-        cartridge.write(addr, value);
+        cartridge->write(addr, value);
         //dump_mmu_oper("w cart", addr, value);
         return;
     }
@@ -540,7 +541,7 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             uint16_t src_addr = value << 8;
             if (src_addr < (0x8000  - 0xa0)) {
                 //std::cout << "dma copy from rom " << std::hex << (uint16_t) src_addr << "\n";
-                cartridge.dma_read(src_addr, 0xa0, oram.begin());
+                cartridge->dma_read(src_addr, 0xa0, oram.begin());
             } else if (src_addr >= 0xc000 && src_addr <= (0xcfff  - 0xa0)) {
                 //std::cout << "dma copy ram " << std::hex << (uint16_t) src_addr << "\n";
                 std::copy(

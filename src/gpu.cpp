@@ -50,7 +50,7 @@ GBGPU::~GBGPU() {
 
 void GBGPU::show() {
     if (!window) {
-        window = SDL_CreateWindow(!window_title.empty() ? window_title.c_str() : "GBEmu",
+        window = SDL_CreateWindow(window_title.c_str(),
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
             SCREEN_WIDTH,

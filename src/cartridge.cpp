@@ -1,6 +1,7 @@
 #include "cartridge.hpp"
 
 #include <iostream>
+#include <stdexcept>
 
 const int kAddrCatridgeGameTitle = 0x134;
 const int kAddrCatridgeSGBIndicator = 0x146;
@@ -9,7 +10,7 @@ const int kAddrCatridgeROMSize = 0x148;
 const int kAddrCatridgeRAMSize = 0x149;
 const int kAddrCatridgeDestinationCode = 0x14a;
 
-bool contains_mcb(uint8_t cartridge_type);
+bool contains_mbc(uint8_t cartridge_type);
 bool contains_rom(uint8_t cartridge_type);
 bool contains_ram(uint8_t cartridge_type);
 bool contains_battery(uint8_t cartridge_type);
@@ -17,18 +18,17 @@ bool contains_rumble(uint8_t cartridge_type);
 bool contains_timer(uint8_t cartridge_type);
 bool contains_mmm01(uint8_t cartridge_type);
 
-uint32_t get_mcb_version(uint8_t cartridge_type);
+uint32_t get_mbc_version(uint8_t cartridge_type);
 uint32_t get_ram_bank_count(uint8_t ram_type);
 uint32_t get_rom_bank_count(uint8_t rom_type);
 uint32_t get_ram_size(uint8_t ram_type);
 uint32_t get_rom_size(uint8_t rom_type);
 
 GBCartridge::GBCartridge() :
-    has_ram(false), has_rom(false), has_mcb(false),
+    has_ram(false), has_rom(false), has_mbc(false),
     has_battery(false), has_mmm01(false), has_rumble(false), has_timer(false),
-    mcb_version(0),
-    rom_bank_count(0), rom_bank_number(0), rom_size(0),
-    ram_bank_count(0), ram_bank_number(0), ram_size(0), ram_enabled(false),
+    mbc(new MBC(0, 0)), mbc_version(0),
+    rom_size(0), ram_size(0), ram_enabled(false),
     rom(), ram(),
     loaded(false),
     title(), is_japanese(false) {
@@ -38,20 +38,15 @@ GBCartridge::GBCartridge() :
 bool GBCartridge::load(const char* filename) {
     has_ram = false;
     has_rom = false;
-    has_mcb = false;
+    has_mbc = false;
     has_battery = false;
     has_mmm01 = false;
     has_rumble = false;
     has_timer = false;
 
-    mcb_version = 0;
+    mbc_version = 0;
 
-    rom_bank_count = 0;
-    rom_bank_number = 0;
     rom_size = 0;
-
-    ram_bank_count = 0;
-    ram_bank_number = 0;
     ram_size = 0;
 
     ram_enabled = false;
@@ -83,30 +78,43 @@ bool GBCartridge::load(const char* filename) {
         uint8_t cartridge_type = file.get();
         has_rom = contains_rom(cartridge_type);
         has_ram = contains_ram(cartridge_type);
-        has_mcb = contains_mcb(cartridge_type);
+        has_mbc = contains_mbc(cartridge_type);
         has_mmm01 = contains_mmm01(cartridge_type);
         has_timer = contains_timer(cartridge_type);
         has_rumble = contains_rumble(cartridge_type);
         has_battery = contains_battery(cartridge_type);
 
-        if (has_mcb) {
-            mcb_version = get_mcb_version(cartridge_type);
-        }
-
+        uint32_t rom_bank_count = 0;
         if (has_rom) {
             file.seekg(kAddrCatridgeROMSize, file.beg);
             uint8_t rom_type = file.get();
             rom_bank_count = get_rom_bank_count(rom_type);
-            rom_bank_number = 1;
             rom_size = get_rom_size(rom_type);
         }
 
+        uint32_t ram_bank_count = 0;
         if (has_ram) {
             file.seekg(kAddrCatridgeRAMSize, file.beg);
             uint8_t ram_type = file.get();
             ram_bank_count = get_ram_bank_count(ram_type);
-            ram_bank_number = 0;
             ram_size = get_ram_size(ram_type);
+        }
+
+        if (has_mbc) {
+            mbc_version = get_mbc_version(cartridge_type);
+
+            if (mbc_version == 1) {
+                mbc.reset(new MBC1(rom_bank_count, ram_bank_count));
+            } else if (mbc_version == 2) {
+                mbc.reset(new MBC2(rom_bank_count, ram_bank_count));
+            } else if (mbc_version == 3) {
+                mbc.reset(new MBC3(rom_bank_count, ram_bank_count));
+            } else if (mbc_version == 4) {
+                mbc.reset(new MBC4(rom_bank_count, ram_bank_count));
+            } else if (mbc_version == 5) {
+                mbc.reset(new MBC5(rom_bank_count, ram_bank_count));
+            }
+
         }
 
         // load ram
@@ -126,12 +134,7 @@ bool GBCartridge::load(const char* filename) {
 
 uint8_t GBCartridge::read(uint16_t addr) const {
     if (has_rom && (addr >= 0x0000 && addr <= 0x7fff)) {
-        if (addr <= 0x3fff) {
-            return rom.at(addr);
-        } else if (rom_bank_number > 0) {
-            uint32_t absolute_addr = addr + (rom_bank_number - 1) * 0x4000;
-            return rom.at(absolute_addr);
-        }
+        return rom.at(mbc->translate_address(addr));
     }
 
     if (has_ram && (addr >= 0xa000 && addr <= 0xbfff)) {
@@ -142,12 +145,13 @@ uint8_t GBCartridge::read(uint16_t addr) const {
 }
 
 void GBCartridge::write(uint16_t addr, uint8_t value) {
-    if (has_rom && (addr >= 0x0000 && addr <= 0x7fff)) {
-        //TODO: Implement Special Register Addresses
+    //TODO: Implement Special Register Addresses
+    if (has_mbc && (addr >= 0x0000 && addr <= 0x7fff)) {
+        mbc->write(addr, value);
     }
 
-    if (has_ram && (addr >= 0xa000 && addr <= 0xbfff)) {
-        //TODO: Implement RAM Access
+    else if (has_ram && ram_enabled) {
+
     }
 }
 
@@ -335,7 +339,7 @@ bool contains_mmm01(uint8_t cartridge_type) {
     }
 }
 
-bool contains_mcb(uint8_t cartridge_type) {
+bool contains_mbc(uint8_t cartridge_type) {
     switch (cartridge_type) {
         case CARTRIDGE_ROM_MBC1:
         case CARTRIDGE_ROM_MBC1_RAM:
@@ -362,7 +366,7 @@ bool contains_mcb(uint8_t cartridge_type) {
     }
 }
 
-uint32_t get_mcb_version(uint8_t cartridge_type) {
+uint32_t get_mbc_version(uint8_t cartridge_type) {
     switch (cartridge_type) {
         case CARTRIDGE_ROM_MBC1:
         case CARTRIDGE_ROM_MBC1_RAM:

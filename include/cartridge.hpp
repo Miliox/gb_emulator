@@ -3,8 +3,11 @@
 
 #include <cstdint>
 #include <fstream>
+#include <memory.h>
 #include <vector>
 #include <string>
+
+#include "mbc.hpp"
 
 enum CartridgeType : uint8_t {
     CARTRIDGE_ROM = 0x00,
@@ -39,28 +42,24 @@ enum CartridgeType : uint8_t {
     CARTRIDGE_ROM_MBC5_RUMBLE = 0x1C,
     CARTRIDGE_ROM_MBC5_RUMBLE_SRAM = 0x1D,
     CARTRIDGE_ROM_MBC5_RUMBLE_SRAM_BATT = 0x1E
-
 };
 
 class GBCartridge {
 private:
     bool has_ram;
     bool has_rom;
-    bool has_mcb;
+    bool has_mbc;
 
     bool has_battery;
     bool has_mmm01;
     bool has_rumble;
     bool has_timer;
 
-    uint32_t mcb_version;
+    std::unique_ptr<MBC> mbc;
 
-    uint32_t rom_bank_count;
-    uint32_t rom_bank_number;
+    uint32_t mbc_version;
+
     uint32_t rom_size;
-
-    uint32_t ram_bank_count;
-    uint32_t ram_bank_number;
     uint32_t ram_size;
 
     bool ram_enabled;
@@ -69,9 +68,9 @@ private:
     std::vector<uint8_t> ram;
 
     bool loaded;
-
 public:
     GBCartridge();
+    GBCartridge(const GBCartridge&) = delete;
 
     std::string title;
     bool is_japanese;

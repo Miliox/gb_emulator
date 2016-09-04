@@ -43,14 +43,14 @@ private:
     std::vector<uint8_t> hram; // high (zero page) ram
     std::vector<uint8_t> iram; // internal ram
 
-    GBCartridge cartridge;
+    std::unique_ptr<GBCartridge> cartridge;
 
     uint8_t read_hwio(uint16_t addr) const;
 
     void write_hwio(uint16_t addr, uint8_t value);
 public:
     GBMMU();
-    GBMMU(const GBCartridge&);
+    GBMMU(std::unique_ptr<GBCartridge>&);
     GBMMU(const GBMMU&) = delete;
     ~GBMMU();
 
