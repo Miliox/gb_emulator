@@ -32,11 +32,19 @@ MBC5::MBC5(uint32_t rom_bank_count, uint32_t ram_bank_count) : MBC(rom_bank_coun
 }
 
 uint32_t MBC::translate_address(uint16_t addr) {
-    return addr;
+    if (addr <= 0x7fff) {
+        return addr;
+    } else if (addr >= 0xa000 && addr <= 0xbfff) {
+        return addr - 0xa000;
+    } else {
+        throw std::runtime_error("invalid address");
+    }
 }
 
 void MBC::write(uint16_t addr, uint8_t value) {
-
+    if (addr <= 0x1fff) {
+        ram_enabled = ((value & 0x0f) == 0x0a) ? true : false;
+    }
 }
 
 uint32_t MBC1::translate_address(uint16_t addr) {

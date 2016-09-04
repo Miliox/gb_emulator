@@ -62,8 +62,6 @@ private:
     uint32_t rom_size;
     uint32_t ram_size;
 
-    bool ram_enabled;
-
     std::vector<uint8_t> rom;
     std::vector<uint8_t> ram;
 

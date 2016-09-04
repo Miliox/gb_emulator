@@ -28,7 +28,7 @@ GBCartridge::GBCartridge() :
     has_ram(false), has_rom(false), has_mbc(false),
     has_battery(false), has_mmm01(false), has_rumble(false), has_timer(false),
     mbc(new MBC(0, 0)), mbc_version(0),
-    rom_size(0), ram_size(0), ram_enabled(false),
+    rom_size(0), ram_size(0),
     rom(), ram(),
     loaded(false),
     title(), is_japanese(false) {
@@ -48,8 +48,6 @@ bool GBCartridge::load(const char* filename) {
 
     rom_size = 0;
     ram_size = 0;
-
-    ram_enabled = false;
 
     title.clear();
     is_japanese = false;
@@ -138,20 +136,19 @@ uint8_t GBCartridge::read(uint16_t addr) const {
     }
 
     if (has_ram && (addr >= 0xa000 && addr <= 0xbfff)) {
-        //TODO: Implement RAM Access
+        return ram.at(mbc->translate_address(addr));
     }
 
     return 0;
 }
 
 void GBCartridge::write(uint16_t addr, uint8_t value) {
-    //TODO: Implement Special Register Addresses
     if (has_mbc && (addr >= 0x0000 && addr <= 0x7fff)) {
         mbc->write(addr, value);
     }
 
-    else if (has_ram && ram_enabled) {
-
+    else if (has_ram && mbc->is_ram_enabled() && (addr >= 0xa000 && addr <= 0xbfff)) {
+        ram.at(mbc->translate_address(addr)) = value;
     }
 }
 
