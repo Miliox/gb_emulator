@@ -302,7 +302,10 @@ void GBMMU::set_joypad_state(uint8_t state) {
         request_interrupt(INTERRUPT_JOYPAD);
     }
     joypad_state = state;
+    update_p1();
+}
 
+void GBMMU::update_p1() {
     switch ((hwio_p1 >> 4) & 0x3) {
         case 0:
             hwio_p1 = (hwio_p1 & 0xf0);
@@ -430,6 +433,7 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
     switch (addr) {
         case kAddrP1:
             hwio_p1 = (hwio_p1 & 0x0f) | (value & 0x30);
+            update_p1();
             break;
         case kAddrSB:
             hwio_sb = value;

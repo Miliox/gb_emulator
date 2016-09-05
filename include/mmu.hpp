@@ -48,6 +48,7 @@ private:
     uint8_t read_hwio(uint16_t addr) const;
 
     void write_hwio(uint16_t addr, uint8_t value);
+    void update_p1();
 public:
     GBMMU();
     GBMMU(std::unique_ptr<GBCartridge>&);
