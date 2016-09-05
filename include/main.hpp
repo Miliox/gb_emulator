@@ -6,6 +6,7 @@
 #include "cpu.hpp"
 #include "gpu.hpp"
 #include "mmu.hpp"
+#include "joypad.hpp"
 
 const Uint32 kFramesPerSecond = 60;
 const Uint32 kMillisPerFrame  = 1000 / kFramesPerSecond;

@@ -5,7 +5,7 @@
 void dump_inst(uint8_t, const GBCPU&);
 void dump_cpu(const GBCPU&);
 void unload_bios(GBCPU& cpu, GBMMU& mmu);
-void process_events(bool& running);
+void process_events(bool& running, GBJoypad& joypad);
 
 void emulator(const char* filename) {
     std::unique_ptr<GBCartridge> cartridge(new GBCartridge());
@@ -19,6 +19,7 @@ void emulator(const char* filename) {
     GBMMU mmu(cartridge); // ownership of cartridge transfered, don't use!
     GBCPU cpu(mmu);
     GBGPU gpu(mmu);
+    GBJoypad joypad;
     gpu.set_window_title(game_title);
 
     bool running = true;
@@ -44,6 +45,15 @@ void emulator(const char* filename) {
             gpu.step(t);
             mmu.step(t);
             clock += t;
+
+            // sync
+            if (clock >= kTicksPerFrame) {
+                clock -= kTicksPerFrame;
+
+                process_events(running, joypad);
+                mmu.set_joypad_state(joypad.get_pressed_keys());
+                SDL_Delay(kMillisPerFrame);
+            }
 
             // interrupt handler
             if (mmu.interrupt_master_enabled && (mmu.hwio_ie & mmu.hwio_if)) {
@@ -76,13 +86,6 @@ void emulator(const char* filename) {
                 clock += t;
             }
 
-            // sync
-            if (clock >= kTicksPerFrame) {
-                clock -= kTicksPerFrame;
-
-                process_events(running);
-                SDL_Delay(kMillisPerFrame);
-            }
         }
     } catch (std::exception& e) {
         std::cerr << "error: " << e.what() << "\n";
@@ -189,10 +192,11 @@ void unload_bios(GBCPU& cpu, GBMMU& mmu) {
     mmu.hwio_ie   = 0x00;
 }
 
-void process_events(bool& running) {
+void process_events(bool& running, GBJoypad& joypad) {
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
+        joypad.process_events(event);
         if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
             running = false;
         }

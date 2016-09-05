@@ -73,6 +73,8 @@ public:
     void disable_interrupts();
     void enable_interrupts();
 
+    void set_joypad_state(uint8_t state);
+
     uint8_t hwio_p1;
     uint8_t hwio_sb;
     uint8_t hwio_sc;
@@ -118,6 +120,8 @@ public:
     uint8_t hwio_wy;
     uint8_t hwio_wx;
     uint8_t hwio_ie;
+
+    uint8_t joypad_state;
 };
 
 #endif

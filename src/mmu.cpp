@@ -146,6 +146,8 @@ GBMMU::GBMMU() :
     hwio_wy = 0;
     hwio_wx = 0;
     hwio_ie = 0;
+
+    joypad_state = 0;
 }
 
 GBMMU::GBMMU(std::unique_ptr<GBCartridge>& cartridge) : GBMMU() {
@@ -260,7 +262,6 @@ const tick_t kCounterPeriod[4] = {
     kTicksPerSecond / kCounterFrequencies[3]};
 
 void GBMMU::step(tick_t elapsed_ticks) {
-
     if (hwio_tac & 0x04) {
         uint8_t clock_selected = hwio_tac & 0x03;
 
@@ -293,6 +294,28 @@ void GBMMU::request_interrupt(Interrupt interrupt) {
 void GBMMU::request_lcdc_interrupt(LcdcInterrupt interrupt) {
     if (hwio_stat & interrupt) {
         request_interrupt(INTERRUPT_LCDC);
+    }
+}
+
+void GBMMU::set_joypad_state(uint8_t state) {
+    if (joypad_state != state) {
+        request_interrupt(INTERRUPT_JOYPAD);
+    }
+    joypad_state = state;
+
+    switch ((hwio_p1 >> 4) & 0x3) {
+        case 0:
+            hwio_p1 = (hwio_p1 & 0xf0);
+            break;
+        case 1:
+            hwio_p1 = (hwio_p1 & 0xf0) | (joypad_state & 0x0f);
+            break;
+        case 2:
+            hwio_p1 = (hwio_p1 & 0xf0) | (joypad_state >> 4);
+            break;
+        case 3:
+            hwio_p1 = (hwio_p1 & 0xf0) | ((joypad_state & 0x0f) | (joypad_state >> 4));
+            break;
     }
 }
 
