@@ -139,7 +139,11 @@ void dump_inst(uint8_t opcode, const GBCPU& cpu) {
 void dump_cpu(const GBCPU& cpu) {
     std::cout << std::hex;
     std::cout << "a:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.a) << ", ";
-    std::cout << "f:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.f) << ", ";
+    std::cout << "f:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.f) << " ";
+    std::cout << ((cpu.reg.f & 0x80) ? "z" : "-");
+    std::cout << ((cpu.reg.f & 0x40) ? "n" : "-");
+    std::cout << ((cpu.reg.f & 0x20) ? "h" : "-");
+    std::cout << ((cpu.reg.f & 0x10) ? "c" : "-") << ", ";
     std::cout << "b:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.b) << ", ";
     std::cout << "c:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.c) << ", ";
     std::cout << "d:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.d) << ", ";
