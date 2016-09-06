@@ -41,14 +41,14 @@ void GBJoypad::process_events(const SDL_Event& event) {
 uint8_t GBJoypad::get_pressed_keys() {
     uint8_t pressed_keys = 0;
 
-    pressed_keys |= start  ? (1 << 7) : 0;
-    pressed_keys |= select ? (1 << 6) : 0;
-    pressed_keys |= b      ? (1 << 5) : 0;
-    pressed_keys |= a      ? (1 << 4) : 0;
-    pressed_keys |= down   ? (1 << 3) : 0;
-    pressed_keys |= up     ? (1 << 2) : 0;
-    pressed_keys |= left   ? (1 << 1) : 0;
-    pressed_keys |= right  ? (1 << 0) : 0;
+    pressed_keys |= start  ? 0 : (1 << 7);
+    pressed_keys |= select ? 0 : (1 << 6);
+    pressed_keys |= b      ? 0 : (1 << 5);
+    pressed_keys |= a      ? 0 : (1 << 4);
+    pressed_keys |= down   ? 0 : (1 << 3);
+    pressed_keys |= up     ? 0 : (1 << 2);
+    pressed_keys |= left   ? 0 : (1 << 1);
+    pressed_keys |= right  ? 0 : (1 << 0);
 
     return pressed_keys;
 }
