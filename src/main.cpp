@@ -112,9 +112,19 @@ int main(int argc, char** argv) {
 void dump_inst(uint8_t opcode, const GBCPU& cpu) {
     std::cout << std::hex;
     if (opcode != 0xcb) {
-        std::cout << kGBCPUInstrunctionNames[opcode];
+        char assembly[30];
+        const char* instruction = kGBCPUInstrunctionNames[opcode];
+        const int length = kInstrunctionLength[opcode];
 
-        std::cout << " : " << static_cast<uint16_t>(opcode);
+        if (length == 2) {
+            sprintf(assembly, instruction, cpu.mmu.read_byte(cpu.reg.pc));
+        } else if (length == 3) {
+            sprintf(assembly, instruction, cpu.mmu.read_byte(cpu.reg.pc + 1), cpu.mmu.read_byte(cpu.reg.pc));
+        } else {
+            strcpy(assembly, instruction);
+        }
+
+        std::cout << assembly << " : " << static_cast<uint16_t>(opcode);
         for (int i = 1; i < kInstrunctionLength[opcode]; i++) {
             std::cout << " " << static_cast<uint16_t>(cpu.mmu.read_byte(cpu.reg.pc + i - 1));
         }
