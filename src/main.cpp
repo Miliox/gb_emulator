@@ -138,17 +138,17 @@ void dump_inst(uint8_t opcode, const GBCPU& cpu) {
 
 void dump_cpu(const GBCPU& cpu) {
     std::cout << std::hex;
-    std::cout << "a:" << static_cast<uint16_t>(cpu.reg.a) << ", ";
-    std::cout << "f:" << static_cast<uint16_t>(cpu.reg.f) << ", ";
-    std::cout << "b:" << static_cast<uint16_t>(cpu.reg.b) << ", ";
-    std::cout << "c:" << static_cast<uint16_t>(cpu.reg.c) << ", ";
-    std::cout << "d:" << static_cast<uint16_t>(cpu.reg.d) << ", ";
-    std::cout << "e:" << static_cast<uint16_t>(cpu.reg.e) << ", ";
-    std::cout << "h:" << static_cast<uint16_t>(cpu.reg.h) << ", ";
-    std::cout << "l:" << static_cast<uint16_t>(cpu.reg.l) << ", ";
+    std::cout << "a:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.a) << ", ";
+    std::cout << "f:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.f) << ", ";
+    std::cout << "b:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.b) << ", ";
+    std::cout << "c:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.c) << ", ";
+    std::cout << "d:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.d) << ", ";
+    std::cout << "e:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.e) << ", ";
+    std::cout << "h:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.h) << ", ";
+    std::cout << "l:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.l) << ", ";
 
-    std::cout << "sp: " << cpu.reg.sp << ", ";
-    std::cout << "pc: " << cpu.reg.pc;
+    std::cout << "sp:" << std::setw(4) << std::setfill('0') << cpu.reg.sp << ", ";
+    std::cout << "pc:" << std::setw(4) << std::setfill('0') << cpu.reg.pc;
     std::cout << std::dec << "\n\n";
 }
 
