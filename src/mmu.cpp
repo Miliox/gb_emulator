@@ -559,28 +559,32 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             check_lcdc_line_coincidence();
             break;
         case kAddrDMA: {
-            //TODO: Implement DMA
-            //throw std::runtime_error("DMA not implemented");
             uint16_t src_addr = value << 8;
-            if (src_addr < (0x8000  - 0xa0)) {
-                //std::cout << "dma copy from rom " << std::hex << (uint16_t) src_addr << "\n";
-                cartridge->dma_read(src_addr, 0xa0, oram.begin());
-            } else if (src_addr >= 0xc000 && src_addr <= (0xcfff  - 0xa0)) {
-                //std::cout << "dma copy ram " << std::hex << (uint16_t) src_addr << "\n";
+            const uint16_t kSizeDMABlock = 0xa0;
+            if (src_addr < (kAddrCROM + kSizeCROM - kSizeDMABlock)) {
+                // from cartridge
+                std::cout << "dma copy from rom " << std::hex << (uint16_t) src_addr << "\n";
+                cartridge->dma_read(src_addr, kSizeDMABlock, oram.begin());
+            } else if (src_addr >= kAddrIRAM && src_addr < (kAddrIRAM + kSizeIRAM - kSizeDMABlock)) {
+                // from IRAM
+                std::cout << "dma copy from ram " << std::hex << (uint16_t) src_addr << "\n";
+                src_addr -= kAddrIRAM;
                 std::copy(
                     iram.begin() + src_addr,
-                    iram.begin() + src_addr + 0xa0,
+                    iram.begin() + src_addr + kSizeDMABlock,
                     oram.begin());
-            } else if (src_addr >= 0xff80 && src_addr <= (0xfffe - 0xa0)) {
+            } else if (src_addr >= kAddrHRAM && src_addr < (kAddrHRAM + kSizeHRAM - kSizeDMABlock)) {
+                // from HRAM
                 //std::cout << "dma copy from hram " << std::hex << (uint16_t) src_addr << "\n";
+                src_addr -= kAddrHRAM;
                 std::copy(
                     hram.begin() + src_addr,
-                    hram.begin() + src_addr + 0xa0,
+                    hram.begin() + src_addr + kSizeDMABlock,
                     oram.begin());
             } else {
                 std::cout << "dma error " << std::hex << (uint16_t) src_addr << "\n";
             }
-            //print_bytes(oram.begin(), oram.begin() + 0xa0c);
+            //print_bytes(oram.begin(), oram.begin() + kSizeDMABlock);
             break;
         }
         case kAddrBGP:
