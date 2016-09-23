@@ -574,8 +574,8 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             } else if (src_addr >= 0xff80 && src_addr <= (0xfffe - 0xa0)) {
                 //std::cout << "dma copy from hram " << std::hex << (uint16_t) src_addr << "\n";
                 std::copy(
-                    iram.begin() + src_addr,
-                    iram.begin() + src_addr + 0xa0,
+                    hram.begin() + src_addr,
+                    hram.begin() + src_addr + 0xa0,
                     oram.begin());
             } else {
                 std::cout << "dma error " << std::hex << (uint16_t) src_addr << "\n";
