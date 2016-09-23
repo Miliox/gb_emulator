@@ -112,6 +112,7 @@ public:
     tick_t rr_r (uint8_t& r);
     tick_t sla_r(uint8_t& r);
     tick_t sra_r(uint8_t& r);
+    tick_t srl_r(uint8_t& r);
 
     tick_t bit_i_phl(const uint8_t index);
     tick_t set_i_phl(const uint8_t index);
@@ -123,6 +124,8 @@ public:
     tick_t rr_phl();
     tick_t sla_phl();
     tick_t sra_phl();
+
+    tick_t daa();
 
     tick_t not_implemented_error() {
         throw std::runtime_error("Instruction Not Yet Implemented");
@@ -489,6 +492,15 @@ public:
     tick_t sra_e() { return sra_r(reg.e); }
     tick_t sra_h() { return sra_r(reg.h); }
     tick_t sra_l() { return sra_r(reg.l); }
+
+    tick_t srl_a() { return srl_r(reg.a); }
+    tick_t srl_b() { return srl_r(reg.b); }
+    tick_t srl_c() { return srl_r(reg.c); }
+    tick_t srl_d() { return srl_r(reg.d); }
+    tick_t srl_e() { return srl_r(reg.e); }
+    tick_t srl_h() { return srl_r(reg.h); }
+    tick_t srl_l() { return srl_r(reg.l); }
+    tick_t srl_phl();
 
     tick_t bit_0_a() { return bit_i_r(0, reg.a); }
     tick_t bit_1_a() { return bit_i_r(1, reg.a); }

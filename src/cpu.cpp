@@ -110,7 +110,7 @@ void GBCPU::fill_instrunction_map() {
     instruction_map[0x24] = &GBCPU::inc_h;
     instruction_map[0x25] = &GBCPU::dec_h;
     instruction_map[0x26] = &GBCPU::ld_h_n;
-    instruction_map[0x27] = &GBCPU::not_implemented_error; // DAA
+    instruction_map[0x27] = &GBCPU::daa; // DAA
     instruction_map[0x28] = &GBCPU::jr_z;
     instruction_map[0x29] = &GBCPU::add_hl_hl;
     instruction_map[0x2A] = &GBCPU::ldi_a_phl;
@@ -402,6 +402,15 @@ void GBCPU::fill_cb_instrunction_map() {
     cb_instruction_map[0x35] = &GBCPU::swap_l;
     cb_instruction_map[0x36] = &GBCPU::swap_phl;
     cb_instruction_map[0x37] = &GBCPU::swap_a;
+
+    cb_instruction_map[0x38] = &GBCPU::srl_b;
+    cb_instruction_map[0x39] = &GBCPU::srl_c;
+    cb_instruction_map[0x3A] = &GBCPU::srl_d;
+    cb_instruction_map[0x3B] = &GBCPU::srl_e;
+    cb_instruction_map[0x3C] = &GBCPU::srl_h;
+    cb_instruction_map[0x3D] = &GBCPU::srl_l;
+    cb_instruction_map[0x3E] = &GBCPU::srl_phl;
+    cb_instruction_map[0x3F] = &GBCPU::srl_a;
 
     cb_instruction_map[0x40] = &GBCPU::bit_0_b;
     cb_instruction_map[0x41] = &GBCPU::bit_0_c;
@@ -1035,6 +1044,20 @@ tick_t GBCPU::sra_r(uint8_t& r) {
     return 8;
 }
 
+tick_t GBCPU::srl_r(uint8_t& r) {
+    bool has_carry = (r & 0x01) != 0;
+    r = ((r & 0x1) << 7) | (r >> 1);
+    reg.f = check_z(r) | (has_carry ? kFlagC : 0);
+    return 8;
+}
+
+tick_t GBCPU::srl_phl() {
+    uint8_t value = mmu.read_byte(reg.hl);
+    srl_r(value);
+    mmu.write_byte(reg.hl, value);
+    return 16;
+}
+
 tick_t GBCPU::bit_i_phl(const uint8_t index) {
     uint8_t value = mmu.read_byte(reg.hl);
     bit_i_r(index, value);
@@ -1644,4 +1667,23 @@ tick_t GBCPU::jr_nc() {
         reg.pc++;
     }
     return 8;
+}
+
+tick_t GBCPU::daa() {
+    int count = 0;
+    if ((reg.a & 0xf) > 9 || reg.f & kFlagH) {
+        reg.a += 0x06;
+        count += 1;
+    }
+    if ((reg.a >> 4) > 9 || reg.f & kFlagC) {
+        reg.a += 0x60;
+        count += 1;
+    }
+
+    uint8_t flags = (reg.a == 0) ? kFlagZ : 0;
+    flags |= reg.f & kFlagN;
+    flags |= count == 2 ? kFlagC : 0;
+
+    reg.f = flags;
+    return 4;
 }
