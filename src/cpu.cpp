@@ -26,8 +26,12 @@ inline uint16_t check_z(int32_t value) {
     return (value == 0) ? kFlagZ : 0;
 }
 
-inline uint16_t check_h(uint32_t value) {
-    return (value & 0x10) == 0x10 ? kFlagH : 0;
+inline uint16_t check_h(uint32_t v1, uint32_t v2) {
+    if (((v1 & 0xf) + (v2 & 0xf)) & 0x10) {
+        return kFlagH;
+    } else {
+        return 0;
+    }
 }
 
 inline uint16_t check_c(int32_t value) {
@@ -677,7 +681,7 @@ tick_t GBCPU::add_a_r(uint8_t r) {
     int32_t acc = reg.a;
     acc += r;
 
-    reg.f = check_z(acc & 0xff) | check_h(acc) | check_c(acc);
+    reg.f = check_z(acc & 0xff) | check_h(reg.a, r) | check_c(acc);
     reg.a = static_cast<uint8_t>(acc);
 
     return 4;
@@ -721,7 +725,7 @@ tick_t GBCPU::adc_a_r(uint8_t r) {
     acc += r;
     acc += (reg.f & kFlagC) ? 1 : 0;
 
-    reg.f = check_z(acc & 0xff) | check_h(acc) | check_c(acc);
+    reg.f = check_z(acc & 0xff) | check_h(reg.a, acc) | check_c(acc);
     reg.a = static_cast<uint8_t>(acc);
 
     return 4;
