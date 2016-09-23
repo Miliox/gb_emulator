@@ -110,6 +110,9 @@ void GBGPU::black() {
 
 void GBGPU::renderscan() {
     int scanline  = static_cast<int>(mmu.hwio_ly);
+
+    clear_scanline(scanline);
+
     if (mmu.hwio_lcdc & LCDC_FLAG_BACKGROUND_DISPLAY_ENABLE) {
         render_background_scanline(scanline);
     }
@@ -119,6 +122,12 @@ void GBGPU::renderscan() {
     }
 }
 const Uint32 kShadePalette[4] = {SHADE_0, SHADE_1, SHADE_2, SHADE_3};
+
+void GBGPU::clear_scanline(const int scanline) {
+    int line_begin = scanline * SCREEN_WIDTH;
+    int line_end = line_begin + SCREEN_WIDTH;
+    std::fill(framebuffer.begin() + line_begin, framebuffer.begin() + line_end, SHADE_0);
+}
 
 void GBGPU::render_background_scanline(const int scanline) {
     int offset_line = mmu.hwio_scy;
@@ -164,51 +173,57 @@ void GBGPU::render_background_scanline(const int scanline) {
 const uint16_t kSizeSprite = 4;
 
 void GBGPU::render_sprite_scanline(const int scanline) {
-    uint8_t sprite_width  = 8;
-    uint8_t sprite_height = (mmu.hwio_lcdc & LCDC_FLAG_SPRITE_SIZE)
-        ? 16 : 8;
+    uint16_t render_line = scanline;
 
-    std::vector<GBSprite> sprites;
-    for (int i = 0; i < 40; i++) {
-        uint16_t sprite_addr = 0xfe00 + i * kSizeSprite;
+    bool is8x16 = mmu.hwio_lcdc & LCDC_FLAG_SPRITE_SIZE;
+    const uint8_t kSpriteWidth = 8;
+    const uint8_t kSpriteHeight = (is8x16) ? 16 : 8;
 
-        uint8_t y = mmu.read_byte(sprite_addr) - 16;
-        uint8_t x = mmu.read_byte(sprite_addr + 1) - 8;
+    std::vector<GBSprite*> visible_sprites;
 
-        if (y == 0 || y >= 160) {
+    // sort visible sprites in the line
+    GBSprite* sprite = reinterpret_cast<GBSprite*>(mmu.get_oam_ram_head());
+    uint16_t sprite_count = mmu.get_oam_ram_size() / sizeof(GBSprite);
+    for(int i = 0; i < sprite_count; i++) {
+
+        if (sprite[i].x == 0 || sprite[i].x >= (160 + 8) ||
+            sprite[i].y == 0 || sprite[i].y >= (144 + 16)) {
             continue;
         }
 
-        if (x == 0 || x >= 168) {
+        if (sprite[i].screenY() > render_line || (sprite[i].screenY() + kSpriteHeight) < render_line) {
             continue;
         }
 
-        if (scanline >= y &&  scanline < (y + sprite_height)) {
-            uint8_t tile = mmu.read_byte(sprite_addr + 2);
-            uint8_t flags = mmu.read_byte(sprite_addr + 3);
-            sprites.push_back(GBSprite(x, y, tile, flags));
-        }
+        visible_sprites.push_back(&sprite[i]);
     }
 
-    uint16_t sprite_base_addr = 0x8000;
+    const uint16_t kSpriteTileSize = 16;
+    const uint16_t kSpriteTileLineSize = 2;
+    const uint16_t kSpriteTileAddress = 0x8000;
+    for (auto &sprite : visible_sprites) {
+        uint16_t tileNumber = is8x16 ? (sprite->tile & 0xfe) : sprite->tile;
+        uint16_t tileAddress = kSpriteTileAddress + (tileNumber * kSpriteTileSize);
+        uint16_t tileLine = sprite->screenY() - render_line;
 
-    for (auto& sprite : sprites) {
-        int line = scanline - sprite.y;
-        if (sprite.y_flip) {
-            line -= sprite_height;
-            line *= -1;
+        if (sprite->is_yflipped()) {
+            tileLine = (kSpriteHeight - 1) - tileLine;
         }
-        line *= 2;
 
-        uint16_t tile_addr = sprite_base_addr + line + (sprite.tile * 16);
+        uint16_t tileLineAddress = tileAddress + (tileLine * kSpriteTileLineSize);
 
-        uint8_t lsb = mmu.read_byte(tile_addr);
-        uint8_t msb = mmu.read_byte(tile_addr + 1);
+        uint8_t lsb = mmu.read_byte(tileLineAddress);
+        uint8_t msb = mmu.read_byte(tileLineAddress + 1);
 
-        uint8_t sprite_pallete = sprite.is_pallete_1 ? mmu.hwio_obp1 : mmu.hwio_obp0;
+        uint8_t sprite_pallete = sprite->is_pallet1() ? mmu.hwio_obp1 : mmu.hwio_obp0;
 
-        for (int i = 0; i < sprite_width; i++) {
-            int bit_index = 7 - i;
+        for (int i = 0; i < kSpriteWidth; i++) {
+            if ((sprite->x + i) < kSpriteWidth || (sprite->screenX() + i) >= SCREEN_WIDTH) {
+                // Pixel not visible
+                continue;
+            }
+
+            int bit_index = sprite->is_xflipped() ? i : (7 - i);
 
             int sprite_palette_index = 0;
             sprite_palette_index += ((lsb >> bit_index) & 0x01) ? 2 : 0;
@@ -216,7 +231,8 @@ void GBGPU::render_sprite_scanline(const int scanline) {
 
             int pallete_index = (sprite_pallete >> (sprite_palette_index * 2)) & 0x3;
 
-            int pos = (sprite.x + i) + (scanline * SCREEN_WIDTH);
+            int column = sprite->screenX() + i;
+            int pos = column + (scanline * SCREEN_WIDTH);
             framebuffer.at(pos) = kShadePalette[pallete_index];
         }
     }

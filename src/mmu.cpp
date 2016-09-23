@@ -616,6 +616,14 @@ void GBMMU::check_lcdc_line_coincidence() {
     }
 }
 
+uint8_t* GBMMU::get_oam_ram_head() {
+    return oram.data();
+}
+
+uint16_t GBMMU::get_oam_ram_size() {
+    return oram.size();
+}
+
 void dump_mmu_oper(const char* op, uint16_t offset, uint16_t value) {
     std::cout << std::hex;
     std::cout << op << " @" << offset << " ";

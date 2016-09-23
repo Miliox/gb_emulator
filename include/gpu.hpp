@@ -39,6 +39,7 @@ private:
 
     uint16_t decode_background_address(const uint8_t line, const uint8_t column);
 
+    void clear_scanline(const int scanline);
     void render_background_scanline(const int scanline);
     void render_sprite_scanline(const int scanline);
 
