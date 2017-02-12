@@ -196,6 +196,8 @@ void process_events(bool& running, GBJoypad& joypad) {
         joypad.process_events(event);
         if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
             running = false;
+        } else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE) {
+            running = false;
         }
     }
 }
