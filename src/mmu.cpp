@@ -563,11 +563,11 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             const uint16_t kSizeDMABlock = 0xa0;
             if (src_addr < (kAddrCROM + kSizeCROM - kSizeDMABlock)) {
                 // from cartridge
-                std::cout << "dma copy from rom " << std::hex << (uint16_t) src_addr << "\n";
+                // std::cout << "dma copy from rom " << std::hex << (uint16_t) src_addr << "\n";
                 cartridge->dma_read(src_addr, kSizeDMABlock, oram.begin());
             } else if (src_addr >= kAddrIRAM && src_addr < (kAddrIRAM + kSizeIRAM - kSizeDMABlock)) {
                 // from IRAM
-                std::cout << "dma copy from ram " << std::hex << (uint16_t) src_addr << "\n";
+                // std::cout << "dma copy from ram " << std::hex << (uint16_t) src_addr << "\n";
                 src_addr -= kAddrIRAM;
                 std::copy(
                     iram.begin() + src_addr,
@@ -582,9 +582,10 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
                     hram.begin() + src_addr + kSizeDMABlock,
                     oram.begin());
             } else {
-                std::cout << "dma error " << std::hex << (uint16_t) src_addr << "\n";
+                std::cerr << "dma error " << std::hex << (uint16_t) src_addr << "\n";
             }
-            //print_bytes(oram.begin(), oram.begin() + kSizeDMABlock);
+            // print_bytes(oram.begin(), oram.begin() + kSizeDMABlock);
+            // std::cout << "\n";
             break;
         }
         case kAddrBGP:

@@ -55,7 +55,7 @@ void GBGPU::show() {
             SDL_WINDOWPOS_UNDEFINED,
             SCREEN_WIDTH,
             SCREEN_HEIGHT,
-            SDL_WINDOW_SHOWN );
+            SDL_WINDOW_SHOWN);
 
         if (window) {
             renderer = SDL_CreateRenderer(window, -1, 0);
