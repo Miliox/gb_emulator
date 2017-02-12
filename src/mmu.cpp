@@ -89,8 +89,6 @@ const uint16_t kSizeCROM = (0x7fff - kAddrCROM) + 1;
 const uint16_t kSizeCartridgeBank = 0x4000;
 
 void dump_mmu_oper(const char * op, uint16_t offset, uint16_t value);
-void print_bytes(const std::vector<uint8_t>& data);
-void print_bytes(std::vector<uint8_t>::iterator b, std::vector<uint8_t>::iterator e);
 
 GBMMU::GBMMU() :
     tick_counter(0),
@@ -584,7 +582,7 @@ void GBMMU::write_hwio(uint16_t addr,  uint8_t value) {
             } else {
                 std::cerr << "dma error " << std::hex << (uint16_t) src_addr << "\n";
             }
-            // print_bytes(oram.begin(), oram.begin() + kSizeDMABlock);
+            // std::cout << print_bytes(oram.begin(), oram.begin() + kSizeDMABlock).str().c_str();
             // std::cout << "\n";
             break;
         }
@@ -636,25 +634,3 @@ void dump_mmu_oper(const char* op, uint16_t offset, uint16_t value) {
     std::cout << std::dec;
 }
 
-void print_bytes(const std::vector<uint8_t>& data) {
-    std::cout << "\n";
-    std::cout << std::setfill('0');
-    for(size_t i = 0; i < data.size(); ++i) {
-        std::cout << std::hex << std::setw(2) << (int)data[i];
-        std::cout << (((i + 1) % 64 == 0) ? "\n" : " ");
-    }
-    std::cout << "\n\n";
-}
-
-void print_bytes(std::vector<uint8_t>::iterator b, std::vector<uint8_t>::iterator e) {
-    std::cout << "\n";
-    std::cout << std::setfill('0');
-    int count = 0;
-    while(b != e) {
-        std::cout << std::hex << std::setw(2) << (int)*b;
-        std::cout << (((count + 1) % 16 == 0) ? "\n" : " ");
-        ++b;
-        ++count;
-    }
-    std::cout << "\n\n";
-}
