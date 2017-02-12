@@ -1,5 +1,5 @@
-SOURCE = src/cpu.cpp src/mmu.cpp src/gpu.cpp src/cartridge.cpp src/mbc.cpp src/joypad.cpp
-CFLAGS = -std=c++11 -Wall `(sdl2-config --cflags)` -Iinclude/ `(sdl2-config --libs)`
+SOURCE = src/cpu.cpp src/mmu.cpp src/gpu.cpp src/cartridge.cpp src/mbc.cpp src/joypad.cpp src/debugger.cpp
+CFLAGS = -std=c++11 -Wall `(sdl2-config --cflags)` -Iinclude/ `(sdl2-config --libs)` -lSDL2_ttf
 
 .PHONY: test
 
