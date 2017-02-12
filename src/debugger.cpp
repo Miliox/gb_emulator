@@ -70,6 +70,7 @@ void Debugger::draw() {
     }
 
     auto reg_dump = dump_registers();
+    auto mem_dump = dump_memory();
     auto cpu_dump = dump_executed_instructions();
 
     std::vector<std::string> lines;
@@ -77,6 +78,8 @@ void Debugger::draw() {
     lines.insert(lines.end(), reg_dump.begin(), reg_dump.end());
     lines.push_back("CPU History:");
     lines.insert(lines.end(), cpu_dump.begin(), cpu_dump.end());
+    lines.push_back("IRAM Dump:");
+    lines.insert(lines.end(), mem_dump.begin(), mem_dump.end());
 
     std::vector<std::pair<SDL_Surface*, SDL_Texture*>> render_list;
     for (auto &line : lines) {
@@ -135,7 +138,7 @@ std::vector<std::string> Debugger::dump_registers() {
 }
 
 std::vector<std::string> Debugger::dump_memory() {
-    std::stringstream iram_dump = print_bytes(mmu.iram.begin(), mmu.iram.begin() + 512);
+    std::stringstream iram_dump = print_bytes(mmu.iram.begin(), mmu.iram.begin() + 256);
     return text_to_line_vector(iram_dump);
 }
 
