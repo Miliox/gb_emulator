@@ -3,7 +3,6 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 
-void dump_inst(uint8_t, const GBCPU&);
 void dump_cpu(const GBCPU&);
 void unload_bios(GBCPU& cpu, GBMMU& mmu);
 void process_events(bool& running, GBJoypad& joypad);
@@ -36,9 +35,10 @@ void emulator(const char* filename) {
     try {
         tick_t clock = 0;
         while(running) {
+            debugger.log_instruction();
+
             // fetch
             uint8_t op = cpu.mmu.read_byte(cpu.reg.pc++);
-            //dump_inst(op, cpu);
 
             // decode
             auto& instruction = cpu.instruction_map.at(op);
@@ -117,33 +117,6 @@ int main(int argc, char** argv) {
         std::cerr << "Window could not be created! SDL_Error:" << SDL_GetError() << "\n";
     }
     return 0;
-}
-
-void dump_inst(uint8_t opcode, const GBCPU& cpu) {
-    std::cout << std::hex;
-    if (opcode != 0xcb) {
-        char assembly[30];
-        const char* instruction = kGBCPUInstrunctionNames[opcode];
-        const int length = kInstrunctionLength[opcode];
-
-        if (length == 2) {
-            sprintf(assembly, instruction, cpu.mmu.read_byte(cpu.reg.pc));
-        } else if (length == 3) {
-            sprintf(assembly, instruction, cpu.mmu.read_byte(cpu.reg.pc + 1), cpu.mmu.read_byte(cpu.reg.pc));
-        } else {
-            strcpy(assembly, instruction);
-        }
-
-        std::cout << assembly << " : " << static_cast<uint16_t>(opcode);
-        for (int i = 1; i < kInstrunctionLength[opcode]; i++) {
-            std::cout << " " << static_cast<uint16_t>(cpu.mmu.read_byte(cpu.reg.pc + i - 1));
-        }
-
-    } else {
-        std::cout << "op:" << static_cast<uint16_t>(opcode);
-        std::cout << " " << static_cast<uint16_t>(cpu.mmu.read_byte(cpu.reg.pc));
-    }
-    std::cout << std::dec << "\n";
 }
 
 void dump_cpu(const GBCPU& cpu) {

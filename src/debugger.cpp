@@ -9,7 +9,6 @@
 
 #include <iostream>
 #include <iomanip>
-#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -23,8 +22,8 @@ void Debugger::show() {
         window = SDL_CreateWindow("GBDebugger",
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
-            500,
-            500,
+            700,
+            900,
             SDL_WINDOW_SHOWN);
 
         if (window) {
@@ -70,9 +69,14 @@ void Debugger::draw() {
         return;
     }
 
-    SDL_Color black = {0, 0, 0, 0};
+    auto reg_dump = dump_registers();
+    auto cpu_dump = dump_executed_instructions();
 
-    auto lines = dump_registers();
+    std::vector<std::string> lines;
+    lines.push_back("CPU Registers:");
+    lines.insert(lines.end(), reg_dump.begin(), reg_dump.end());
+    lines.push_back("CPU History:");
+    lines.insert(lines.end(), cpu_dump.begin(), cpu_dump.end());
 
     std::vector<std::pair<SDL_Surface*, SDL_Texture*>> render_list;
     for (auto &line : lines) {
@@ -80,8 +84,6 @@ void Debugger::draw() {
         auto texture = SDL_CreateTextureFromSurface(renderer, surface);
         render_list.push_back(std::make_pair(surface, texture));
     }
-
-    int textureWidth = 0, textureHeight = 0;
 
     SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
     SDL_RenderClear(renderer);
@@ -105,7 +107,6 @@ void Debugger::draw() {
 std::vector<std::string> Debugger::dump_registers() {
     std::stringstream cpu_register_dump;
 
-    cpu_register_dump << "Registers:\n";
     cpu_register_dump << std::hex;
 
     cpu_register_dump << "a:" << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(cpu.reg.a) << " ";
@@ -127,15 +128,35 @@ std::vector<std::string> Debugger::dump_registers() {
     cpu_register_dump << "de:" << std::setw(4) << std::setfill('0') << cpu.reg.de << " ";
     cpu_register_dump << "hl:" << std::setw(4) << std::setfill('0') << cpu.reg.hl << " ";
     cpu_register_dump << "sp:" << std::setw(4) << std::setfill('0') << cpu.reg.sp << " ";
-    cpu_register_dump << "pc:" << std::setw(4) << std::setfill('0') << cpu.reg.pc;
+    cpu_register_dump << "pc:" << std::setw(4) << std::setfill('0') << cpu.reg.pc << "\n";
     cpu_register_dump << std::dec;
 
+    return text_to_line_vector(cpu_register_dump);
+}
+
+std::vector<std::string> Debugger::dump_memory() {
+    std::stringstream iram_dump = print_bytes(mmu.iram.begin(), mmu.iram.begin() + 512);
+    return text_to_line_vector(iram_dump);
+}
+
+std::vector<std::string> Debugger::dump_executed_instructions() {
     std::vector<std::string> lines;
-    while (cpu_register_dump.good()) {
-        std::string line;
-        std::getline(cpu_register_dump, line);
-        lines.push_back(line);
+    while (!last_cpu_instructions.empty()) {
+        lines.push_back(last_cpu_instructions.front().to_string());
+        last_cpu_instructions.pop();
+    }
+    return lines;
+}
+
+void Debugger::log_instruction() {
+    if (last_cpu_instructions.size() > 32) {
+        last_cpu_instructions.pop();
     }
 
-    return lines;
+    last_cpu_instructions.push(Instruction(
+        cpu.reg.pc,
+        cpu.mmu.read_byte(cpu.reg.pc),
+        cpu.mmu.read_byte(cpu.reg.pc + 1),
+        cpu.mmu.read_byte(cpu.reg.pc + 2))
+    );
 }

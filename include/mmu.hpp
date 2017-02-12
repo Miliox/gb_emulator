@@ -3,6 +3,7 @@
 
 #include "clock.hpp"
 #include "cartridge.hpp"
+#include "utils.hpp"
 
 #include <cstdint>
 #include <fstream>
@@ -38,10 +39,6 @@ enum LcdcInterrupt : uint8_t {
 class GBMMU {
 private:
     tick_t tick_counter;
-    std::vector<uint8_t> vram; // video ram
-    std::vector<uint8_t> oram; // object attribute (sprite) ram
-    std::vector<uint8_t> hram; // high (zero page) ram
-    std::vector<uint8_t> iram; // internal ram
 
     std::unique_ptr<GBCartridge> cartridge;
 
@@ -50,6 +47,11 @@ private:
     void write_hwio(uint16_t addr, uint8_t value);
     void update_p1();
 public:
+    std::vector<uint8_t> vram; // video ram
+    std::vector<uint8_t> oram; // object attribute (sprite) ram
+    std::vector<uint8_t> hram; // high (zero page) ram
+    std::vector<uint8_t> iram; // internal ram
+
     GBMMU();
     GBMMU(std::unique_ptr<GBCartridge>&);
     GBMMU(const GBMMU&) = delete;
