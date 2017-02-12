@@ -1,6 +1,7 @@
 #include "main.hpp"
 
 #include <SDL.h>
+#include <SDL_ttf.h>
 
 void dump_inst(uint8_t, const GBCPU&);
 void dump_cpu(const GBCPU&);
@@ -20,6 +21,9 @@ void emulator(const char* filename) {
     GBCPU cpu(mmu);
     GBGPU gpu(mmu);
     GBJoypad joypad;
+
+    Debugger debugger(cpu, gpu, joypad);
+
     gpu.set_window_title(game_title);
 
     bool running = true;
@@ -27,6 +31,7 @@ void emulator(const char* filename) {
     // skip bios checking
     unload_bios(cpu, mmu);
 
+    debugger.show();
     gpu.show();
     try {
         tick_t clock = 0;
@@ -52,6 +57,9 @@ void emulator(const char* filename) {
 
                 process_events(running, joypad);
                 mmu.set_joypad_state(joypad.get_pressed_keys());
+
+                debugger.draw();
+
                 SDL_Delay(kMillisPerFrame);
             }
 
@@ -91,6 +99,7 @@ void emulator(const char* filename) {
         std::cerr << "error: " << e.what() << "\n";
     }
     gpu.hide();
+    debugger.hide();
 }
 
 int main(int argc, char** argv) {
@@ -100,8 +109,9 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    if (SDL_Init(SDL_INIT_VIDEO) >= 0) {
+    if (SDL_Init(SDL_INIT_VIDEO) >= 0 && TTF_Init() == 0) {
         emulator(argv[1]);
+        TTF_Quit();
         SDL_Quit();
     } else {
         std::cerr << "Window could not be created! SDL_Error:" << SDL_GetError() << "\n";

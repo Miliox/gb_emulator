@@ -9,6 +9,8 @@
 #include "mmu.hpp"
 #include "joypad.hpp"
 
+#include "debugger.hpp"
+
 const Uint32 kFramesPerSecond = 60;
 const Uint32 kMillisPerFrame  = 1000 / kFramesPerSecond;
 
