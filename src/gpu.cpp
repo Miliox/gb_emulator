@@ -191,11 +191,12 @@ void GBGPU::render_sprite_scanline(const int scanline) {
             continue;
         }
 
-        if (sprite[i].screenY() > render_line || (sprite[i].screenY() + kSpriteHeight) < render_line) {
+        if (sprite[i].screenY() > render_line ||
+            (sprite[i].screenY() + kSpriteHeight) <= render_line) {
             continue;
         }
 
-        visible_sprites.push_back(&sprite[i]);
+        visible_sprites.push_back(sprite + i);
     }
 
     const uint16_t kSpriteTileSize = 16;
@@ -204,7 +205,7 @@ void GBGPU::render_sprite_scanline(const int scanline) {
     for (auto &sprite : visible_sprites) {
         uint16_t tileNumber = is8x16 ? (sprite->tile & 0xfe) : sprite->tile;
         uint16_t tileAddress = kSpriteTileAddress + (tileNumber * kSpriteTileSize);
-        uint16_t tileLine = sprite->screenY() - render_line;
+        uint16_t tileLine = render_line - sprite->screenY();
 
         if (sprite->is_yflipped()) {
             tileLine = (kSpriteHeight - 1) - tileLine;
@@ -233,7 +234,10 @@ void GBGPU::render_sprite_scanline(const int scanline) {
 
             int column = sprite->screenX() + i;
             int pos = column + (scanline * SCREEN_WIDTH);
-            framebuffer.at(pos) = kShadePalette[pallete_index];
+
+            if (pallete_index != 0) {
+                framebuffer.at(pos) = kShadePalette[pallete_index];
+            }
         }
     }
 }
