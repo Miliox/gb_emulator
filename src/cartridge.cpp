@@ -3,12 +3,12 @@
 #include <iostream>
 #include <stdexcept>
 
-const int kAddrCatridgeGameTitle = 0x134;
-const int kAddrCatridgeSGBIndicator = 0x146;
-const int kAddrCatridgeType = 0x147;
-const int kAddrCatridgeROMSize = 0x148;
-const int kAddrCatridgeRAMSize = 0x149;
-const int kAddrCatridgeDestinationCode = 0x14a;
+const int kAddrCartridgeGameTitle = 0x134;
+const int kAddrCartridgeSGBIndicator = 0x146;
+const int kAddrCartridgeType = 0x147;
+const int kAddrCartridgeROMSize = 0x148;
+const int kAddrCartridgeRAMSize = 0x149;
+const int kAddrCartridgeDestinationCode = 0x14a;
 
 bool contains_mbc(uint8_t cartridge_type);
 bool contains_rom(uint8_t cartridge_type);
@@ -62,17 +62,17 @@ bool GBCartridge::load(const char* filename) {
         // load title
         char title_str[12];
         std::memset(title_str, 0, sizeof(title_str));
-        file.seekg(kAddrCatridgeGameTitle, file.beg);
+        file.seekg(kAddrCartridgeGameTitle, file.beg);
         file.read(title_str, sizeof(title_str));
         title_str[sizeof(title_str) - 1] = '\0';
         title = std::string(title_str);
 
         // load location
-        file.seekg(kAddrCatridgeType, file.beg);
+        file.seekg(kAddrCartridgeType, file.beg);
         is_japanese = (file.get() == 0) ? true : false;
 
         // load type
-        file.seekg(kAddrCatridgeType, file.beg);
+        file.seekg(kAddrCartridgeType, file.beg);
         uint8_t cartridge_type = file.get();
         has_rom = contains_rom(cartridge_type);
         has_ram = contains_ram(cartridge_type);
@@ -84,7 +84,7 @@ bool GBCartridge::load(const char* filename) {
 
         uint32_t rom_bank_count = 0;
         if (has_rom) {
-            file.seekg(kAddrCatridgeROMSize, file.beg);
+            file.seekg(kAddrCartridgeROMSize, file.beg);
             uint8_t rom_type = file.get();
             rom_bank_count = get_rom_bank_count(rom_type);
             rom_size = get_rom_size(rom_type);
@@ -92,7 +92,7 @@ bool GBCartridge::load(const char* filename) {
 
         uint32_t ram_bank_count = 0;
         if (has_ram) {
-            file.seekg(kAddrCatridgeRAMSize, file.beg);
+            file.seekg(kAddrCartridgeRAMSize, file.beg);
             uint8_t ram_type = file.get();
             ram_bank_count = get_ram_bank_count(ram_type);
             ram_size = get_ram_size(ram_type);
